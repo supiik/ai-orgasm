@@ -59,6 +59,10 @@ mvn verify
 # Skip mutation testing for a faster feedback loop
 mvn verify -Dpitest.skip=true
 
+# Daily quality gate: coverage + mutation with 80% line-coverage enforcement
+# Fails the build if any module drops below 80% line coverage
+mvn verify -Pdaily
+
 # Run mutation coverage in isolation for a single module
 mvn pitest:mutationCoverage -pl sdk
 
@@ -144,7 +148,7 @@ The backend uses two physically separate MariaDB databases, each with its own `D
 
 | Technology | Version |
 |------------|---------|
-| Java | 21 LTS |
+| Java | 25 |
 | Spring Boot | 4.0.6 |
 | AWS SDK v2 | 2.31.0 |
 | Node | 22 LTS (enforced via `engines` in `package.json`) |
