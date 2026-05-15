@@ -34,6 +34,10 @@
         <junit.version>5.11.4</junit.version>
         <lombok.version>1.18.40</lombok.version>
         <jacoco.version>0.8.14</jacoco.version>
+        <!-- Baseline JVM args; JaCoCo prepends its agent in the initialize phase -->
+        <argLine>--enable-preview</argLine>
+        <pitest.version>1.23.1</pitest.version>
+        <pitest-junit5-plugin.version>1.2.2</pitest-junit5-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -104,7 +108,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.5.2</version>
                     <configuration>
-                        <argLine>@{argLine} --enable-preview</argLine>
+                        <argLine>${argLine}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -121,6 +125,31 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.pitest</groupId>
+                    <artifactId>pitest-maven</artifactId>
+                    <version>${pitest.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.pitest</groupId>
+                            <artifactId>pitest-junit5-plugin</artifactId>
+                            <version>${pitest-junit5-plugin.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <targetClasses>
+                            <param>com.orgasm.*</param>
+                        </targetClasses>
+                        <targetTests>
+                            <param>com.orgasm.*</param>
+                        </targetTests>
+                        <outputFormats>
+                            <outputFormat>HTML</outputFormat>
+                            <outputFormat>XML</outputFormat>
+                        </outputFormats>
+                        <timestampedReports>false</timestampedReports>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>

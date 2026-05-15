@@ -48,6 +48,23 @@ mvn package -pl lambda -am
 
 Preview features are enabled compiler-wide (`--enable-preview`); the Surefire argLine passes the same flag so tests compile and run cleanly.
 
+## Mutation testing (PIT)
+
+PIT is on-demand only — not bound to any lifecycle phase.
+
+```bash
+# Run across all modules (slow)
+mvn pitest:mutationCoverage
+
+# Run for a single module
+mvn pitest:mutationCoverage -pl sdk
+mvn pitest:mutationCoverage -pl backend
+mvn pitest:mutationCoverage -pl lambda
+
+# Reports land at target/pit-reports/index.html (timestamped dirs disabled)
+# withHistory=true means successive runs only re-mutate changed classes
+```
+
 ## UI commands
 
 ```bash
