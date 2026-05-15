@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS invoice
+(
+    id         BIGINT         NOT NULL AUTO_INCREMENT,
+    tenant_ref VARCHAR(255)   NOT NULL,
+    amount     DECIMAL(10, 2) NOT NULL,
+    status     VARCHAR(50)    NOT NULL DEFAULT 'PENDING',
+    version    BIGINT         NOT NULL DEFAULT 0,
+    created_at TIMESTAMP(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at TIMESTAMP(6)   NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    PRIMARY KEY (id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci;

@@ -109,6 +109,37 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 ### CORS
 `WebConfig` allows `http://localhost:5173` (Vite dev server) for all `/api/**` routes. For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
 
+### Multi-datasource JPA (backend)
+The backend uses two physically separate MariaDB databases, each with its own `DataSource`, `EntityManagerFactory`, and `JpaTransactionManager`:
+
+| Bean qualifier | Database | Port | Purpose |
+|----------------|----------|------|---------|
+| `appDataSource` / `appEntityManagerFactory` | `orgasm` | 3306 | Application data |
+| `billingDataSource` / `billingEntityManagerFactory` | `orgasm_billing` | 3307 | Billing data |
+
+**Package layout for entities and repositories:**
+- `com.orgasm.backend.domain.app` — `@Entity` classes for the app database
+- `com.orgasm.backend.domain.billing` — `@Entity` classes for the billing database
+- `com.orgasm.backend.repository.app` — Spring Data repositories (use `appTransactionManager`)
+- `com.orgasm.backend.repository.billing` — Spring Data repositories (use `billingTransactionManager`)
+
+**Base entity:** All entities should extend `com.orgasm.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
+- `version` — optimistic locking via `@Version`
+- `createdAt` — set once on insert via `@CreatedDate`
+- `updatedAt` — updated on every save via `@LastModifiedDate`
+
+**Flyway:** Schema migrations are managed per-database:
+- `classpath:db/migration/app/` — app database migrations
+- `classpath:db/migration/billing/` — billing database migrations
+
+`DataSourceAutoConfiguration` and `FlywayAutoConfiguration` are excluded from Spring Boot auto-config — all datasource and migration setup is manual. `HibernateJpaAutoConfiguration` is intentionally kept active so it provides the shared `EntityManagerFactoryBuilder`.
+
+**Repositories must always declare their transaction manager explicitly:**
+```java
+@Transactional("appTransactionManager")      // for app repos
+@Transactional("billingTransactionManager")  // for billing repos
+```
+
 ## Key version pins
 
 | Technology | Version |

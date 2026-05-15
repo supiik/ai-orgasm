@@ -1,18 +1,30 @@
 spring:
   application:
     name: orgasm-backend
-  datasource:
-    url: jdbc:mariadb://localhost:3306/orgasm
-    username: orgasm
-    password: orgasm
-    driver-class-name: org.mariadb.jdbc.Driver
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
   docker:
     compose:
       lifecycle-management: start-and-stop
       file: compose.yml
-  flyway:
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+datasource:
+  app:
+    url: jdbc:mariadb://localhost:3306/orgasm
+    username: orgasm
+    password: orgasm
+    driver-class-name: org.mariadb.jdbc.Driver
+  billing:
+    url: jdbc:mariadb://localhost:3307/orgasm_billing
+    username: orgasm_billing
+    password: orgasm_billing
+    driver-class-name: org.mariadb.jdbc.Driver
 
 server:
   port: 8080

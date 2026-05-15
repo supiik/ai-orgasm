@@ -59,10 +59,10 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- JDBC starter – auto-configures DataSource from application.yml -->
+        <!-- JPA starter – Hibernate ORM + Spring Data JPA + JDBC -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
         <!-- Flyway database migrations -->
@@ -85,6 +85,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
