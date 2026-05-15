@@ -50,19 +50,19 @@ Preview features are enabled compiler-wide (`--enable-preview`); the Surefire ar
 
 ## Mutation testing (PIT)
 
-PIT is on-demand only — not bound to any lifecycle phase.
+PIT is bound to the `verify` phase in the parent POM alongside JaCoCo — it runs automatically on `mvn verify`.
 
 ```bash
-# Run across all modules (slow)
-mvn pitest:mutationCoverage
+# Full verify: compiles, tests, JaCoCo coverage + PiTest mutation (all modules)
+mvn verify
 
-# Run for a single module
+# Skip mutation testing for a faster feedback loop
+mvn verify -Dpitest.skip=true
+
+# Run mutation coverage in isolation for a single module
 mvn pitest:mutationCoverage -pl sdk
-mvn pitest:mutationCoverage -pl backend
-mvn pitest:mutationCoverage -pl lambda
 
 # Reports land at target/pit-reports/index.html (timestamped dirs disabled)
-# withHistory=true means successive runs only re-mutate changed classes
 ```
 
 ## UI commands
