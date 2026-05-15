@@ -33,6 +33,7 @@
         <aws-sdk-v2.version>2.31.0</aws-sdk-v2.version>
         <junit.version>5.11.4</junit.version>
         <lombok.version>1.18.40</lombok.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
 
     <dependencyManagement>
@@ -103,7 +104,7 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.5.2</version>
                     <configuration>
-                        <argLine>--enable-preview</argLine>
+                        <argLine>@{argLine} --enable-preview</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -116,7 +117,34 @@
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>3.6.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 </project>
