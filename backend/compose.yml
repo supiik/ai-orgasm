@@ -1,5 +1,5 @@
 services:
-  mariadb:
+  mariadb-app:
     image: mariadb:12.2.2
     environment:
       MARIADB_DATABASE: orgasm
@@ -9,7 +9,24 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mariadb_app_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mariadb-billing:
+    image: mariadb:12.2.2
+    environment:
+      MARIADB_DATABASE: orgasm_billing
+      MARIADB_USER: orgasm_billing
+      MARIADB_PASSWORD: orgasm_billing
+      MARIADB_ROOT_PASSWORD: orgasm_billing_root
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb_billing_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -17,4 +34,5 @@ services:
       retries: 10
 
 volumes:
-  mariadb_data:
+  mariadb_app_data:
+  mariadb_billing_data:
