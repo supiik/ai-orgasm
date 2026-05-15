@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: orgasm-backend
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.orgasm: DEBUG
+    org.springframework.web: INFO

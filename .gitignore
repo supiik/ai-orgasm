@@ -1,0 +1,39 @@
+# Maven
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Spring Boot
+*.log
+spring-logs/
+
+# Node / Vue
+node_modules/
+ui/dist/
+ui/.vite/
+ui/coverage/
+ui/*.local
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# AWS SAM
+lambda/.aws-sam/
+samconfig.toml
+
+# OS
+Thumbs.db
