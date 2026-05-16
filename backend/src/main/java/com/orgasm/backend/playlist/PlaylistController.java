@@ -1,6 +1,5 @@
 package com.orgasm.backend.playlist;
 
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -44,20 +43,12 @@ public class PlaylistController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Playlist> update(@PathVariable Long id, @RequestBody Playlist updates) {
-        try {
-            return ResponseEntity.ok(service.update(id, updates));
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(service.update(id, updates));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        try {
-            service.delete(id);
-            return ResponseEntity.noContent().build();
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        }
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }
