@@ -2,10 +2,10 @@ services:
   mariadb-app:
     image: mariadb:12.2.2
     environment:
-      MARIADB_DATABASE: orgasm
-      MARIADB_USER: orgasm
-      MARIADB_PASSWORD: orgasm
-      MARIADB_ROOT_PASSWORD: orgasm_root
+      MARIADB_DATABASE: ${APP_DB_NAME}
+      MARIADB_USER: ${APP_DB_USER}
+      MARIADB_PASSWORD: ${APP_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${APP_DB_ROOT_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -19,10 +19,10 @@ services:
   mariadb-billing:
     image: mariadb:12.2.2
     environment:
-      MARIADB_DATABASE: orgasm_billing
-      MARIADB_USER: orgasm_billing
-      MARIADB_PASSWORD: orgasm_billing
-      MARIADB_ROOT_PASSWORD: orgasm_billing_root
+      MARIADB_DATABASE: ${BILLING_DB_NAME}
+      MARIADB_USER: ${BILLING_DB_USER}
+      MARIADB_PASSWORD: ${BILLING_DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${BILLING_DB_ROOT_PASSWORD}
     ports:
       - "3307:3306"
     volumes:
