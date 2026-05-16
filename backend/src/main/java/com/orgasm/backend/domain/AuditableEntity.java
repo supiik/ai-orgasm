@@ -30,4 +30,8 @@ public abstract class AuditableEntity {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    public void markDeleted() {
+        this.deletedAt = Instant.now();
+    }
 }
