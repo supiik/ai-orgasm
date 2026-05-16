@@ -138,6 +138,7 @@
                         <release>${java.version}</release>
                         <compilerArgs>
                             <arg>--enable-preview</arg>
+                            <arg>-parameters</arg>
                         </compilerArgs>
                         <annotationProcessorPaths>
                             <path>
