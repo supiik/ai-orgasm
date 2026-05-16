@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableJpaRepositories(
-        basePackages = "com.orgasm.backend.repository.app",
+        basePackages = {"com.orgasm.backend.repository.app", "com.orgasm.backend.playlist"},
         entityManagerFactoryRef = "appEntityManagerFactory",
         transactionManagerRef = "appTransactionManager"
 )
@@ -28,7 +28,7 @@ public class AppJpaConfig {
             EntityManagerFactoryBuilder builder) {
         return builder
                 .dataSource(dataSource)
-                .packages("com.orgasm.backend.domain.app")
+                .packages("com.orgasm.backend.domain.app", "com.orgasm.backend.playlist")
                 .persistenceUnit("app")
                 .build();
     }
