@@ -1,21 +1,3 @@
-datasource:
-  app:
-    url: jdbc:h2:mem:orgasm_app;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  billing:
-    url: jdbc:h2:mem:orgasm_billing;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  flyway:
-    enabled: false
-
 spring:
-  jpa:
-    hibernate:
-      ddl-auto: none
-  docker:
-    compose:
-      enabled: false
+  profiles:
+    active: test
