@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { Configuration, PlaylistsApi } from '@orgasm/backend-client'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const api = new PlaylistsApi(new Configuration({ basePath: '' }))
+
+// ── Table state ──────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
 const page = ref(0)
@@ -31,11 +36,52 @@ watch(page, fetchPage, { immediate: true })
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
 }
+
+// ── Create dialog ─────────────────────────────────────────────────────────────
+
+const dialogOpen = ref(false)
+const form = ref({ name: '', description: '' })
+const formError = ref<string | null>(null)
+const saving = ref(false)
+
+function openCreate() {
+  form.value = { name: '', description: '' }
+  formError.value = null
+  dialogOpen.value = true
+}
+
+async function submitCreate() {
+  if (!form.value.name.trim()) {
+    formError.value = 'Name is required.'
+    return
+  }
+  saving.value = true
+  formError.value = null
+  try {
+    await api.createPlaylist({
+      name: form.value.name.trim(),
+      description: form.value.description.trim() || undefined,
+    })
+    dialogOpen.value = false
+    page.value === 0 ? fetchPage(0) : (page.value = 0)
+  } catch {
+    formError.value = 'Failed to create playlist. Please try again.'
+  } finally {
+    saving.value = false
+  }
+}
 </script>
 
 <template>
   <div class="space-y-4">
-    <h1 class="text-2xl font-semibold">Playlists</h1>
+
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Playlists</h1>
+      <Button @click="openCreate">
+        <Plus class="h-4 w-4" />
+        New playlist
+      </Button>
+    </div>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 
@@ -93,5 +139,34 @@ function formatDate(iso: string) {
         </Button>
       </div>
     </div>
+
   </div>
+
+  <!-- Create dialog -->
+  <Dialog v-model:open="dialogOpen">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>New playlist</DialogTitle>
+      </DialogHeader>
+
+      <form class="space-y-4" @submit.prevent="submitCreate">
+        <div class="space-y-1.5">
+          <Label for="name">Name <span class="text-destructive">*</span></Label>
+          <Input id="name" v-model="form.name" placeholder="My playlist" autofocus />
+        </div>
+        <div class="space-y-1.5">
+          <Label for="description">Description</Label>
+          <Input id="description" v-model="form.description" placeholder="Optional description" />
+        </div>
+        <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
+      </form>
+
+      <DialogFooter>
+        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">Cancel</Button>
+        <Button :disabled="saving" @click="submitCreate">
+          {{ saving ? 'Creating…' : 'Create' }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
