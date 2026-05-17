@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: orgasm-lambda
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+datasource:
+  app:
+    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/orgasm}
+    username: ${DATASOURCE_APP_USERNAME:orgasm}
+    password: ${DATASOURCE_APP_PASSWORD:orgasm}
+    driver-class-name: org.mariadb.jdbc.Driver
+  billing:
+    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/orgasm_billing}
+    username: ${DATASOURCE_BILLING_USERNAME:orgasm_billing}
+    password: ${DATASOURCE_BILLING_PASSWORD:orgasm_billing}
+    driver-class-name: org.mariadb.jdbc.Driver
+  flyway:
+    enabled: false
+
+logging:
+  level:
+    com.orgasm: INFO

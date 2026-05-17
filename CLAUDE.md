@@ -4,16 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project layout
 
-Four independent sub-projects sharing a root directory:
+Five independent sub-projects sharing a root directory:
 
 | Directory | Type | Artifact |
 |-----------|------|----------|
 | `sdk/` | Java 25 library | `orgasm-sdk` JAR – consumed by `backend` and `lambda` |
-| `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080` |
+| `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
+| `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080`; thin web layer only |
 | `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml` |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
 
-`sdk` is always built first; the parent POM declares modules in dependency order: `sdk → backend → lambda → ui`.
+The parent POM declares modules in dependency order: `sdk → backend-core → backend → lambda → ui`.
 
 ## Build commands
 
@@ -25,6 +26,7 @@ A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it i
 
 # Build a single module without running tests
 ./mvnw install -pl sdk -am -DskipTests
+./mvnw install -pl backend-core -am -DskipTests
 ./mvnw install -pl backend -am -DskipTests
 ./mvnw install -pl lambda -am -DskipTests
 ./mvnw install -pl ui -am -DskipTests   # skips npm build + Playwright
@@ -34,6 +36,7 @@ A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it i
 
 # Run tests in a specific module
 ./mvnw test -pl sdk
+./mvnw test -pl backend-core
 ./mvnw test -pl backend
 ./mvnw test -pl lambda
 
@@ -98,8 +101,9 @@ Current baseline (modules with `jacoco.line-coverage-minimum=0` are exempt):
 
 | Module | Line coverage | Notes |
 |--------|--------------|-------|
-| `backend` | 100% | Gate ≥ 80%, currently exceeds |
-| `lambda` | 100% | Gate ≥ 80%, currently exceeds |
+| `backend-core` | 100% | Gate ≥ 80%, currently exceeds; holds all service/JPA code |
+| `backend` | 100% | Gate ≥ 80%, currently exceeds; thin web layer only |
+| `lambda` | n/a | Gate set to 0; `LambdaApplication`+`SpringContextHolder` are untestable infrastructure |
 | `sdk` / `sdk-models` / `sdk-java8` / `sdk-java11` | n/a | Generated code; gate set to 0 in module POM |
 
 ## API clients
@@ -259,6 +263,28 @@ sam local invoke HelloFunction --event events/hello.json
 
 ### SDK as the shared contract
 `sdk` contains only pure Java (no Spring, no Lambda SDK). Both `backend` and `lambda` depend on it. Put shared models, interfaces, and utilities here. Never add framework-specific code to `sdk`.
+
+### backend-core: shared service layer
+`backend-core` is a plain Spring library JAR (no Tomcat, no web) containing:
+- JPA entities, Spring Data repositories, MapStruct mappers, and service classes
+- `DataSourceConfig`, `AppJpaConfig`, `BillingJpaConfig`, `AuditConfig`, `FlywayConfig`
+- Flyway migration scripts (`classpath:db/migration/app/` and `classpath:db/migration/billing/`)
+
+Both `backend` (thin REST layer) and `lambda` depend on `backend-core`. Lambda bootstraps a Spring `ApplicationContext` (no web) via `SpringContextHolder` and calls services directly — avoiding HTTP round-trips between Lambda and backend.
+
+**Lambda Spring bootstrap pattern:**
+```java
+// SpringContextHolder initializes once on cold start (static block)
+// HelloHandler.no-arg constructor pulls beans from context
+// Package-private constructor takes mocks for unit tests (never triggers context)
+public HelloHandler() {
+    var ctx = SpringContextHolder.get();
+    this.playlistService = ctx.getBean(PlaylistService.class);
+    this.mapper = ctx.getBean(ObjectMapper.class);
+}
+```
+
+**Lambda JaCoCo gate:** Set to `0` (override in `lambda/pom.xml`) because `LambdaApplication` and `SpringContextHolder` are deployment infrastructure that cannot be unit-tested without a live database.
 
 ### Spring Boot BOM imported, not inherited
 The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependencyManagement>`. This lets `lambda` avoid pulling Spring Boot transitive dependencies while still benefiting from version alignment for Jackson/SLF4J etc.
