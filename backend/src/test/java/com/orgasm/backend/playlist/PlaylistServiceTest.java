@@ -104,6 +104,20 @@ class PlaylistServiceTest {
     }
 
     @Test
+    void update_appliesMappingAndReturnsResponse_viaBuilder() {
+        var existing = new Playlist(1L, "Old", "old desc");
+        var saved = new Playlist(1L, "New", "new desc");
+        var expected = response(1L, "New");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(repository.save(existing)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(expected);
+
+        assertThat(service.update(1L, b -> b.name("New").description("new desc"))).isEqualTo(expected);
+        verify(mapper).updateEntity(any(UpdatePlaylistRequest.class), eq(existing));
+    }
+
+    @Test
     void update_throwsNotFound_whenMissing() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 

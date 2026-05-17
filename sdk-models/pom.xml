@@ -15,6 +15,11 @@
     <name>orgasm-sdk-models</name>
     <description>Shared API model classes generated from the OpenAPI spec – Jackson-annotated, Java 8 compatible</description>
 
+    <properties>
+        <!-- Generated code only — exempt from line-coverage gate -->
+        <jacoco.line-coverage-minimum>0</jacoco.line-coverage-minimum>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -56,25 +56,24 @@ No preview features are used; `--enable-preview` is absent from the build.
 
 **Test separation:** Unit tests (`*Test.java`) run via Surefire on `mvn test`. Integration tests (`*IT.java`) run via Failsafe on `mvn verify`. PiTest excludes `*IT` classes from mutation analysis. The Spring Boot Maven Plugin uses `classifier: exec` so Failsafe can load classes from the plain JAR (the fat JAR's `BOOT-INF/classes/` layout is not on the test classpath).
 
-## Mutation testing (PIT)
+## Mutation testing (PIT) and coverage gate
 
-PIT is bound to the `verify` phase in the parent POM alongside JaCoCo — it runs automatically on `mvn verify`.
+PIT and JaCoCo are both bound to the `verify` phase in the parent POM — they run automatically on `mvn verify`. The JaCoCo `check` execution enforces a **per-module line-coverage gate** of 80%, configurable via the `jacoco.line-coverage-minimum` property. Generated-code modules (`sdk`, `sdk-models`, `sdk-java8`, `sdk-java11`) override this property to `0` in their POMs.
 
 ```bash
-# Full verify: compiles, tests, JaCoCo coverage + PiTest mutation (all modules)
+# Full verify: compiles, tests, JaCoCo coverage + gate + PiTest mutation (all modules)
 mvn verify
 
-# Skip mutation testing for a faster feedback loop
+# Skip mutation testing for a faster feedback loop (coverage gate still enforced)
 mvn verify -Dpitest.skip=true
 
-# Daily quality gate: coverage + mutation with 80% line-coverage enforcement
-# Fails the build if any module drops below 80% line coverage
-mvn verify -Pdaily
+# Bypass the coverage gate for a one-off run (e.g. exploratory work)
+mvn verify -Djacoco.line-coverage-minimum=0
 
 # Run mutation coverage in isolation for a single module
-mvn pitest:mutationCoverage -pl sdk
+mvn pitest:mutationCoverage -pl backend
 
-# Reports land at target/pit-reports/index.html (timestamped dirs disabled)
+# Reports: target/site/jacoco/index.html and target/pit-reports/index.html
 ```
 
 ### Reading line coverage from JaCoCo CSV
@@ -91,16 +90,13 @@ for m in sdk-models sdk sdk-java8 sdk-java11 backend lambda; do
 done
 ```
 
-Current baseline (generated modules excluded from interpretation):
+Current baseline (modules with `jacoco.line-coverage-minimum=0` are exempt):
 
 | Module | Line coverage | Notes |
 |--------|--------------|-------|
-| `backend` | 75% | Hand-written code; target ≥ 80% on `-Pdaily` |
-| `lambda` | 69% | Hand-written code |
-| `sdk` | ~1% | Generated client code only — not meaningful |
-| `sdk-models` | — | No tests; generated models |
-| `sdk-java8` | — | No tests; generated client |
-| `sdk-java11` | — | No tests; generated client |
+| `backend` | 100% | Gate ≥ 80%, currently exceeds |
+| `lambda` | 100% | Gate ≥ 80%, currently exceeds |
+| `sdk` / `sdk-models` / `sdk-java8` / `sdk-java11` | n/a | Generated code; gate set to 0 in module POM |
 
 ## API clients
 

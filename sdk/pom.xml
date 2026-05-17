@@ -15,6 +15,11 @@
     <name>orgasm-sdk</name>
     <description>Shared Java SDK – models, interfaces and utilities</description>
 
+    <properties>
+        <!-- Generated code only — exempt from line-coverage gate -->
+        <jacoco.line-coverage-minimum>0</jacoco.line-coverage-minimum>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>

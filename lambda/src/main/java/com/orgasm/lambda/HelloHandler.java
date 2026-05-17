@@ -15,8 +15,16 @@ public class HelloHandler
         implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
     private static final Logger log = LoggerFactory.getLogger(HelloHandler.class);
-    private static final ObjectMapper mapper = new ObjectMapper()
-            .findAndRegisterModules();
+
+    private final ObjectMapper mapper;
+
+    public HelloHandler() {
+        this(new ObjectMapper().findAndRegisterModules());
+    }
+
+    HelloHandler(ObjectMapper mapper) {
+        this.mapper = mapper;
+    }
 
     @Override
     public APIGatewayProxyResponseEvent handleRequest(
