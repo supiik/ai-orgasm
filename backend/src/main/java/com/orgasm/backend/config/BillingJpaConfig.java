@@ -1,6 +1,8 @@
 package com.orgasm.backend.config;
 
 import jakarta.persistence.EntityManagerFactory;
+import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +25,8 @@ public class BillingJpaConfig {
     @Bean
     LocalContainerEntityManagerFactoryBean billingEntityManagerFactory(
             @Qualifier("billingDataSource") DataSource dataSource,
-            EntityManagerFactoryBuilder builder) {
+            EntityManagerFactoryBuilder builder,
+            @Autowired(required = false) @Qualifier("billingFlyway") Flyway billingFlyway) {
         return builder
                 .dataSource(dataSource)
                 .packages("com.orgasm.backend.domain.billing")
