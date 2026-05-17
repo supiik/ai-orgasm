@@ -81,7 +81,7 @@ class PlaylistControllerTest {
 
     @Test
     void create_returns201WithLocation() throws Exception {
-        when(service.create(any())).thenReturn(response(1L, "New Mix", "desc"));
+        when(service.create(any(CreatePlaylistRequest.class))).thenReturn(response(1L, "New Mix", "desc"));
 
         mvc.perform(post("/api/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -101,7 +101,7 @@ class PlaylistControllerTest {
 
     @Test
     void update_returns200_whenFound() throws Exception {
-        when(service.update(eq(1L), any())).thenReturn(response(1L, "Updated", "new desc"));
+        when(service.update(eq(1L), any(UpdatePlaylistRequest.class))).thenReturn(response(1L, "Updated", "new desc"));
 
         mvc.perform(put("/api/playlists/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -112,7 +112,7 @@ class PlaylistControllerTest {
 
     @Test
     void update_returns404_whenNotFound() throws Exception {
-        when(service.update(eq(99L), any()))
+        when(service.update(eq(99L), any(UpdatePlaylistRequest.class)))
                 .thenThrow(new EntityNotFoundException("Playlist not found: 99"));
 
         mvc.perform(put("/api/playlists/99")

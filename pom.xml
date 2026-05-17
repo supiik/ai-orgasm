@@ -13,6 +13,7 @@
     <description>Parent POM for the Orgasm project</description>
 
     <modules>
+        <module>sdk-models</module>
         <module>sdk</module>
         <module>sdk-java8</module>
         <module>sdk-java11</module>
@@ -67,6 +68,11 @@
             </dependency>
 
             <!-- Internal modules -->
+            <dependency>
+                <groupId>com.orgasm</groupId>
+                <artifactId>orgasm-sdk-models</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.orgasm</groupId>
                 <artifactId>orgasm-sdk</artifactId>

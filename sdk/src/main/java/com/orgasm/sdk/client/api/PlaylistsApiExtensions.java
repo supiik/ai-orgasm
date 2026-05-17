@@ -2,9 +2,9 @@ package com.orgasm.sdk.client.api;
 
 import com.orgasm.sdk.client.ApiClient;
 import com.orgasm.sdk.client.ApiException;
-import com.orgasm.sdk.client.model.CreatePlaylistRequest;
-import com.orgasm.sdk.client.model.PlaylistResponse;
-import com.orgasm.sdk.client.model.UpdatePlaylistRequest;
+import com.orgasm.sdk.model.CreatePlaylistRequest;
+import com.orgasm.sdk.model.PlaylistResponse;
+import com.orgasm.sdk.model.UpdatePlaylistRequest;
 
 import java.util.function.UnaryOperator;
 

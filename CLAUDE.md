@@ -77,16 +77,44 @@ mvn pitest:mutationCoverage -pl sdk
 # Reports land at target/pit-reports/index.html (timestamped dirs disabled)
 ```
 
+### Reading line coverage from JaCoCo CSV
+
+JaCoCo writes `target/site/jacoco/jacoco.csv` after `mvn verify`. This one-liner prints a per-module summary:
+
+```bash
+for m in sdk-models sdk sdk-java8 sdk-java11 backend lambda; do
+  csv=$(find $m/target/site/jacoco -name "jacoco.csv" 2>/dev/null | head -1)
+  [ -n "$csv" ] && awk -F',' 'NR>1 { miss+=$8; cov+=$9 } END {
+    total=miss+cov; pct=(total>0 ? cov/total*100 : 0);
+    printf "%-14s  lines: %d/%d (%.0f%%)\n", module, cov, total, pct
+  }' module="$m" "$csv"
+done
+```
+
+Current baseline (generated modules excluded from interpretation):
+
+| Module | Line coverage | Notes |
+|--------|--------------|-------|
+| `backend` | 75% | Hand-written code; target ≥ 80% on `-Pdaily` |
+| `lambda` | 69% | Hand-written code |
+| `sdk` | ~1% | Generated client code only — not meaningful |
+| `sdk-models` | — | No tests; generated models |
+| `sdk-java8` | — | No tests; generated client |
+| `sdk-java11` | — | No tests; generated client |
+
 ## API clients
 
-Four generated client SDKs are built from a single canonical spec at `api-spec/backend-api.yaml`. All use `openapi-generator-maven-plugin` (version in root `pom.xml` as `openapi-generator.version`). Generated sources land in each module's `target/generated-sources/openapi/`.
+Five modules are built from a single canonical spec at `api-spec/backend-api.yaml`. All use `openapi-generator-maven-plugin` (version in root `pom.xml` as `openapi-generator.version`). Generated sources land in each module's `target/generated-sources/openapi/`.
 
 | Module | Artifact | Target | HTTP library | Package prefix |
 |--------|----------|--------|--------------|----------------|
+| `sdk-models/` | `orgasm-sdk-models` | Java 11+ | — (models only, shared) | `com.orgasm.sdk.model` |
 | `sdk/` | `orgasm-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.client` |
 | `sdk-java11/` | `orgasm-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.java11` |
 | `sdk-java8/` | `orgasm-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.orgasm.sdk.java8` |
 | `sdk-typescript/` | npm `@orgasm/backend-client` | TypeScript/ESM | Axios | `api/`, `model/` |
+
+**Model consolidation:** `sdk-models` generates one set of Jackson-annotated model classes (`com.orgasm.sdk.model.*`) shared by `sdk/` and `sdk-java11/`. Both modules set `generateModels=false` and point `modelPackage=com.orgasm.sdk.model`; the generator emits API and supporting files only, importing models from `sdk-models.jar`. `sdk-java8` stays independent: its Gson-annotated models (`@SerializedName`) and the `URLEncoder.encode(String, Charset)` Java 10+ API in generated `toUrlQueryString()` helpers make sharing with a `--release 8` target impossible without custom templates.
 
 **Usage (Java 25 / Java 11):**
 ```java
@@ -95,7 +123,8 @@ client.updateBaseUri("http://localhost:8080");
 
 PlaylistsApi playlists = new PlaylistsApi(client);
 PlaylistPage page = playlists.findAllPlaylists(0, 20, "id");
-Playlist created = playlists.createPlaylist(new Playlist().name("My list"));
+PlaylistResponse created = playlists.createPlaylist(
+        CreatePlaylistRequest.builder().name("My list").build());
 ```
 
 **Usage (Java 8):**

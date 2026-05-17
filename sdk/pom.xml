@@ -37,6 +37,12 @@
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
 
+        <!-- Shared model classes -->
+        <dependency>
+            <groupId>com.orgasm</groupId>
+            <artifactId>orgasm-sdk-models</artifactId>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -66,8 +72,10 @@
                             <generatorName>java</generatorName>
                             <library>native</library>
                             <apiPackage>com.orgasm.sdk.client.api</apiPackage>
-                            <modelPackage>com.orgasm.sdk.client.model</modelPackage>
+                            <modelPackage>com.orgasm.sdk.model</modelPackage>
                             <invokerPackage>com.orgasm.sdk.client</invokerPackage>
+                            <generateApis>true</generateApis>
+                            <generateModels>false</generateModels>
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <generateApiDocumentation>false</generateApiDocumentation>
@@ -80,7 +88,6 @@
                                 <useRuntimeException>true</useRuntimeException>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
-                                <additionalModelTypeAnnotations>@lombok.Builder;@lombok.AllArgsConstructor</additionalModelTypeAnnotations>
                             </configOptions>
                         </configuration>
                     </execution>
