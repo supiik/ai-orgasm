@@ -1,30 +1,15 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import axios from 'axios'
+import { Configuration, PlaylistsApi } from '@orgasm/backend-client'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 
-interface Playlist {
-  id: number
-  name: string
-  description: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-interface PlaylistPage {
-  content: Playlist[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-}
+const api = new PlaylistsApi(new Configuration({ basePath: '' }))
 
 const PAGE_SIZE = 10
-
 const page = ref(0)
-const data = ref<PlaylistPage | null>(null)
+const data = ref<Awaited<ReturnType<typeof api.findAllPlaylists>>['data'] | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -32,9 +17,7 @@ async function fetchPage(p: number) {
   loading.value = true
   error.value = null
   try {
-    const { data: body } = await axios.get<PlaylistPage>('/api/playlists', {
-      params: { page: p, size: PAGE_SIZE, sort: 'id' },
-    })
+    const { data: body } = await api.findAllPlaylists(p, PAGE_SIZE, 'id')
     data.value = body
   } catch {
     error.value = 'Failed to load playlists.'
@@ -75,13 +58,13 @@ function formatDate(iso: string) {
               </TableCell>
             </TableRow>
           </template>
-          <template v-else-if="data && data.content.length">
+          <template v-else-if="data && data.content?.length">
             <TableRow v-for="playlist in data.content" :key="playlist.id">
               <TableCell class="text-muted-foreground">{{ playlist.id }}</TableCell>
               <TableCell class="font-medium">{{ playlist.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ playlist.description ?? '—' }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt) }}</TableCell>
-              <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt!) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt!) }}</TableCell>
             </TableRow>
           </template>
           <template v-else>
@@ -96,26 +79,16 @@ function formatDate(iso: string) {
     </div>
 
     <!-- Pagination -->
-    <div v-if="data && data.totalPages > 1" class="flex items-center justify-between text-sm text-muted-foreground">
+    <div v-if="data && data.totalPages! > 1" class="flex items-center justify-between text-sm text-muted-foreground">
       <span>
         {{ data.totalElements }} playlist{{ data.totalElements !== 1 ? 's' : '' }} —
-        page {{ data.number + 1 }} of {{ data.totalPages }}
+        page {{ data.number! + 1 }} of {{ data.totalPages }}
       </span>
       <div class="flex gap-1">
-        <Button
-          variant="outline"
-          size="icon"
-          :disabled="page === 0"
-          @click="page--"
-        >
+        <Button variant="outline" size="icon" :disabled="page === 0" @click="page--">
           <ChevronLeft class="h-4 w-4" />
         </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          :disabled="page >= (data.totalPages - 1)"
-          @click="page++"
-        >
+        <Button variant="outline" size="icon" :disabled="page >= data.totalPages! - 1" @click="page++">
           <ChevronRight class="h-4 w-4" />
         </Button>
       </div>
