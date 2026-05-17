@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { Home, ListMusic } from 'lucide-vue-next'
+import { Home, ListMusic, Music } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -27,6 +27,14 @@ import { Home, ListMusic } from 'lucide-vue-next'
         >
           <ListMusic class="h-4 w-4 shrink-0" />
           Playlists
+        </RouterLink>
+        <RouterLink
+          to="/songs"
+          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          active-class="bg-accent text-accent-foreground font-medium"
+        >
+          <Music class="h-4 w-4 shrink-0" />
+          Songs
         </RouterLink>
       </nav>
     </aside>

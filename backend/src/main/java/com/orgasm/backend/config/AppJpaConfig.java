@@ -17,7 +17,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableJpaRepositories(
-        basePackages = {"com.orgasm.backend.repository.app", "com.orgasm.backend.playlist"},
+        basePackages = {"com.orgasm.backend.repository.app", "com.orgasm.backend.playlist", "com.orgasm.backend.song"},
         entityManagerFactoryRef = "appEntityManagerFactory",
         transactionManagerRef = "appTransactionManager"
 )
@@ -31,7 +31,7 @@ public class AppJpaConfig {
             @Autowired(required = false) @Qualifier("appFlyway") Flyway appFlyway) {
         return builder
                 .dataSource(dataSource)
-                .packages("com.orgasm.backend.domain.app", "com.orgasm.backend.playlist")
+                .packages("com.orgasm.backend.domain.app", "com.orgasm.backend.playlist", "com.orgasm.backend.song")
                 .persistenceUnit("app")
                 .build();
     }
