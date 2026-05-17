@@ -24,4 +24,8 @@ public class Playlist extends AuditableEntity {
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private PlaylistStatus status;
 }

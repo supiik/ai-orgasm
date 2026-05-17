@@ -53,7 +53,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void save_persistsPlaylist() {
-        Playlist saved = repository.save(new Playlist(null, "My Mix", "a description"));
+        Playlist saved = repository.save(new Playlist(null, "My Mix", "a description", PlaylistStatus.NEW));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -61,16 +61,16 @@ class PlaylistRepositoryIT {
 
     @Test
     void findById_returnsPlaylist_afterSave() {
-        Playlist saved = repository.save(new Playlist(null, "Find Me", null));
+        Playlist saved = repository.save(new Playlist(null, "Find Me", null, PlaylistStatus.NEW));
 
         assertThat(repository.findById(saved.getId())).contains(saved);
     }
 
     @Test
     void findAll_returnsPaginatedResults() {
-        repository.save(new Playlist(null, "A", null));
-        repository.save(new Playlist(null, "B", null));
-        repository.save(new Playlist(null, "C", null));
+        repository.save(new Playlist(null, "A", null, PlaylistStatus.NEW));
+        repository.save(new Playlist(null, "B", null, PlaylistStatus.NEW));
+        repository.save(new Playlist(null, "C", null, PlaylistStatus.NEW));
 
         Page<Playlist> page = repository.findAll(PageRequest.of(0, 2));
 
@@ -80,7 +80,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void softDelete_hidesRowFromSubsequentFinds() {
-        Playlist saved = repository.save(new Playlist(null, "To Delete", null));
+        Playlist saved = repository.save(new Playlist(null, "To Delete", null, PlaylistStatus.NEW));
         repository.flush();
 
         int affected = repository.softDeleteById(saved.getId(), Instant.now());

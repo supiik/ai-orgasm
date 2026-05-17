@@ -9,6 +9,7 @@ public record PlaylistResponse(
         Long id,
         String name,
         String description,
+        PlaylistStatus status,
         Long version,
         Instant createdAt,
         Instant updatedAt

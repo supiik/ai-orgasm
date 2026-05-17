@@ -48,7 +48,7 @@ class PlaylistControllerTest {
     }
 
     static PlaylistResponse response(Long id, String name, String description) {
-        return new PlaylistResponse(id, name, description, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
@@ -85,7 +85,7 @@ class PlaylistControllerTest {
 
         mvc.perform(post("/api/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc"))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc", null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/playlists/1")))
                 .andExpect(jsonPath("$.id").value(1));
@@ -95,7 +95,7 @@ class PlaylistControllerTest {
     void create_returns400_whenNameBlank() throws Exception {
         mvc.perform(post("/api/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc"))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -105,7 +105,7 @@ class PlaylistControllerTest {
 
         mvc.perform(put("/api/playlists/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc"))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated"));
     }
@@ -117,7 +117,7 @@ class PlaylistControllerTest {
 
         mvc.perform(put("/api/playlists/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null, null))))
                 .andExpect(status().isNotFound());
     }
 

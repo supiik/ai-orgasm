@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Configuration, PlaylistsApi, type PlaylistResponse } from '@orgasm/backend-client'
+import { Configuration, PlaylistsApi, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectItem } from '@/components/ui/select'
+import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const router = useRouter()
 const api = new PlaylistsApi(new Configuration({ basePath: '' }))
@@ -46,9 +48,11 @@ type DialogMode = 'create' | 'edit'
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
 const editingId = ref<number | null>(null)
-const form = ref({ name: '', description: '' })
+const form = ref({ name: '', description: '', status: PlaylistStatus.New as PlaylistStatus })
 const formError = ref<string | null>(null)
 const saving = ref(false)
+
+const statusOptions = Object.values(PlaylistStatus)
 
 const dialogTitle = computed(() => dialogMode.value === 'create' ? 'New playlist' : 'Edit playlist')
 const submitLabel = computed(() => {
@@ -59,7 +63,7 @@ const submitLabel = computed(() => {
 function openCreate() {
   dialogMode.value = 'create'
   editingId.value = null
-  form.value = { name: '', description: '' }
+  form.value = { name: '', description: '', status: PlaylistStatus.New }
   formError.value = null
   dialogOpen.value = true
 }
@@ -67,7 +71,7 @@ function openCreate() {
 function openEdit(playlist: PlaylistResponse) {
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
-  form.value = { name: playlist.name!, description: playlist.description ?? '' }
+  form.value = { name: playlist.name!, description: playlist.description ?? '', status: playlist.status ?? PlaylistStatus.New }
   formError.value = null
   dialogOpen.value = true
 }
@@ -83,6 +87,7 @@ async function submitForm() {
     const payload = {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
+      status: form.value.status,
     }
     if (dialogMode.value === 'create') {
       await api.createPlaylist(payload)
@@ -120,6 +125,7 @@ async function submitForm() {
             <TableHead class="w-16">ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Description</TableHead>
+            <TableHead class="w-36">Status</TableHead>
             <TableHead class="w-36">Created</TableHead>
             <TableHead class="w-36">Updated</TableHead>
             <TableHead class="w-12" />
@@ -128,7 +134,7 @@ async function submitForm() {
         <TableBody>
           <template v-if="loading">
             <TableRow v-for="i in PAGE_SIZE" :key="i">
-              <TableCell colspan="6">
+              <TableCell colspan="7">
                 <div class="h-4 rounded bg-muted animate-pulse" />
               </TableCell>
             </TableRow>
@@ -143,6 +149,7 @@ async function submitForm() {
               <TableCell class="text-muted-foreground">{{ playlist.id }}</TableCell>
               <TableCell class="font-medium">{{ playlist.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ playlist.description ?? '—' }}</TableCell>
+              <TableCell><PlaylistStatusBadge v-if="playlist.status" :status="playlist.status" /></TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt!) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt!) }}</TableCell>
               <TableCell>
@@ -154,7 +161,7 @@ async function submitForm() {
           </template>
           <template v-else>
             <TableRow>
-              <TableCell colspan="6" class="text-center text-muted-foreground py-10">
+              <TableCell colspan="7" class="text-center text-muted-foreground py-10">
                 No playlists found.
               </TableCell>
             </TableRow>
@@ -196,6 +203,14 @@ async function submitForm() {
         <div class="space-y-1.5">
           <Label for="description">Description</Label>
           <Input id="description" v-model="form.description" placeholder="Optional description" />
+        </div>
+        <div class="space-y-1.5">
+          <Label>Status</Label>
+          <Select v-model="form.status">
+            <SelectItem v-for="s in statusOptions" :key="s" :value="s">
+              <PlaylistStatusBadge :status="s" />
+            </SelectItem>
+          </Select>
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>

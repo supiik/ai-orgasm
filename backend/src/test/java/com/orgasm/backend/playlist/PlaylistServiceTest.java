@@ -29,14 +29,14 @@ class PlaylistServiceTest {
     @InjectMocks PlaylistService service;
 
     static PlaylistResponse response(Long id, String name) {
-        return new PlaylistResponse(id, name, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
     void create_savesAndReturnsResponse() {
-        var request = new CreatePlaylistRequest("My Mix", "desc");
-        var entity = new Playlist(null, "My Mix", "desc");
-        var saved = new Playlist(1L, "My Mix", "desc");
+        var request = new CreatePlaylistRequest("My Mix", "desc", null);
+        var entity = new Playlist(null, "My Mix", "desc", null);
+        var saved = new Playlist(1L, "My Mix", "desc", PlaylistStatus.NEW);
         var expected = response(1L, "My Mix");
 
         when(mapper.toEntity(request)).thenReturn(entity);
@@ -48,8 +48,8 @@ class PlaylistServiceTest {
 
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
-        var entity = new Playlist(null, "My Mix", "desc");
-        var saved = new Playlist(1L, "My Mix", "desc");
+        var entity = new Playlist(null, "My Mix", "desc", null);
+        var saved = new Playlist(1L, "My Mix", "desc", PlaylistStatus.NEW);
         var expected = response(1L, "My Mix");
 
         when(mapper.toEntity(any(CreatePlaylistRequest.class))).thenReturn(entity);
@@ -61,7 +61,7 @@ class PlaylistServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Playlist(1L, "My Mix", "desc");
+        var entity = new Playlist(1L, "My Mix", "desc", PlaylistStatus.NEW);
         var expected = response(1L, "My Mix");
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
@@ -78,7 +78,7 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_returnsMappedPage() {
-        var entity = new Playlist(1L, "A", null);
+        var entity = new Playlist(1L, "A", null, PlaylistStatus.NEW);
         var mapped = response(1L, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -90,9 +90,9 @@ class PlaylistServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse() {
-        var request = new UpdatePlaylistRequest("New", "new desc");
-        var existing = new Playlist(1L, "Old", "old desc");
-        var saved = new Playlist(1L, "New", "new desc");
+        var request = new UpdatePlaylistRequest("New", "new desc", null);
+        var existing = new Playlist(1L, "Old", "old desc", PlaylistStatus.NEW);
+        var saved = new Playlist(1L, "New", "new desc", PlaylistStatus.OPEN);
         var expected = response(1L, "New");
 
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
@@ -105,8 +105,8 @@ class PlaylistServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Playlist(1L, "Old", "old desc");
-        var saved = new Playlist(1L, "New", "new desc");
+        var existing = new Playlist(1L, "Old", "old desc", PlaylistStatus.NEW);
+        var saved = new Playlist(1L, "New", "new desc", PlaylistStatus.OPEN);
         var expected = response(1L, "New");
 
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
@@ -121,7 +121,7 @@ class PlaylistServiceTest {
     void update_throwsNotFound_whenMissing() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(99L, new UpdatePlaylistRequest("X", null)))
+        assertThatThrownBy(() -> service.update(99L, new UpdatePlaylistRequest("X", null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
     }

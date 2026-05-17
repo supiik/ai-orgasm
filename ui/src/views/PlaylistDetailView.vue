@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Configuration, PlaylistsApi, type PlaylistResponse } from '@orgasm/backend-client'
+import { Configuration, PlaylistsApi, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectItem } from '@/components/ui/select'
+import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -39,12 +41,13 @@ function formatDate(iso: string) {
 // ── Edit dialog ───────────────────────────────────────────────────────────────
 
 const dialogOpen = ref(false)
-const form = ref({ name: '', description: '' })
+const form = ref({ name: '', description: '', status: PlaylistStatus.New as PlaylistStatus })
 const formError = ref<string | null>(null)
 const saving = ref(false)
+const statusOptions = Object.values(PlaylistStatus)
 
 function openEdit() {
-  form.value = { name: playlist.value!.name!, description: playlist.value!.description ?? '' }
+  form.value = { name: playlist.value!.name!, description: playlist.value!.description ?? '', status: playlist.value!.status ?? PlaylistStatus.New }
   formError.value = null
   dialogOpen.value = true
 }
@@ -60,6 +63,7 @@ async function submitEdit() {
     const { data } = await api.updatePlaylist(id, {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
+      status: form.value.status,
     })
     playlist.value = data
     dialogOpen.value = false
@@ -105,6 +109,10 @@ async function submitEdit() {
           <dd class="text-muted-foreground">{{ playlist.description ?? '—' }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
+          <dt class="w-32 shrink-0 text-muted-foreground">Status</dt>
+          <dd><PlaylistStatusBadge v-if="playlist.status" :status="playlist.status" /></dd>
+        </div>
+        <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">Created</dt>
           <dd>{{ formatDate(playlist.createdAt!) }}</dd>
         </div>
@@ -135,6 +143,14 @@ async function submitEdit() {
         <div class="space-y-1.5">
           <Label for="description">Description</Label>
           <Input id="description" v-model="form.description" placeholder="Optional description" />
+        </div>
+        <div class="space-y-1.5">
+          <Label>Status</Label>
+          <Select v-model="form.status">
+            <SelectItem v-for="s in statusOptions" :key="s" :value="s">
+              <PlaylistStatusBadge :status="s" />
+            </SelectItem>
+          </Select>
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>
