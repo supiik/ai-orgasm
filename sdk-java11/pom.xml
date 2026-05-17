@@ -10,18 +10,13 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-sdk</artifactId>
+    <artifactId>orgasm-sdk-java11</artifactId>
     <packaging>jar</packaging>
-    <name>orgasm-sdk</name>
-    <description>Shared Java SDK – models, interfaces and utilities</description>
+    <name>orgasm-sdk-java11</name>
+    <description>Java 11 compatible HTTP client for the Orgasm Backend API (java.net.http.HttpClient + Jackson)</description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-
-        <!-- Jackson for JSON serialisation -->
+        <!-- Jackson required by generated native client -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -30,8 +25,7 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
-
-        <!-- Required by generated native HttpClient API client -->
+        <!-- Nullability annotations used by generated code -->
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
@@ -43,15 +37,31 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Override parent compiler: Java 11 target, preview features disabled -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>11</release>
+                    <compilerArgs combine.children="override">
+                        <arg>-parameters</arg>
+                    </compilerArgs>
+                    <!-- No Lombok needed for generated code -->
+                    <annotationProcessorPaths combine.children="override"/>
+                </configuration>
+            </plugin>
+            <!-- Generated code only — skip mutation testing -->
+            <plugin>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-maven</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.openapitools</groupId>
                 <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -65,9 +75,9 @@
                             <inputSpec>${project.basedir}/../api-spec/backend-api.yaml</inputSpec>
                             <generatorName>java</generatorName>
                             <library>native</library>
-                            <apiPackage>com.orgasm.sdk.client.api</apiPackage>
-                            <modelPackage>com.orgasm.sdk.client.model</modelPackage>
-                            <invokerPackage>com.orgasm.sdk.client</invokerPackage>
+                            <apiPackage>com.orgasm.sdk.java11.api</apiPackage>
+                            <modelPackage>com.orgasm.sdk.java11.model</modelPackage>
+                            <invokerPackage>com.orgasm.sdk.java11</invokerPackage>
                             <generateApiTests>false</generateApiTests>
                             <generateModelTests>false</generateModelTests>
                             <generateApiDocumentation>false</generateApiDocumentation>

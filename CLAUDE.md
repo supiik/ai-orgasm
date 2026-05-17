@@ -77,6 +77,57 @@ mvn pitest:mutationCoverage -pl sdk
 # Reports land at target/pit-reports/index.html (timestamped dirs disabled)
 ```
 
+## API clients
+
+Four generated client SDKs are built from a single canonical spec at `api-spec/backend-api.yaml`. All use `openapi-generator-maven-plugin` (version in root `pom.xml` as `openapi-generator.version`). Generated sources land in each module's `target/generated-sources/openapi/`.
+
+| Module | Artifact | Target | HTTP library | Package prefix |
+|--------|----------|--------|--------------|----------------|
+| `sdk/` | `orgasm-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.client` |
+| `sdk-java11/` | `orgasm-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.java11` |
+| `sdk-java8/` | `orgasm-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.orgasm.sdk.java8` |
+| `sdk-typescript/` | npm `@orgasm/backend-client` | TypeScript/ESM | Axios | `api/`, `model/` |
+
+**Usage (Java 25 / Java 11):**
+```java
+ApiClient client = new ApiClient();
+client.updateBaseUri("http://localhost:8080");
+
+PlaylistsApi playlists = new PlaylistsApi(client);
+PlaylistPage page = playlists.findAllPlaylists(0, 20, "id");
+Playlist created = playlists.createPlaylist(new Playlist().name("My list"));
+```
+
+**Usage (Java 8):**
+```java
+ApiClient client = new ApiClient().setBasePath("http://localhost:8080");
+
+PlaylistsApi playlists = new PlaylistsApi(client);
+PlaylistPage page = playlists.findAllPlaylists(0, 20, "id");
+```
+
+**Usage (TypeScript):**
+```bash
+# Generate the TypeScript client
+mvn generate-sources -pl sdk-typescript
+
+# The generated package is in sdk-typescript/target/typescript-client/
+cd sdk-typescript/target/typescript-client
+npm install && npm run build
+```
+
+**Updating the spec:** The canonical spec is `api-spec/backend-api.yaml`. Refresh it after backend API changes, then rebuild all clients:
+
+```bash
+# With backend running on :8080
+curl -s http://localhost:8080/v3/api-docs.yaml > api-spec/backend-api.yaml
+
+# Rebuild all SDK modules
+mvn install -pl sdk,sdk-java8,sdk-java11,sdk-typescript -am -DskipTests
+```
+
+**Compiler targets for client modules:** `sdk-java8` compiles with `--release 8` (OkHttp, no preview features); `sdk-java11` compiles with `--release 11` (native HttpClient, no preview features); `sdk/` (Java 25) and `sdk-typescript/` use the parent defaults. PiTest is skipped for all three generated-code modules.
+
 ## Local development (backend)
 
 ### Environment setup

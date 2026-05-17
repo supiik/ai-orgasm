@@ -14,6 +14,9 @@
 
     <modules>
         <module>sdk</module>
+        <module>sdk-java8</module>
+        <module>sdk-java11</module>
+        <module>sdk-typescript</module>
         <module>backend</module>
         <module>lambda</module>
     </modules>
@@ -38,6 +41,7 @@
         <argLine>--enable-preview</argLine>
         <pitest.version>1.23.1</pitest.version>
         <pitest-junit5-plugin.version>1.2.2</pitest-junit5-plugin.version>
+        <openapi-generator.version>7.10.0</openapi-generator.version>
     </properties>
 
     <dependencyManagement>
