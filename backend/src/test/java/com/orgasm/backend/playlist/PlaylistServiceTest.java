@@ -47,6 +47,19 @@ class PlaylistServiceTest {
     }
 
     @Test
+    void create_savesAndReturnsResponse_viaBuilder() {
+        var entity = new Playlist(null, "My Mix", "desc");
+        var saved = new Playlist(1L, "My Mix", "desc");
+        var expected = response(1L, "My Mix");
+
+        when(mapper.toEntity(any(CreatePlaylistRequest.class))).thenReturn(entity);
+        when(repository.save(entity)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(expected);
+
+        assertThat(service.create(b -> b.name("My Mix").description("desc"))).isEqualTo(expected);
+    }
+
+    @Test
     void findById_returnsResponse_whenExists() {
         var entity = new Playlist(1L, "My Mix", "desc");
         var expected = response(1L, "My Mix");

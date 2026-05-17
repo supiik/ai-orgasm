@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 
 @Service
 @Transactional("appTransactionManager")
@@ -22,6 +23,10 @@ public class PlaylistService {
 
     public PlaylistResponse create(CreatePlaylistRequest request) {
         return mapper.toResponse(repository.save(mapper.toEntity(request)));
+    }
+
+    public PlaylistResponse create(UnaryOperator<CreatePlaylistRequest.CreatePlaylistRequestBuilder> customizer) {
+        return create(customizer.apply(CreatePlaylistRequest.builder()).build());
     }
 
     @Transactional(readOnly = true)
@@ -38,6 +43,10 @@ public class PlaylistService {
         Playlist existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
+    }
+
+    public PlaylistResponse update(Long id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) {
+        return update(id, customizer.apply(UpdatePlaylistRequest.builder()).build());
     }
 
     public void delete(Long id) {
