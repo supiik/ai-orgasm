@@ -278,10 +278,13 @@ The backend uses two physically separate MariaDB databases, each with its own `D
 | `billingDataSource` / `billingEntityManagerFactory` | `orgasm_billing` | 3307 | Billing data |
 
 **Package layout for entities and repositories:**
-- `com.orgasm.backend.domain.app` — `@Entity` classes for the app database
-- `com.orgasm.backend.domain.billing` — `@Entity` classes for the billing database
-- `com.orgasm.backend.repository.app` — Spring Data repositories (use `appTransactionManager`)
-- `com.orgasm.backend.repository.billing` — Spring Data repositories (use `billingTransactionManager`)
+- `com.orgasm.backend.domain.billing` — `@Entity` classes for the **billing** database
+- `com.orgasm.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
+- Everything else under `com.orgasm.backend` — entities and repositories for the **app** database
+
+`AppJpaConfig` scans `com.orgasm.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.orgasm.backend.domain.billing` / `com.orgasm.backend.repository.billing`). This means **new feature packages (e.g. `com.orgasm.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
+
+`BackendApplicationTests.contextLoads()` serves as the safety net: a new entity whose repository is not visible to the app `EntityManagerFactory` will cause the context load test to fail immediately.
 
 **Base entity:** All entities should extend `com.orgasm.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
 - `version` — optimistic locking via `@Version`
