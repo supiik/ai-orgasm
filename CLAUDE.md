@@ -244,18 +244,59 @@ Components are scaffolded into `src/components/ui/`. The `cn()` utility (`src/li
 
 **Tailwind v4 theme tokens:** CSS custom properties (e.g. `--background`, `--primary`) are declared in `src/assets/index.css` and registered as Tailwind utility classes via `@theme inline`. This is required in Tailwind v4 — without `@theme inline`, classes like `bg-background` or `border-border` are unknown and cause a build error.
 
+## Native image builds
+
+Both `backend` and `lambda` support GraalVM native image via the `native` Maven profile.
+Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker or locally via `sdk use graalvm-community-25`.
+
+### Backend
+
+```bash
+# Build native executable to backend/target/orgasm-backend
+./mvnw package -pl backend -am -DskipTests -Pnative
+
+# Or let Spring Boot build an OCI image (requires Docker)
+./mvnw spring-boot:build-image -pl backend -Pnative
+```
+
+### Lambda
+
+```bash
+# Build native executable 'bootstrap' to lambda/target/bootstrap
+./mvnw package -pl lambda -am -DskipTests -Pnative
+
+# Build Docker image for ECR (build context = repo root)
+docker build -f lambda/Dockerfile -t orgasm-lambda:latest .
+
+# For Graviton arm64 (matches template.yaml Architectures: [arm64]):
+docker buildx build --platform linux/arm64 \
+    -f lambda/Dockerfile -t orgasm-lambda:latest .
+
+# Push to ECR
+aws ecr get-login-password --region <region> \
+  | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
+docker tag orgasm-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
+docker push <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
+
+# Deploy via SAM (pass the image URI)
+sam deploy --parameter-overrides \
+  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest \
+  Env=dev
+```
+
+**AOT / database during native build:** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. It uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
+
+**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.orgasm.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
+
 ## Lambda local testing
 
 Requires [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 
 ```bash
-# Build fat JAR first
-mvn package -pl lambda -am -DskipTests
+# Build fat JAR first (JVM mode, no native required)
+./mvnw package -pl lambda -am -DskipTests
 
-# Start local API Gateway
-cd lambda && sam local start-api
-
-# Invoke a single function directly
+# Invoke a single function directly (JVM mode, uses events/ directory)
 sam local invoke HelloFunction --event events/hello.json
 ```
 

@@ -1,0 +1,33 @@
+# Version control
+.git/
+.gitignore
+
+# Build outputs
+target/
+*/target/
+**/target/
+
+# Frontend (not needed for lambda Docker build)
+ui/
+ui/node_modules/
+
+# IDE / editor
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+
+# Local env / secrets
+backend/.env
+**/.env
+
+# Maven wrapper cache
+.mvn/repository/
+
+# Test reports and coverage
+**/surefire-reports/
+**/failsafe-reports/
+**/site/
+
+# Logs
+*.log
