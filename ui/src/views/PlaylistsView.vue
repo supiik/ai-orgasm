@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Configuration, PlaylistsApi, type PlaylistResponse } from '@orgasm/backend-client'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -8,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const router = useRouter()
 const api = new PlaylistsApi(new Configuration({ basePath: '' }))
 
 // ── Table ────────────────────────────────────────────────────────────────────
@@ -132,14 +134,19 @@ async function submitForm() {
             </TableRow>
           </template>
           <template v-else-if="data && data.content?.length">
-            <TableRow v-for="playlist in data.content" :key="playlist.id">
+            <TableRow
+              v-for="playlist in data.content"
+              :key="playlist.id"
+              class="cursor-pointer"
+              @click="router.push({ name: 'playlist-detail', params: { id: playlist.id } })"
+            >
               <TableCell class="text-muted-foreground">{{ playlist.id }}</TableCell>
               <TableCell class="font-medium">{{ playlist.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ playlist.description ?? '—' }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt!) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt!) }}</TableCell>
               <TableCell>
-                <Button variant="ghost" size="icon" @click="openEdit(playlist)">
+                <Button variant="ghost" size="icon" @click.stop="openEdit(playlist)">
                   <Pencil class="h-4 w-4" />
                 </Button>
               </TableCell>
