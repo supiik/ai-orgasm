@@ -43,6 +43,11 @@
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
         </dependency>
+        <!-- Lombok for @Builder on generated models -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
 
         <!-- Test -->
         <dependency>
@@ -60,8 +65,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <release>8</release>
-                    <!-- No Lombok needed for generated code -->
-                    <annotationProcessorPaths combine.children="override"/>
                 </configuration>
             </plugin>
             <!-- Generated code only — skip mutation testing -->
@@ -100,6 +103,7 @@
                                 <useRuntimeException>true</useRuntimeException>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                                <additionalModelTypeAnnotations>@lombok.Builder;@lombok.AllArgsConstructor</additionalModelTypeAnnotations>
                             </configOptions>
                         </configuration>
                     </execution>

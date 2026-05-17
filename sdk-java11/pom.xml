@@ -30,6 +30,11 @@
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
+        <!-- Lombok for @Builder on generated models -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
 
         <!-- Test -->
         <dependency>
@@ -41,14 +46,12 @@
 
     <build>
         <plugins>
-            <!-- Override parent compiler: Java 11 target, preview features disabled -->
+                <!-- Override parent compiler: Java 11 target, preview features disabled -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <release>11</release>
-                    <!-- No Lombok needed for generated code -->
-                    <annotationProcessorPaths combine.children="override"/>
                 </configuration>
             </plugin>
             <!-- Generated code only — skip mutation testing -->
@@ -87,6 +90,7 @@
                                 <useRuntimeException>true</useRuntimeException>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                                <additionalModelTypeAnnotations>@lombok.Builder;@lombok.AllArgsConstructor</additionalModelTypeAnnotations>
                             </configOptions>
                         </configuration>
                     </execution>

@@ -80,6 +80,7 @@
                                 <useRuntimeException>true</useRuntimeException>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>
                                 <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+                                <additionalModelTypeAnnotations>@lombok.Builder;@lombok.AllArgsConstructor</additionalModelTypeAnnotations>
                             </configOptions>
                         </configuration>
                     </execution>

@@ -126,6 +126,16 @@ curl -s http://localhost:8080/v3/api-docs.yaml > api-spec/backend-api.yaml
 mvn install -pl sdk,sdk-java8,sdk-java11,sdk-typescript -am -DskipTests
 ```
 
+**Builder pattern on generated models:** All Java SDK models carry `@lombok.Builder @lombok.AllArgsConstructor` via `additionalModelTypeAnnotations`. The generator's explicit no-args constructor handles Jackson deserialization; Lombok adds an all-args constructor + `builder()` factory on top. Both annotations are required together — `@Builder` alone skips generating the all-args constructor when any constructor already exists.
+
+```java
+// fluent setters (existing generated API)
+new PlaylistResponse().id(1L).name("My Mix")
+
+// builder (added via Lombok)
+PlaylistResponse.builder().id(1L).name("My Mix").build()
+```
+
 **Compiler targets for client modules:** `sdk-java8` compiles with `--release 8` (OkHttp, no preview features); `sdk-java11` compiles with `--release 11` (native HttpClient, no preview features); `sdk/` (Java 25) and `sdk-typescript/` use the parent defaults. PiTest is skipped for all three generated-code modules.
 
 ## Local development (backend)
@@ -254,6 +264,15 @@ The API layer uses dedicated DTOs — never domain entities directly:
 | `PlaylistResponse` | All GET/POST/PUT responses — includes `id` and audit fields |
 
 Mapping between entity and DTOs is handled by `PlaylistMapper` (MapStruct, `componentModel = "spring"`). The mapper is injected into `PlaylistService`; controllers never touch entities.
+
+**Builder pattern:** All three DTO records carry `@Builder` so callers can use either style:
+```java
+// canonical constructor
+new CreatePlaylistRequest("My Mix", "desc")
+
+// builder
+CreatePlaylistRequest.builder().name("My Mix").description("desc").build()
+```
 
 **Annotation processor order** (critical with Lombok + MapStruct): Lombok must run before MapStruct so it generates the getters/setters that MapStruct reads. The root POM's `<pluginManagement>` puts Lombok first; `backend/pom.xml` appends the binding artifact + MapStruct processor with `combine.children="append"`:
 
