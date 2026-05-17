@@ -3,6 +3,7 @@ package com.orgasm.backend.song;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.orgasm.backend.config.GlobalExceptionHandler;
+import com.orgasm.backend.config.VersionTestSupport;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class SongControllerTest {
     void setup() {
         mvc = MockMvcBuilders
                 .standaloneSetup(new SongController(service))
+                .setApiVersionStrategy(VersionTestSupport.pathVersionStrategy())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
@@ -56,7 +58,7 @@ class SongControllerTest {
         when(service.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Radiohead", "Creep"))));
 
-        mvc.perform(get("/api/songs"))
+        mvc.perform(get("/v1/songs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].artist").value("Radiohead"))
                 .andExpect(jsonPath("$.content[0].name").value("Creep"));
@@ -66,7 +68,7 @@ class SongControllerTest {
     void findById_returns200_whenFound() throws Exception {
         when(service.findById(1L)).thenReturn(Optional.of(response(1L, "Radiohead", "Creep")));
 
-        mvc.perform(get("/api/songs/1"))
+        mvc.perform(get("/v1/songs/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.artist").value("Radiohead"));
@@ -76,7 +78,7 @@ class SongControllerTest {
     void findById_returns404_whenNotFound() throws Exception {
         when(service.findById(99L)).thenReturn(Optional.empty());
 
-        mvc.perform(get("/api/songs/99"))
+        mvc.perform(get("/v1/songs/99"))
                 .andExpect(status().isNotFound());
     }
 
@@ -84,17 +86,17 @@ class SongControllerTest {
     void create_returns201WithLocation() throws Exception {
         when(service.create(any(CreateSongRequest.class))).thenReturn(response(1L, "Radiohead", "Creep"));
 
-        mvc.perform(post("/api/songs")
+        mvc.perform(post("/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "Creep", "Pablo Honey", 1993))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/api/songs/1")))
+                .andExpect(header().string("Location", endsWith("/v1/songs/1")))
                 .andExpect(jsonPath("$.id").value(1));
     }
 
     @Test
     void create_returns400_whenArtistBlank() throws Exception {
-        mvc.perform(post("/api/songs")
+        mvc.perform(post("/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateSongRequest("", "Creep", null, null))))
                 .andExpect(status().isBadRequest());
@@ -102,7 +104,7 @@ class SongControllerTest {
 
     @Test
     void create_returns400_whenNameBlank() throws Exception {
-        mvc.perform(post("/api/songs")
+        mvc.perform(post("/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "", null, null))))
                 .andExpect(status().isBadRequest());
@@ -112,7 +114,7 @@ class SongControllerTest {
     void update_returns200_whenFound() throws Exception {
         when(service.update(eq(1L), any(UpdateSongRequest.class))).thenReturn(response(1L, "Radiohead", "Karma Police"));
 
-        mvc.perform(put("/api/songs/1")
+        mvc.perform(put("/v1/songs/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateSongRequest("Radiohead", "Karma Police", "OK Computer", 1997))))
                 .andExpect(status().isOk())
@@ -124,7 +126,7 @@ class SongControllerTest {
         when(service.update(eq(99L), any(UpdateSongRequest.class)))
                 .thenThrow(new EntityNotFoundException("Song not found: 99"));
 
-        mvc.perform(put("/api/songs/99")
+        mvc.perform(put("/v1/songs/99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateSongRequest("X", "Y", null, null))))
                 .andExpect(status().isNotFound());
@@ -132,7 +134,7 @@ class SongControllerTest {
 
     @Test
     void delete_returns204_whenFound() throws Exception {
-        mvc.perform(delete("/api/songs/1"))
+        mvc.perform(delete("/v1/songs/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -141,7 +143,7 @@ class SongControllerTest {
         doThrow(new EntityNotFoundException("Song not found: 99"))
                 .when(service).delete(99L);
 
-        mvc.perform(delete("/api/songs/99"))
+        mvc.perform(delete("/v1/songs/99"))
                 .andExpect(status().isNotFound());
     }
 }

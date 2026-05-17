@@ -23,7 +23,7 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('lists seed playlists', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/playlists')
+    const { status, body } = await browserFetch(page, '/v1/playlists')
     expect(status).toBe(200)
     expect(body.totalElements).toBe(SEED_NAMES.length)
     expect(body.content.map((p: { name: string }) => p.name)).toEqual(
@@ -32,7 +32,7 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('creates a new playlist', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/playlists', {
+    const { status, body } = await browserFetch(page, '/v1/playlists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'E2E Playlist', description: 'Created by Playwright' }),
@@ -43,7 +43,7 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('returns 400 when name is missing', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/playlists', {
+    const { status } = await browserFetch(page, '/v1/playlists', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description: 'no name' }),
@@ -52,18 +52,18 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('gets a playlist by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/playlists/1')
+    const { status, body } = await browserFetch(page, '/v1/playlists/1')
     expect(status).toBe(200)
     expect(body.name).toBe('Chill Vibes')
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/playlists/9999')
+    const { status } = await browserFetch(page, '/v1/playlists/9999')
     expect(status).toBe(404)
   })
 
   test('updates a playlist', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/playlists/2', {
+    const { status, body } = await browserFetch(page, '/v1/playlists/2', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name' }),
@@ -74,10 +74,10 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('deletes a playlist', async ({ page }) => {
-    const del = await browserFetch(page, '/api/playlists/3', { method: 'DELETE' })
+    const del = await browserFetch(page, '/v1/playlists/3', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/playlists/3')
+    const get = await browserFetch(page, '/v1/playlists/3')
     expect(get.status).toBe(404)
   })
 })

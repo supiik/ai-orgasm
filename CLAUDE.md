@@ -292,8 +292,32 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 ### Lambda packaging
 `lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.orgasm.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
 
+### API versioning
+
+The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:
+
+- **Strategy**: path-based — version is the first URL segment (e.g., `/v1/playlists`)
+- **Parser**: `SemanticApiVersionParser` — strips leading `v`, so `v1` → version `1.0.0`
+- **Unversioned paths** (health, actuator, Swagger) pass through because `setVersionRequired(false)` is set and the resolver predicate skips paths whose first segment doesn't match `v\d+`
+- **Supported versions** are detected automatically from controller annotations
+
+**Controller pattern:**
+```java
+@RequestMapping(value = "/v1/playlists", version = "1")
+```
+The path includes the version prefix; the `version` attribute tells Spring MVC which version this controller serves and is used for supported-version validation.
+
+**Adding v2:** Add a new controller with `value = "/v2/playlists", version = "2"`. Both controllers coexist; requests to `/v1/` and `/v2/` route independently.
+
+**Tests:** Standalone MockMvc tests must configure a version strategy to match production. Use `VersionTestSupport.pathVersionStrategy()` (in `backend/src/test/java`) and pass it to `.setApiVersionStrategy(...)` on the builder.
+
+**Exception handling:** `GlobalExceptionHandler` maps version errors to HTTP responses:
+- `MissingApiVersionException` → 400
+- `InvalidApiVersionException` (unsupported version) → 400
+- `NotAcceptableApiVersionException` → 406
+
 ### CORS
-`WebConfig` allows `http://localhost:5173` (Vite dev server) for all `/api/**` routes. For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
+`WebConfig` allows `http://localhost:5173` (Vite dev server) for `/v1/**` (all methods) and `/api/**` (GET only, for health). For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
 
 ### Multi-datasource JPA (backend)
 The backend uses two physically separate MariaDB databases, each with its own `DataSource`, `EntityManagerFactory`, and `JpaTransactionManager`:

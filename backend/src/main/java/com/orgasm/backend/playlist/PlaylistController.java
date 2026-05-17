@@ -13,7 +13,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 
 @RestController
-@RequestMapping("/api/playlists")
+@RequestMapping(value = "/v1/playlists", version = "1")
 @RequiredArgsConstructor
 @Slf4j
 public class PlaylistController {

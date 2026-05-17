@@ -22,7 +22,7 @@ const db: PlaylistResponse[] = [
 const now = () => new Date().toISOString()
 
 export const playlistHandlers = [
-  http.get('/api/playlists', ({ request }) => {
+  http.get('/v1/playlists', ({ request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
@@ -36,7 +36,7 @@ export const playlistHandlers = [
     })
   }),
 
-  http.post('/api/playlists', async ({ request }) => {
+  http.post('/v1/playlists', async ({ request }) => {
     const body = await request.json() as { name: string; description?: string; status?: PlaylistStatus }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
@@ -54,13 +54,13 @@ export const playlistHandlers = [
     return HttpResponse.json(created, { status: 201 })
   }),
 
-  http.get('/api/playlists/:id', ({ params }) => {
+  http.get('/v1/playlists/:id', ({ params }) => {
     const playlist = db.find(p => p.id === Number(params.id))
     if (!playlist) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     return HttpResponse.json(playlist)
   }),
 
-  http.put('/api/playlists/:id', async ({ params, request }) => {
+  http.put('/v1/playlists/:id', async ({ params, request }) => {
     const index = db.findIndex(p => p.id === Number(params.id))
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     const body = await request.json() as { name: string; description?: string; status?: PlaylistStatus }
@@ -78,7 +78,7 @@ export const playlistHandlers = [
     return HttpResponse.json(db[index])
   }),
 
-  http.delete('/api/playlists/:id', ({ params }) => {
+  http.delete('/v1/playlists/:id', ({ params }) => {
     const index = db.findIndex(p => p.id === Number(params.id))
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)

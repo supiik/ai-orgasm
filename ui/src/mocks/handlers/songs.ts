@@ -21,7 +21,7 @@ const db: SongResponse[] = [
 const now = () => new Date().toISOString()
 
 export const songHandlers = [
-  http.get('/api/songs', ({ request }) => {
+  http.get('/v1/songs', ({ request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
@@ -35,7 +35,7 @@ export const songHandlers = [
     })
   }),
 
-  http.post('/api/songs', async ({ request }) => {
+  http.post('/v1/songs', async ({ request }) => {
     const body = await request.json() as { artist: string; name: string; album?: string; releaseYear?: number }
     if (!body.artist?.trim()) {
       return HttpResponse.json({ message: 'Artist is required' }, { status: 400 })
@@ -57,13 +57,13 @@ export const songHandlers = [
     return HttpResponse.json(created, { status: 201 })
   }),
 
-  http.get('/api/songs/:id', ({ params }) => {
+  http.get('/v1/songs/:id', ({ params }) => {
     const song = db.find(s => s.id === Number(params.id))
     if (!song) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     return HttpResponse.json(song)
   }),
 
-  http.put('/api/songs/:id', async ({ params, request }) => {
+  http.put('/v1/songs/:id', async ({ params, request }) => {
     const index = db.findIndex(s => s.id === Number(params.id))
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     const body = await request.json() as { artist: string; name: string; album?: string; releaseYear?: number }
@@ -85,7 +85,7 @@ export const songHandlers = [
     return HttpResponse.json(db[index])
   }),
 
-  http.delete('/api/songs/:id', ({ params }) => {
+  http.delete('/v1/songs/:id', ({ params }) => {
     const index = db.findIndex(s => s.id === Number(params.id))
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)
