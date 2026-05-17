@@ -1,4 +1,7 @@
 spring:
+  docker:
+    compose:
+      lifecycle-management: start-only
   jpa:
     show-sql: true
     properties:
