@@ -13,7 +13,7 @@ tags:
   - name: health
 
 paths:
-  /v1/songs:
+  /api/v1/songs:
     get:
       tags: [songs]
       operationId: findAllSongs
@@ -61,7 +61,7 @@ paths:
         '400':
           description: Validation error
 
-  /v1/songs/{id}:
+  /api/v1/songs/{id}:
     get:
       tags: [songs]
       operationId: findSongById
@@ -140,7 +140,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
 
-  /v1/playlists:
+  /api/v1/playlists:
     get:
       tags: [playlists]
       operationId: findAllPlaylists
@@ -188,7 +188,7 @@ paths:
         '400':
           description: Validation error
 
-  /v1/playlists/{id}:
+  /api/v1/playlists/{id}:
     get:
       tags: [playlists]
       operationId: findPlaylistById

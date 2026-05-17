@@ -17,10 +17,6 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: isMock ? undefined : {
-        '/v1': {
-          target: 'http://localhost:8080',
-          changeOrigin: true,
-        },
         '/api': {
           target: 'http://localhost:8080',
           changeOrigin: true,

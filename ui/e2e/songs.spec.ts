@@ -26,7 +26,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('lists seed songs', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/v1/songs')
+    const { status, body } = await browserFetch(page, '/api/v1/songs')
     expect(status).toBe(200)
     expect(body.totalElements).toBe(SEED.length)
     expect(body.content.map((s: { name: string }) => s.name)).toEqual(
@@ -35,7 +35,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('creates a new song', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/v1/songs', {
+    const { status, body } = await browserFetch(page, '/api/v1/songs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: 'The Beatles', name: 'Hey Jude', album: 'Single', releaseYear: 1968 }),
@@ -49,7 +49,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 400 when artist is missing', async ({ page }) => {
-    const { status } = await browserFetch(page, '/v1/songs', {
+    const { status } = await browserFetch(page, '/api/v1/songs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Some Track' }),
@@ -58,7 +58,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 400 when name is missing', async ({ page }) => {
-    const { status } = await browserFetch(page, '/v1/songs', {
+    const { status } = await browserFetch(page, '/api/v1/songs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: 'Some Artist' }),
@@ -67,7 +67,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('gets a song by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/v1/songs/1')
+    const { status, body } = await browserFetch(page, '/api/v1/songs/1')
     expect(status).toBe(200)
     expect(body.artist).toBe('Radiohead')
     expect(body.name).toBe('Creep')
@@ -76,12 +76,12 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/v1/songs/9999')
+    const { status } = await browserFetch(page, '/api/v1/songs/9999')
     expect(status).toBe(404)
   })
 
   test('updates a song', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/v1/songs/2', {
+    const { status, body } = await browserFetch(page, '/api/v1/songs/2', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: 'Nirvana', name: 'Come as You Are', album: 'Nevermind', releaseYear: 1992 }),
@@ -93,7 +93,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 400 on update when artist is blank', async ({ page }) => {
-    const { status } = await browserFetch(page, '/v1/songs/1', {
+    const { status } = await browserFetch(page, '/api/v1/songs/1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: '', name: 'Creep' }),
@@ -102,10 +102,10 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('deletes a song', async ({ page }) => {
-    const del = await browserFetch(page, '/v1/songs/3', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/songs/3', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/v1/songs/3')
+    const get = await browserFetch(page, '/api/v1/songs/3')
     expect(get.status).toBe(404)
   })
 })

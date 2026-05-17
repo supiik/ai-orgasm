@@ -14,9 +14,10 @@ public final class VersionTestSupport {
 
     public static ApiVersionStrategy pathVersionStrategy() {
         return new DefaultApiVersionStrategy(
-                List.of(new PathApiVersionResolver(0, path ->
+                List.of(new PathApiVersionResolver(1, path ->
                         path.pathWithinApplication().elements().stream()
                                 .filter(e -> e instanceof PathContainer.PathSegment)
+                                .skip(1)
                                 .findFirst()
                                 .map(e -> e.value().matches("v\\d+.*"))
                                 .orElse(false))),

@@ -58,7 +58,7 @@ class PlaylistControllerTest {
         when(service.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
 
-        mvc.perform(get("/v1/playlists"))
+        mvc.perform(get("/api/v1/playlists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("Mix"));
     }
@@ -67,7 +67,7 @@ class PlaylistControllerTest {
     void findById_returns200_whenFound() throws Exception {
         when(service.findById(1L)).thenReturn(Optional.of(response(1L, "Mix", "desc")));
 
-        mvc.perform(get("/v1/playlists/1"))
+        mvc.perform(get("/api/v1/playlists/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.name").value("Mix"));
@@ -77,7 +77,7 @@ class PlaylistControllerTest {
     void findById_returns404_whenNotFound() throws Exception {
         when(service.findById(99L)).thenReturn(Optional.empty());
 
-        mvc.perform(get("/v1/playlists/99"))
+        mvc.perform(get("/api/v1/playlists/99"))
                 .andExpect(status().isNotFound());
     }
 
@@ -85,17 +85,17 @@ class PlaylistControllerTest {
     void create_returns201WithLocation() throws Exception {
         when(service.create(any(CreatePlaylistRequest.class))).thenReturn(response(1L, "New Mix", "desc"));
 
-        mvc.perform(post("/v1/playlists")
+        mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc", null))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/v1/playlists/1")))
+                .andExpect(header().string("Location", endsWith("/api/v1/playlists/1")))
                 .andExpect(jsonPath("$.id").value(1));
     }
 
     @Test
     void create_returns400_whenNameBlank() throws Exception {
-        mvc.perform(post("/v1/playlists")
+        mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
                 .andExpect(status().isBadRequest());
@@ -105,7 +105,7 @@ class PlaylistControllerTest {
     void update_returns200_whenFound() throws Exception {
         when(service.update(eq(1L), any(UpdatePlaylistRequest.class))).thenReturn(response(1L, "Updated", "new desc"));
 
-        mvc.perform(put("/v1/playlists/1")
+        mvc.perform(put("/api/v1/playlists/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null))))
                 .andExpect(status().isOk())
@@ -117,7 +117,7 @@ class PlaylistControllerTest {
         when(service.update(eq(99L), any(UpdatePlaylistRequest.class)))
                 .thenThrow(new EntityNotFoundException("Playlist not found: 99"));
 
-        mvc.perform(put("/v1/playlists/99")
+        mvc.perform(put("/api/v1/playlists/99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null, null))))
                 .andExpect(status().isNotFound());
@@ -125,7 +125,7 @@ class PlaylistControllerTest {
 
     @Test
     void delete_returns204_whenFound() throws Exception {
-        mvc.perform(delete("/v1/playlists/1"))
+        mvc.perform(delete("/api/v1/playlists/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -134,7 +134,7 @@ class PlaylistControllerTest {
         doThrow(new EntityNotFoundException("Playlist not found: 99"))
                 .when(service).delete(99L);
 
-        mvc.perform(delete("/v1/playlists/99"))
+        mvc.perform(delete("/api/v1/playlists/99"))
                 .andExpect(status().isNotFound());
     }
 }
