@@ -5,8 +5,8 @@ test('shows backend status from health endpoint', async ({ page }) => {
   await expect(page.getByText('UP')).toBeVisible()
 })
 
-test('navigates to about page', async ({ page }) => {
+test('navigates to songs via sidebar', async ({ page }) => {
   await page.goto('/')
-  await page.goto('/about')
-  await expect(page.getByRole('heading', { name: 'About' })).toBeVisible()
+  await page.getByRole('link', { name: 'Songs' }).click()
+  await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible()
 })
