@@ -25,6 +25,8 @@ ui/dist/
 ui/.vite/
 ui/coverage/
 ui/*.local
+ui/playwright-report/
+ui/test-results/
 
 # Environment
 .env
