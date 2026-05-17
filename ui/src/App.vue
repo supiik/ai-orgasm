@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { ListMusic } from 'lucide-vue-next'
+import { Home, ListMusic } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -13,6 +13,14 @@ import { ListMusic } from 'lucide-vue-next'
       </div>
       <nav class="flex-1 px-2 py-3 space-y-0.5">
         <RouterLink
+          to="/"
+          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          :class="{ 'bg-accent text-accent-foreground font-medium': $route.name === 'home' }"
+        >
+          <Home class="h-4 w-4 shrink-0" />
+          Home
+        </RouterLink>
+        <RouterLink
           to="/playlists"
           class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           active-class="bg-accent text-accent-foreground font-medium"
@@ -23,10 +31,17 @@ import { ListMusic } from 'lucide-vue-next'
       </nav>
     </aside>
 
-    <!-- Main content -->
-    <main class="flex-1 overflow-y-auto p-6">
-      <RouterView />
-    </main>
+    <!-- Content area -->
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <main class="flex-1 overflow-y-auto p-6">
+        <RouterView />
+      </main>
+
+      <footer class="shrink-0 border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
+        <span>Orgasm</span>
+        <span>v1.0.0-SNAPSHOT</span>
+      </footer>
+    </div>
 
   </div>
 </template>
