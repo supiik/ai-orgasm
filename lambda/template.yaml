@@ -5,31 +5,64 @@ Description: Orgasm Lambda functions (SAM)
 
 Globals:
   Function:
-    Runtime: java25
+    Runtime: java21
     Architectures:
       - arm64
     MemorySize: 512
     Timeout: 30
+    CodeUri: target/orgasm-lambda-1.0.0-SNAPSHOT.jar
     Environment:
       Variables:
         JAVA_TOOL_OPTIONS: -XX:+TieredCompilation -XX:TieredStopAtLevel=1
+        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/url}}"
+        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/username}}"
+        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/password}}"
+        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/url}}"
+        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/username}}"
+        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/password}}"
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, staging, prod]
 
 Resources:
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: orgasm-hello
+      FunctionName: !Sub "orgasm-hello-${Env}"
       Handler: com.orgasm.lambda.HelloHandler::handleRequest
-      CodeUri: target/orgasm-lambda-1.0.0-SNAPSHOT.jar
-      Description: Sample Hello Lambda
-      Events:
-        HelloApi:
-          Type: HttpApi
-          Properties:
-            Path: /hello
-            Method: GET
+      Description: Health-check / hello endpoint
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
+          AllowMethods:
+            - GET
+
+  CreatePlaylistFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "orgasm-create-playlist-${Env}"
+      Handler: com.orgasm.lambda.CreatePlaylistHandler::handleRequest
+      Description: Create a playlist
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - "*"
+          AllowMethods:
+            - POST
+          AllowHeaders:
+            - content-type
 
 Outputs:
-  HelloApiUrl:
-    Description: API Gateway endpoint URL
-    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/hello"
+  HelloFunctionUrl:
+    Description: Hello Function URL
+    Value: !GetAtt HelloFunctionUrl.FunctionUrl
+
+  CreatePlaylistFunctionUrl:
+    Description: Create Playlist Function URL
+    Value: !GetAtt CreatePlaylistFunctionUrl.FunctionUrl

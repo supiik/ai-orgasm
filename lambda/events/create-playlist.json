@@ -1,0 +1,28 @@
+{
+  "version": "2.0",
+  "routeKey": "$default",
+  "rawPath": "/",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "local",
+    "domainName": "localhost",
+    "http": {
+      "method": "POST",
+      "path": "/",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "127.0.0.1",
+      "userAgent": "curl"
+    },
+    "requestId": "local-test",
+    "routeKey": "$default",
+    "stage": "$default",
+    "time": "01/Jan/2026:00:00:00 +0000",
+    "timeEpoch": 1735689600000
+  },
+  "body": "{\"name\":\"Road Trip\",\"description\":\"Songs for the drive\"}",
+  "isBase64Encoded": false
+}

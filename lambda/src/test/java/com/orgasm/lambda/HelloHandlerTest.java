@@ -1,7 +1,6 @@
 package com.orgasm.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.events.APIGatewayProxyRequestEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orgasm.backend.playlist.PlaylistService;
 import org.junit.jupiter.api.Test;
@@ -10,6 +9,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 
+import static com.orgasm.lambda.LambdaTestSupport.VALIDATOR;
+import static com.orgasm.lambda.LambdaTestSupport.getEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -20,14 +21,14 @@ class HelloHandlerTest {
 
     @Mock PlaylistService playlistService;
     private final Context context = mock(Context.class);
+    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     @Test
     void returns200WithMessage() {
         when(playlistService.findAll(any())).thenReturn(Page.empty());
-        var handler = new HelloHandler(playlistService, new ObjectMapper().findAndRegisterModules());
-        var event = new APIGatewayProxyRequestEvent().withPath("/hello");
+        var handler = new HelloHandler(playlistService, mapper, VALIDATOR);
 
-        var response = handler.handleRequest(event, context);
+        var response = handler.handleRequest(getEvent(), context);
 
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getBody()).contains("Hello from Lambda!");
@@ -37,14 +38,12 @@ class HelloHandlerTest {
     void returns500_whenSerializationFails() throws Exception {
         when(playlistService.findAll(any())).thenReturn(Page.empty());
         ObjectMapper failingMapper = mock(ObjectMapper.class);
-        when(failingMapper.writeValueAsString(any()))
-                .thenThrow(new RuntimeException("boom"));
-        var handler = new HelloHandler(playlistService, failingMapper);
-        var event = new APIGatewayProxyRequestEvent().withPath("/hello");
+        when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("boom"));
+        var handler = new HelloHandler(playlistService, failingMapper, VALIDATOR);
 
-        var response = handler.handleRequest(event, context);
+        var response = handler.handleRequest(getEvent(), context);
 
         assertThat(response.getStatusCode()).isEqualTo(500);
-        assertThat(response.getBody()).contains("Internal error");
+        assertThat(response.getBody()).contains("Serialization failed");
     }
 }
