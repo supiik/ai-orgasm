@@ -13,43 +13,47 @@ Four independent sub-projects sharing a root directory:
 | `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml` |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
 
-`sdk` is always built first; the parent POM declares modules in dependency order: `sdk → backend → lambda`.
+`sdk` is always built first; the parent POM declares modules in dependency order: `sdk → backend → lambda → ui`.
 
-## Java build commands
+## Build commands
 
-All commands run from the repo root unless noted.
+A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it instead of a system `mvn` to guarantee the pinned Maven version. All commands run from the repo root unless noted.
 
 ```bash
-# Build everything (sdk → backend → lambda)
-mvn install
+# Build everything (sdk → backend → lambda → ui)
+./mvnw install
 
 # Build a single module without running tests
-mvn install -pl sdk -am -DskipTests
-mvn install -pl backend -am -DskipTests
-mvn install -pl lambda -am -DskipTests
+./mvnw install -pl sdk -am -DskipTests
+./mvnw install -pl backend -am -DskipTests
+./mvnw install -pl lambda -am -DskipTests
+./mvnw install -pl ui -am -DskipTests   # skips npm build + Playwright
 
 # Run all Java tests
-mvn test
+./mvnw test
 
 # Run tests in a specific module
-mvn test -pl sdk
-mvn test -pl backend
-mvn test -pl lambda
+./mvnw test -pl sdk
+./mvnw test -pl backend
+./mvnw test -pl lambda
 
 # Run a single test class
-mvn test -pl backend -Dtest=HealthControllerTest
+./mvnw test -pl backend -Dtest=HealthControllerTest
 
 # Run the backend
-mvn spring-boot:run -pl backend
+./mvnw spring-boot:run -pl backend
 
 # Package Lambda fat JAR for deployment
-mvn package -pl lambda -am
+./mvnw package -pl lambda -am
 
 # Run integration tests (requires Docker — Testcontainers spins up MariaDB containers)
-mvn verify -pl backend
+./mvnw verify -pl backend
 
 # Run integration tests only, skipping unit tests
-mvn failsafe:integration-test failsafe:verify -pl backend -DskipTests
+./mvnw failsafe:integration-test failsafe:verify -pl backend -DskipTests
+
+# Build and test the UI only (npm build + Playwright e2e)
+./mvnw verify -pl ui
 ```
 
 No preview features are used; `--enable-preview` is absent from the build.
@@ -175,17 +179,14 @@ cp backend/.env.example backend/.env
 
 ### Running from VS Code
 
-The `.vscode/launch.json` configuration sets `cwd` to `backend/` (so Docker Compose finds `compose.yml`), activates the `dev` profile, and loads `backend/.env`:
+`.vscode/launch.json` defines two launch configurations:
 
-```json
-{
-  "cwd": "${workspaceFolder}/backend",
-  "vmArgs": "-Dspring.profiles.active=dev",
-  "envFile": "${workspaceFolder}/backend/.env"
-}
-```
+| Name | What it starts |
+|------|---------------|
+| `Spring Boot-BackendApplication<orgasm-backend>` | Spring Boot with `dev` profile, loads `backend/.env` |
+| `UI (mock)` | `npm run dev:mock` — Vite on `:5173` with MSW mocks, no backend needed |
 
-The `dev` profile (`application-dev.yml`) sets `lifecycle-management: start-only` so Docker Compose containers keep running between app restarts — data in named volumes is preserved across restarts.
+The Spring Boot config sets `cwd` to `backend/` (so Docker Compose finds `compose.yml`) and loads `backend/.env`. The `dev` profile (`application-dev.yml`) sets `lifecycle-management: start-only` so Docker Compose containers keep running between app restarts — data in named volumes is preserved across restarts.
 
 ### API explorer
 
@@ -196,15 +197,48 @@ Swagger UI is available at `http://localhost:8080/swagger-ui.html` when the back
 ```bash
 cd ui
 
-npm install          # first time
-npm run dev          # Vite dev server on :5173, proxies /api → :8080
-npm run build        # type-check + production build → ui/dist/
-npm run type-check   # vue-tsc only, no emit
-npm run lint         # ESLint
-npm run test:unit    # Vitest
+npm install            # first time
+npm run dev            # Vite dev server on :5173, proxies /api → :8080 (backend required)
+npm run dev:mock       # Vite dev server with MSW mocks — no backend needed
+npm run build          # type-check + production build → ui/dist/
+npm run type-check     # vue-tsc only, no emit
+npm run lint           # ESLint
+npm run test:unit      # Vitest unit tests
+npm run test:e2e       # Playwright e2e tests (headless, starts Vite in mock mode automatically)
+npm run test:e2e:ui    # Playwright interactive UI mode (step-through, time-travel debugging)
 ```
 
-Vite proxies `/api/*` to `http://localhost:8080`, so the backend must be running for API calls to work in dev mode.
+Vite proxies `/api/*` to `http://localhost:8080` in normal dev mode. In mock mode (`dev:mock`) the proxy is disabled and MSW intercepts all `/api/*` requests in the browser via a Service Worker.
+
+### Node version
+
+Node 22 is required (enforced via `engines` in `package.json`). Use [fnm](https://github.com/Schniz/fnm) to manage versions — it's installed at `~/.local/share/fnm` and configured in `~/.zshrc` and `~/.bashrc`. The `ui/.node-version` file makes fnm switch automatically on `cd ui/`.
+
+### MSW mock layer
+
+`src/mocks/handlers/` contains request handlers for every API endpoint. The in-memory store is seeded with 3 playlists on startup. Adding a new endpoint:
+1. Add a handler in `src/mocks/handlers/<domain>.ts`
+2. Export it from `src/mocks/handlers/index.ts`
+
+### Playwright e2e tests
+
+Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in mock mode (`VITE_MOCK=true`) as the web server before running tests — no manual setup needed.
+
+**Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. The `beforeEach` waits for `navigator.serviceWorker.controller` to be set before making any fetch calls.
+
+### shadcn-vue components
+
+shadcn-vue is configured via `ui/components.json`. Add components with:
+
+```bash
+cd ui
+npx shadcn-vue@latest add button
+npx shadcn-vue@latest add dialog
+```
+
+Components are scaffolded into `src/components/ui/`. The `cn()` utility (`src/lib/utils.ts`) merges Tailwind classes and is used by all shadcn components.
+
+**Tailwind v4 theme tokens:** CSS custom properties (e.g. `--background`, `--primary`) are declared in `src/assets/index.css` and registered as Tailwind utility classes via `@theme inline`. This is required in Tailwind v4 — without `@theme inline`, classes like `bg-background` or `border-border` are unknown and cause a build error.
 
 ## Lambda local testing
 
@@ -344,10 +378,15 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | Java | 25 |
 | Spring Boot | 4.0.6 |
 | AWS SDK v2 | 2.31.0 |
-| Node | 22 LTS (enforced via `engines` in `package.json`) |
+| Node | 22.22.3 (pinned in root POM as `node.version`; `.node-version` for fnm) |
 | Vue | 3.5.x |
 | Vite | 6.x |
+| Tailwind CSS | 4.x (via `@tailwindcss/vite` plugin) |
+| shadcn-vue | configured via `ui/components.json` |
+| MSW | 2.x |
+| Playwright | 1.x |
 | MapStruct | 1.6.3 |
+| frontend-maven-plugin | 1.15.1 (pinned in root POM as `frontend-maven-plugin.version`) |
 | Lambda runtime | `java21` (Graviton arm64) |
 
-All Java dependency versions are managed centrally in the root `pom.xml` `<properties>` block. Update versions there, not in individual module POMs.
+All Java dependency versions are managed centrally in the root `pom.xml` `<properties>` block. Update versions there, not in individual module POMs. `node.version` and `frontend-maven-plugin.version` are also in the root `<properties>` block.
