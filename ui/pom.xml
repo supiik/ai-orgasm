@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.orgasm</groupId>
+        <artifactId>orgasm-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>orgasm-ui</artifactId>
+    <packaging>pom</packaging>
+    <name>orgasm-ui</name>
+
+    <properties>
+        <!-- No hand-written Java — exempt from JaCoCo gate and PiTest -->
+        <jacoco.line-coverage-minimum>0</jacoco.line-coverage-minimum>
+        <pitest.skip>true</pitest.skip>
+        <!-- Skip default JaCoCo executions (no bytecode to instrument) -->
+        <jacoco.skip>true</jacoco.skip>
+        <!-- Working directory for all npm/npx commands -->
+        <frontend.workingDirectory>${project.basedir}</frontend.workingDirectory>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>${frontend-maven-plugin.version}</version>
+                <configuration>
+                    <workingDirectory>${frontend.workingDirectory}</workingDirectory>
+                    <installDirectory>${project.build.directory}/node</installDirectory>
+                </configuration>
+                <executions>
+
+                    <!-- 1. Download Node + npm into target/node (no system Node needed) -->
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>${node.version}</nodeVersion>
+                        </configuration>
+                    </execution>
+
+                    <!-- 2. npm install -->
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- 3. Type-check + Vite production build → ui/dist/ -->
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- 4. Download Playwright browser binaries -->
+                    <execution>
+                        <id>playwright-install-browsers</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>npx</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>playwright install chromium</arguments>
+                        </configuration>
+                    </execution>
+
+                    <!-- 5. Run Playwright e2e tests (Vite dev server started by playwright.config.ts) -->
+                    <execution>
+                        <id>playwright-test</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>npx</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>playwright test</arguments>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
