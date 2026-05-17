@@ -3,20 +3,21 @@ package com.orgasm.backend.playlist;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.orgasm.backend.config.GlobalExceptionHandler;
-import org.springframework.data.web.config.EnableSpringDataWebSupport;
-import org.springframework.data.web.config.SpringDataJacksonConfiguration;
-import org.springframework.data.web.config.SpringDataWebSettings;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.data.web.config.EnableSpringDataWebSupport;
+import org.springframework.data.web.config.SpringDataJacksonConfiguration;
+import org.springframework.data.web.config.SpringDataWebSettings;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,10 +47,14 @@ class PlaylistControllerTest {
                 .build();
     }
 
+    static PlaylistResponse response(Long id, String name, String description) {
+        return new PlaylistResponse(id, name, description, 0L, Instant.EPOCH, Instant.EPOCH);
+    }
+
     @Test
     void findAll_returns200() throws Exception {
         when(service.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(new Playlist(1L, "Mix", "desc"))));
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
 
         mvc.perform(get("/api/playlists"))
                 .andExpect(status().isOk())
@@ -58,7 +63,7 @@ class PlaylistControllerTest {
 
     @Test
     void findById_returns200_whenFound() throws Exception {
-        when(service.findById(1L)).thenReturn(Optional.of(new Playlist(1L, "Mix", "desc")));
+        when(service.findById(1L)).thenReturn(Optional.of(response(1L, "Mix", "desc")));
 
         mvc.perform(get("/api/playlists/1"))
                 .andExpect(status().isOk())
@@ -76,25 +81,31 @@ class PlaylistControllerTest {
 
     @Test
     void create_returns201WithLocation() throws Exception {
-        Playlist saved = new Playlist(1L, "New Mix", "desc");
-        when(service.create(any())).thenReturn(saved);
+        when(service.create(any())).thenReturn(response(1L, "New Mix", "desc"));
 
         mvc.perform(post("/api/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new Playlist(null, "New Mix", "desc"))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc"))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/playlists/1")))
                 .andExpect(jsonPath("$.id").value(1));
     }
 
     @Test
+    void create_returns400_whenNameBlank() throws Exception {
+        mvc.perform(post("/api/playlists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void update_returns200_whenFound() throws Exception {
-        Playlist updated = new Playlist(1L, "Updated", "new desc");
-        when(service.update(eq(1L), any())).thenReturn(updated);
+        when(service.update(eq(1L), any())).thenReturn(response(1L, "Updated", "new desc"));
 
         mvc.perform(put("/api/playlists/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new Playlist(null, "Updated", "new desc"))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated"));
     }
@@ -106,7 +117,7 @@ class PlaylistControllerTest {
 
         mvc.perform(put("/api/playlists/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new Playlist(null, "X", null))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null))))
                 .andExpect(status().isNotFound());
     }
 

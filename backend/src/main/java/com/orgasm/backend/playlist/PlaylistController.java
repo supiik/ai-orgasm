@@ -1,5 +1,6 @@
 package com.orgasm.backend.playlist;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,30 +21,33 @@ public class PlaylistController {
     private final PlaylistService service;
 
     @GetMapping
-    public ResponseEntity<Page<Playlist>> findAll(@PageableDefault(size = 20, sort = "id") Pageable pageable) {
+    public ResponseEntity<Page<PlaylistResponse>> findAll(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(service.findAll(pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Playlist> findById(@PathVariable Long id) {
+    public ResponseEntity<PlaylistResponse> findById(@PathVariable Long id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<Playlist> create(@RequestBody Playlist playlist) {
-        Playlist created = service.create(playlist);
+    public ResponseEntity<PlaylistResponse> create(@RequestBody @Valid CreatePlaylistRequest request) {
+        PlaylistResponse created = service.create(request);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.getId())
+                .buildAndExpand(created.id())
                 .toUri();
         return ResponseEntity.created(location).body(created);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Playlist> update(@PathVariable Long id, @RequestBody Playlist updates) {
-        return ResponseEntity.ok(service.update(id, updates));
+    public ResponseEntity<PlaylistResponse> update(
+            @PathVariable Long id,
+            @RequestBody @Valid UpdatePlaylistRequest request) {
+        return ResponseEntity.ok(service.update(id, request));
     }
 
     @DeleteMapping("/{id}")

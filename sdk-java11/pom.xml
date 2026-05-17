@@ -47,9 +47,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <release>11</release>
-                    <compilerArgs combine.children="override">
-                        <arg>-parameters</arg>
-                    </compilerArgs>
                     <!-- No Lombok needed for generated code -->
                     <annotationProcessorPaths combine.children="override"/>
                 </configuration>

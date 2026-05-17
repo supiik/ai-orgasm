@@ -52,7 +52,7 @@ mvn verify -pl backend
 mvn failsafe:integration-test failsafe:verify -pl backend -DskipTests
 ```
 
-Preview features are enabled compiler-wide (`--enable-preview`); the Surefire argLine and Failsafe argLine both pass `--enable-preview` so tests compile and run cleanly.
+No preview features are used; `--enable-preview` is absent from the build.
 
 **Test separation:** Unit tests (`*Test.java`) run via Surefire on `mvn test`. Integration tests (`*IT.java`) run via Failsafe on `mvn verify`. PiTest excludes `*IT` classes from mutation analysis. The Spring Boot Maven Plugin uses `classifier: exec` so Failsafe can load classes from the plain JAR (the fat JAR's `BOOT-INF/classes/` layout is not on the test classpath).
 
@@ -243,6 +243,29 @@ LocalContainerEntityManagerFactoryBean appEntityManagerFactory(
 @Transactional("billingTransactionManager")  // for billing repos
 ```
 
+### Request/Response DTOs and MapStruct
+
+The API layer uses dedicated DTOs — never domain entities directly:
+
+| Class | Role |
+|-------|------|
+| `CreatePlaylistRequest` | POST body — no `id`, no audit fields |
+| `UpdatePlaylistRequest` | PUT body — no `id`, no audit fields |
+| `PlaylistResponse` | All GET/POST/PUT responses — includes `id` and audit fields |
+
+Mapping between entity and DTOs is handled by `PlaylistMapper` (MapStruct, `componentModel = "spring"`). The mapper is injected into `PlaylistService`; controllers never touch entities.
+
+**Annotation processor order** (critical with Lombok + MapStruct): Lombok must run before MapStruct so it generates the getters/setters that MapStruct reads. The root POM's `<pluginManagement>` puts Lombok first; `backend/pom.xml` appends the binding artifact + MapStruct processor with `combine.children="append"`:
+
+```xml
+<annotationProcessorPaths combine.children="append">
+    <path>lombok-mapstruct-binding</path>   <!-- ordering constraint -->
+    <path>mapstruct-processor</path>         <!-- after Lombok -->
+</annotationProcessorPaths>
+```
+
+`unmappedTargetPolicy = ReportingPolicy.IGNORE` on the mapper suppresses warnings for JPA-managed audit fields (`version`, `createdAt`, `updatedAt`, `deletedAt`) which have no setters and are intentionally skipped.
+
 ### Integration tests (Testcontainers)
 
 Backend integration tests (`*IT.java`) start real `mariadb:12.2.2` containers via Testcontainers and run Flyway migrations against them. Use `@DynamicPropertySource` to override datasource URLs, credentials, driver class, and enable Flyway:
@@ -280,6 +303,7 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | Node | 22 LTS (enforced via `engines` in `package.json`) |
 | Vue | 3.5.x |
 | Vite | 6.x |
+| MapStruct | 1.6.3 |
 | Lambda runtime | `java21` (Graviton arm64) |
 
 All Java dependency versions are managed centrally in the root `pom.xml` `<properties>` block. Update versions there, not in individual module POMs.

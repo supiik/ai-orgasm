@@ -18,26 +18,26 @@ import java.util.Optional;
 public class PlaylistService {
 
     private final PlaylistRepository repository;
+    private final PlaylistMapper mapper;
 
-    public Playlist create(Playlist playlist) {
-        return repository.save(playlist);
+    public PlaylistResponse create(CreatePlaylistRequest request) {
+        return mapper.toResponse(repository.save(mapper.toEntity(request)));
     }
 
     @Transactional(readOnly = true)
-    public Optional<Playlist> findById(Long id) {
-        return repository.findById(id);
+    public Optional<PlaylistResponse> findById(Long id) {
+        return repository.findById(id).map(mapper::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public Page<Playlist> findAll(Pageable pageable) {
-        return repository.findAll(pageable);
+    public Page<PlaylistResponse> findAll(Pageable pageable) {
+        return repository.findAll(pageable).map(mapper::toResponse);
     }
 
-    public Playlist update(Long id, Playlist updates) {
+    public PlaylistResponse update(Long id, UpdatePlaylistRequest request) {
         Playlist existing = requireById(id);
-        existing.setName(updates.getName());
-        existing.setDescription(updates.getDescription());
-        return repository.save(existing);
+        mapper.updateEntity(request, existing);
+        return mapper.toResponse(repository.save(existing));
     }
 
     public void delete(Long id) {

@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,27 +24,36 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PlaylistServiceTest {
 
-    @Mock
-    PlaylistRepository repository;
+    @Mock PlaylistRepository repository;
+    @Mock PlaylistMapper mapper;
+    @InjectMocks PlaylistService service;
 
-    @InjectMocks
-    PlaylistService service;
-
-    @Test
-    void create_savesAndReturnsPlaylist() {
-        Playlist input = new Playlist(null, "My Mix", "desc");
-        Playlist saved = new Playlist(1L, "My Mix", "desc");
-        when(repository.save(input)).thenReturn(saved);
-
-        assertThat(service.create(input)).isEqualTo(saved);
+    static PlaylistResponse response(Long id, String name) {
+        return new PlaylistResponse(id, name, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
-    void findById_returnsPlaylist_whenExists() {
-        Playlist playlist = new Playlist(1L, "My Mix", "desc");
-        when(repository.findById(1L)).thenReturn(Optional.of(playlist));
+    void create_savesAndReturnsResponse() {
+        var request = new CreatePlaylistRequest("My Mix", "desc");
+        var entity = new Playlist(null, "My Mix", "desc");
+        var saved = new Playlist(1L, "My Mix", "desc");
+        var expected = response(1L, "My Mix");
 
-        assertThat(service.findById(1L)).contains(playlist);
+        when(mapper.toEntity(request)).thenReturn(entity);
+        when(repository.save(entity)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(expected);
+
+        assertThat(service.create(request)).isEqualTo(expected);
+    }
+
+    @Test
+    void findById_returnsResponse_whenExists() {
+        var entity = new Playlist(1L, "My Mix", "desc");
+        var expected = response(1L, "My Mix");
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        when(mapper.toResponse(entity)).thenReturn(expected);
+
+        assertThat(service.findById(1L)).contains(expected);
     }
 
     @Test
@@ -54,30 +64,37 @@ class PlaylistServiceTest {
     }
 
     @Test
-    void findAll_returnsPage() {
-        Page<Playlist> page = new PageImpl<>(List.of(new Playlist(1L, "A", null)));
-        when(repository.findAll(any(Pageable.class))).thenReturn(page);
+    void findAll_returnsMappedPage() {
+        var entity = new Playlist(1L, "A", null);
+        var mapped = response(1L, "A");
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
 
-        assertThat(service.findAll(Pageable.unpaged())).isEqualTo(page);
+        Page<PlaylistResponse> result = service.findAll(Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
     }
 
     @Test
-    void update_updatesFieldsAndReturnsPlaylist() {
-        Playlist existing = new Playlist(1L, "Old", "old desc");
+    void update_appliesMappingAndReturnsResponse() {
+        var request = new UpdatePlaylistRequest("New", "new desc");
+        var existing = new Playlist(1L, "Old", "old desc");
+        var saved = new Playlist(1L, "New", "new desc");
+        var expected = response(1L, "New");
+
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
-        when(repository.save(existing)).thenReturn(existing);
+        when(repository.save(existing)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(expected);
 
-        Playlist result = service.update(1L, new Playlist(null, "New", "new desc"));
-
-        assertThat(result.getName()).isEqualTo("New");
-        assertThat(result.getDescription()).isEqualTo("new desc");
+        assertThat(service.update(1L, request)).isEqualTo(expected);
+        verify(mapper).updateEntity(request, existing);
     }
 
     @Test
     void update_throwsNotFound_whenMissing() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(99L, new Playlist()))
+        assertThatThrownBy(() -> service.update(99L, new UpdatePlaylistRequest("X", null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
     }
