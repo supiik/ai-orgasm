@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "node",
+            "name": "UI (mock)",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/ui",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev:mock"],
+            "skipFiles": ["<node_internals>/**"]
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-BackendApplication<orgasm-backend>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/backend",
+            "mainClass": "com.orgasm.backend.BackendApplication",
+            "projectName": "orgasm-backend",
+            "args": "",
+            "vmArgs": "-Dspring.profiles.active=dev",
+            "envFile": "${workspaceFolder}/backend/.env"
+        }
+    ]
+}

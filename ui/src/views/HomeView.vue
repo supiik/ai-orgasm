@@ -6,8 +6,8 @@ const status = ref<string>('Loading…')
 
 onMounted(async () => {
   try {
-    const { data } = await axios.get<{ status: string }>('/api/health')
-    status.value = data.status
+    const { data } = await axios.get<{ success: boolean; data: Record<string, string> }>('/api/health')
+    status.value = data.data?.status ?? 'UP'
   } catch {
     status.value = 'Backend unreachable'
   }
