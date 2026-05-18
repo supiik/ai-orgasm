@@ -17,9 +17,14 @@ function browserFetch(page: import('@playwright/test').Page, input: string, init
 
 test.describe('contributors API (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
+    const mswReady = page.waitForResponse(
+      async res =>
+        res.url().endsWith('/api/health') &&
+        res.status() === 200 &&
+        (await res.json().catch(() => null))?.success === true,
+    )
     await page.goto('/')
-    // Wait until MSW's service worker has claimed this page
-    await page.waitForFunction(() => !!navigator.serviceWorker?.controller)
+    await mswReady
   })
 
   test('lists seed contributors', async ({ page }) => {

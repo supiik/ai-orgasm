@@ -21,8 +21,14 @@ function browserFetch(page: import('@playwright/test').Page, input: string, init
 
 test.describe('songs API (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
+    const mswReady = page.waitForResponse(
+      async res =>
+        res.url().endsWith('/api/health') &&
+        res.status() === 200 &&
+        (await res.json().catch(() => null))?.success === true,
+    )
     await page.goto('/')
-    await page.waitForFunction(() => !!navigator.serviceWorker?.controller)
+    await mswReady
   })
 
   test('lists seed songs', async ({ page }) => {
