@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Configuration, PlaylistsApi, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
+import { type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
+import { api } from '@/api'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -12,7 +13,6 @@ import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
-const api = new PlaylistsApi(new Configuration({ basePath: '' }))
 
 const id = Number(route.params.id)
 const playlist = ref<PlaylistResponse | null>(null)
@@ -23,7 +23,7 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.findPlaylistById(id)
+    const { data } = await api.playlists().get(id)
     playlist.value = data
   } catch {
     error.value = 'Playlist not found.'
@@ -60,7 +60,7 @@ async function submitEdit() {
   saving.value = true
   formError.value = null
   try {
-    const { data } = await api.updatePlaylist(id, {
+    const { data } = await api.playlists().update(id, {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
       status: form.value.status,

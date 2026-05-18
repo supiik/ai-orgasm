@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Configuration, SongsApi, type SongResponse } from '@orgasm/backend-client'
+import { type SongResponse } from '@orgasm/backend-client'
+import { api } from '@/api'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -10,7 +11,6 @@ import { Label } from '@/components/ui/label'
 
 const route = useRoute()
 const router = useRouter()
-const api = new SongsApi(new Configuration({ basePath: '' }))
 
 const id = Number(route.params.id)
 const song = ref<SongResponse | null>(null)
@@ -21,7 +21,7 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.findSongById(id)
+    const { data } = await api.songs().get(id)
     song.value = data
   } catch {
     error.value = 'Song not found.'
@@ -67,7 +67,7 @@ async function submitEdit() {
   formError.value = null
   try {
     const releaseYear = form.value.releaseYear.trim() ? Number(form.value.releaseYear) : undefined
-    const { data } = await api.updateSong(id, {
+    const { data } = await api.songs().update(id, {
       artist: form.value.artist.trim(),
       name: form.value.name.trim(),
       album: form.value.album.trim() || undefined,

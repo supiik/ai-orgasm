@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Configuration, ContributorsApi, type ContributorResponse } from '@orgasm/backend-client'
+import { type ContributorResponse } from '@orgasm/backend-client'
+import { api } from '@/api'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -10,7 +11,6 @@ import { Label } from '@/components/ui/label'
 
 const route = useRoute()
 const router = useRouter()
-const api = new ContributorsApi(new Configuration({ basePath: '' }))
 
 const id = Number(route.params.id)
 const contributor = ref<ContributorResponse | null>(null)
@@ -21,7 +21,7 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.findContributorById(id)
+    const { data } = await api.contributors().get(id)
     contributor.value = data
   } catch {
     error.value = 'Contributor not found.'
@@ -61,7 +61,7 @@ async function submitEdit() {
   saving.value = true
   formError.value = null
   try {
-    const { data } = await api.updateContributor(id, {
+    const { data } = await api.contributors().update(id, {
       name: form.value.name.trim(),
       email: form.value.email.trim() || undefined,
       avatarUrl: form.value.avatarUrl.trim() || undefined,

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Configuration, ContributorsApi, type ContributorResponse } from '@orgasm/backend-client'
+import { type ContributorPage, type ContributorResponse } from '@orgasm/backend-client'
+import { api } from '@/api'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -11,14 +12,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const router = useRouter()
-const api = new ContributorsApi(new Configuration({ basePath: '' }))
-
 // ── Table ────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
 const page = ref(0)
 const nameFilter = ref('')
-const data = ref<Awaited<ReturnType<typeof api.findAllContributors>>['data'] | null>(null)
+const data = ref<ContributorPage | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -26,7 +25,7 @@ async function fetchPage(p: number) {
   loading.value = true
   error.value = null
   try {
-    const { data: body } = await api.findAllContributors(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
+    const { data: body } = await api.contributors().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
     data.value = body
   } catch {
     error.value = 'Failed to load contributors.'
@@ -89,10 +88,10 @@ async function submitForm() {
       avatarUrl: form.value.avatarUrl.trim() || undefined,
     }
     if (dialogMode.value === 'create') {
-      await api.createContributor(payload)
+      await api.contributors().create(payload)
       page.value === 0 ? fetchPage(0) : (page.value = 0)
     } else {
-      await api.updateContributor(editingId.value!, payload)
+      await api.contributors().update(editingId.value!, payload)
       fetchPage(page.value)
     }
     dialogOpen.value = false

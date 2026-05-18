@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { Configuration, PlaylistsApi, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
+import { type PlaylistPage, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
+import { api } from '@/api'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -13,14 +14,12 @@ import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const router = useRouter()
-const api = new PlaylistsApi(new Configuration({ basePath: '' }))
-
 // ── Table ────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
 const page = ref(0)
 const nameFilter = ref('')
-const data = ref<Awaited<ReturnType<typeof api.findAllPlaylists>>['data'] | null>(null)
+const data = ref<PlaylistPage | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -28,7 +27,7 @@ async function fetchPage(p: number) {
   loading.value = true
   error.value = null
   try {
-    const { data: body } = await api.findAllPlaylists(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
+    const { data: body } = await api.playlists().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
     data.value = body
   } catch {
     error.value = 'Failed to load playlists.'
@@ -93,10 +92,10 @@ async function submitForm() {
       status: form.value.status,
     }
     if (dialogMode.value === 'create') {
-      await api.createPlaylist(payload)
+      await api.playlists().create(payload)
       page.value === 0 ? fetchPage(0) : (page.value = 0)
     } else {
-      await api.updatePlaylist(editingId.value!, payload)
+      await api.playlists().update(editingId.value!, payload)
       fetchPage(page.value)
     }
     dialogOpen.value = false
