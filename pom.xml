@@ -18,7 +18,6 @@
         <module>sdk-java8</module>
         <module>sdk-java11</module>
         <module>sdk-typescript</module>
-        <module>sdk-facade</module>
         <module>backend-core</module>
         <module>backend</module>
         <module>lambda</module>
