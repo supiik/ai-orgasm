@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw'
 type PlaylistStatus = 'NEW' | 'OPEN' | 'UNDER_EVALUATION' | 'CLOSED'
 
 interface PlaylistResponse {
-  id: number
+  id: string
   name: string
   description: string | null
   status: PlaylistStatus
@@ -12,11 +12,13 @@ interface PlaylistResponse {
   updatedAt: string
 }
 
-let nextId = 4
+let counter = 4
+const nextId = () => `play_${String(counter++).padStart(4, '0')}`
+
 const db: PlaylistResponse[] = [
-  { id: 1, name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 2, name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 3, name: 'Late Night', description: null, status: 'UNDER_EVALUATION', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'play_0001', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'play_0002', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'play_0003', name: 'Late Night', description: null, status: 'UNDER_EVALUATION', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()
@@ -44,7 +46,7 @@ export const playlistHandlers = [
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
     const created: PlaylistResponse = {
-      id: nextId++,
+      id: nextId(),
       name: body.name,
       description: body.description ?? null,
       status: body.status ?? 'NEW',
@@ -57,13 +59,13 @@ export const playlistHandlers = [
   }),
 
   http.get('/api/v1/playlists/:id', ({ params }) => {
-    const playlist = db.find(p => p.id === Number(params.id))
+    const playlist = db.find(p => p.id === params.id)
     if (!playlist) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     return HttpResponse.json(playlist)
   }),
 
   http.put('/api/v1/playlists/:id', async ({ params, request }) => {
-    const index = db.findIndex(p => p.id === Number(params.id))
+    const index = db.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     const body = await request.json() as { name: string; description?: string; status?: PlaylistStatus }
     if (!body.name?.trim()) {
@@ -81,7 +83,7 @@ export const playlistHandlers = [
   }),
 
   http.delete('/api/v1/playlists/:id', ({ params }) => {
-    const index = db.findIndex(p => p.id === Number(params.id))
+    const index = db.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)
     return new HttpResponse(null, { status: 204 })

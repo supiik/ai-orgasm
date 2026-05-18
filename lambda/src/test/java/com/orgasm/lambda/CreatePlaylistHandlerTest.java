@@ -33,7 +33,7 @@ class CreatePlaylistHandlerTest {
     }
 
     private static PlaylistResponse stubResponse() {
-        return new PlaylistResponse(1L, "My Mix", "desc", PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse("play_0001", "My Mix", "desc", PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     // Explicit cast resolves the create(CreatePlaylistRequest) vs create(UnaryOperator) ambiguity

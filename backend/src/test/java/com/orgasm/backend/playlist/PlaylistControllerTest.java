@@ -49,14 +49,14 @@ class PlaylistControllerTest {
                 .build();
     }
 
-    static PlaylistResponse response(Long id, String name, String description) {
+    static PlaylistResponse response(String id, String name, String description) {
         return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
     void findAll_returns200() throws Exception {
         when(service.findAll(any(FindPlaylistsRequest.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
+                .thenReturn(new PageImpl<>(List.of(response("play_0001", "Mix", "desc"))));
 
         mvc.perform(get("/api/v1/playlists"))
                 .andExpect(status().isOk())
@@ -66,7 +66,7 @@ class PlaylistControllerTest {
     @Test
     void findAll_filtersBy_name() throws Exception {
         when(service.findAll(eq(new FindPlaylistsRequest("mix")), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
+                .thenReturn(new PageImpl<>(List.of(response("play_0001", "Mix", "desc"))));
 
         mvc.perform(get("/api/v1/playlists").param("name", "mix"))
                 .andExpect(status().isOk())
@@ -75,32 +75,32 @@ class PlaylistControllerTest {
 
     @Test
     void findById_returns200_whenFound() throws Exception {
-        when(service.findById(1L)).thenReturn(Optional.of(response(1L, "Mix", "desc")));
+        when(service.findById("play_0001")).thenReturn(Optional.of(response("play_0001", "Mix", "desc")));
 
-        mvc.perform(get("/api/v1/playlists/1"))
+        mvc.perform(get("/api/v1/playlists/play_0001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.id").value("play_0001"))
                 .andExpect(jsonPath("$.name").value("Mix"));
     }
 
     @Test
     void findById_returns404_whenNotFound() throws Exception {
-        when(service.findById(99L)).thenReturn(Optional.empty());
+        when(service.findById("play_9999")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/api/v1/playlists/99"))
+        mvc.perform(get("/api/v1/playlists/play_9999"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void create_returns201WithLocation() throws Exception {
-        when(service.create(any(CreatePlaylistRequest.class))).thenReturn(response(1L, "New Mix", "desc"));
+        when(service.create(any(CreatePlaylistRequest.class))).thenReturn(response("play_0001", "New Mix", "desc"));
 
         mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc", null))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/api/v1/playlists/1")))
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(header().string("Location", endsWith("/api/v1/playlists/play_0001")))
+                .andExpect(jsonPath("$.id").value("play_0001"));
     }
 
     @Test
@@ -113,9 +113,9 @@ class PlaylistControllerTest {
 
     @Test
     void update_returns200_whenFound() throws Exception {
-        when(service.update(eq(1L), any(UpdatePlaylistRequest.class))).thenReturn(response(1L, "Updated", "new desc"));
+        when(service.update(eq("play_0001"), any(UpdatePlaylistRequest.class))).thenReturn(response("play_0001", "Updated", "new desc"));
 
-        mvc.perform(put("/api/v1/playlists/1")
+        mvc.perform(put("/api/v1/playlists/play_0001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null))))
                 .andExpect(status().isOk())
@@ -124,10 +124,10 @@ class PlaylistControllerTest {
 
     @Test
     void update_returns404_whenNotFound() throws Exception {
-        when(service.update(eq(99L), any(UpdatePlaylistRequest.class)))
-                .thenThrow(new EntityNotFoundException("Playlist not found: 99"));
+        when(service.update(eq("play_9999"), any(UpdatePlaylistRequest.class)))
+                .thenThrow(new EntityNotFoundException("Playlist not found: play_9999"));
 
-        mvc.perform(put("/api/v1/playlists/99")
+        mvc.perform(put("/api/v1/playlists/play_9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null, null))))
                 .andExpect(status().isNotFound());
@@ -135,16 +135,16 @@ class PlaylistControllerTest {
 
     @Test
     void delete_returns204_whenFound() throws Exception {
-        mvc.perform(delete("/api/v1/playlists/1"))
+        mvc.perform(delete("/api/v1/playlists/play_0001"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void delete_returns404_whenNotFound() throws Exception {
-        doThrow(new EntityNotFoundException("Playlist not found: 99"))
-                .when(service).delete(99L);
+        doThrow(new EntityNotFoundException("Playlist not found: play_9999"))
+                .when(service).delete("play_9999");
 
-        mvc.perform(delete("/api/v1/playlists/99"))
+        mvc.perform(delete("/api/v1/playlists/play_9999"))
                 .andExpect(status().isNotFound());
     }
 }

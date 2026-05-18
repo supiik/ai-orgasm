@@ -30,7 +30,7 @@ public class ContributorService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<ContributorResponse> findById(Long id) {
+    public Optional<ContributorResponse> findById(String id) {
         return repository.findById(id).map(mapper::toResponse);
     }
 
@@ -48,23 +48,23 @@ public class ContributorService {
         return findAll(customizer.apply(FindContributorsRequest.builder()).build(), pageable);
     }
 
-    public ContributorResponse update(Long id, UpdateContributorRequest request) {
+    public ContributorResponse update(String id, UpdateContributorRequest request) {
         Contributor existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }
 
-    public ContributorResponse update(Long id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) {
+    public ContributorResponse update(String id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdateContributorRequest.builder()).build());
     }
 
-    public void delete(Long id) {
+    public void delete(String id) {
         if (repository.softDeleteById(id, Instant.now()) == 0) {
             throw new EntityNotFoundException("Contributor not found: " + id);
         }
     }
 
-    private Contributor requireById(Long id) {
+    private Contributor requireById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Contributor not found: " + id));
     }

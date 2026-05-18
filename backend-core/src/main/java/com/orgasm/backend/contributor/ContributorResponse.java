@@ -6,7 +6,7 @@ import java.time.Instant;
 
 @Builder
 public record ContributorResponse(
-        Long id,
+        String id,
         String name,
         String email,
         String avatarUrl,

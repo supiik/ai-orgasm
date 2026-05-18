@@ -30,7 +30,7 @@ public class SongService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<SongResponse> findById(Long id) {
+    public Optional<SongResponse> findById(String id) {
         return repository.findById(id).map(mapper::toResponse);
     }
 
@@ -48,23 +48,23 @@ public class SongService {
         return findAll(customizer.apply(FindSongsRequest.builder()).build(), pageable);
     }
 
-    public SongResponse update(Long id, UpdateSongRequest request) {
+    public SongResponse update(String id, UpdateSongRequest request) {
         Song existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }
 
-    public SongResponse update(Long id, UnaryOperator<UpdateSongRequest.UpdateSongRequestBuilder> customizer) {
+    public SongResponse update(String id, UnaryOperator<UpdateSongRequest.UpdateSongRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdateSongRequest.builder()).build());
     }
 
-    public void delete(Long id) {
+    public void delete(String id) {
         if (repository.softDeleteById(id, Instant.now()) == 0) {
             throw new EntityNotFoundException("Song not found: " + id);
         }
     }
 
-    private Song requireById(Long id) {
+    private Song requireById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Song not found: " + id));
     }

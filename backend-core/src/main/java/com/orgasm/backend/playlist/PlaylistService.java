@@ -30,7 +30,7 @@ public class PlaylistService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<PlaylistResponse> findById(Long id) {
+    public Optional<PlaylistResponse> findById(String id) {
         return repository.findById(id).map(mapper::toResponse);
     }
 
@@ -48,23 +48,23 @@ public class PlaylistService {
         return findAll(customizer.apply(FindPlaylistsRequest.builder()).build(), pageable);
     }
 
-    public PlaylistResponse update(Long id, UpdatePlaylistRequest request) {
+    public PlaylistResponse update(String id, UpdatePlaylistRequest request) {
         Playlist existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }
 
-    public PlaylistResponse update(Long id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) {
+    public PlaylistResponse update(String id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdatePlaylistRequest.builder()).build());
     }
 
-    public void delete(Long id) {
+    public void delete(String id) {
         if (repository.softDeleteById(id, Instant.now()) == 0) {
             throw new EntityNotFoundException("Playlist not found: " + id);
         }
     }
 
-    private Playlist requireById(Long id) {
+    private Playlist requireById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Playlist not found: " + id));
     }

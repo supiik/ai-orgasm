@@ -28,7 +28,7 @@ class ContributorServiceTest {
     @Mock ContributorMapper mapper;
     @InjectMocks ContributorService service;
 
-    static ContributorResponse response(Long id, String name) {
+    static ContributorResponse response(String id, String name) {
         return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
@@ -36,8 +36,8 @@ class ContributorServiceTest {
     void create_savesAndReturnsResponse() {
         var request = new CreateContributorRequest("Alice", null, null);
         var entity = new Contributor(null, "Alice", null, null);
-        var saved = new Contributor(1L, "Alice", null, null);
-        var expected = response(1L, "Alice");
+        var saved = new Contributor("cont_0001", "Alice", null, null);
+        var expected = response("cont_0001", "Alice");
 
         when(mapper.toEntity(request)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -49,8 +49,8 @@ class ContributorServiceTest {
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
         var entity = new Contributor(null, "Alice", null, null);
-        var saved = new Contributor(1L, "Alice", null, null);
-        var expected = response(1L, "Alice");
+        var saved = new Contributor("cont_0001", "Alice", null, null);
+        var expected = response("cont_0001", "Alice");
 
         when(mapper.toEntity(any(CreateContributorRequest.class))).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -61,25 +61,25 @@ class ContributorServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Contributor(1L, "Alice", null, null);
-        var expected = response(1L, "Alice");
-        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        var entity = new Contributor("cont_0001", "Alice", null, null);
+        var expected = response("cont_0001", "Alice");
+        when(repository.findById("cont_0001")).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
 
-        assertThat(service.findById(1L)).contains(expected);
+        assertThat(service.findById("cont_0001")).contains(expected);
     }
 
     @Test
     void findById_returnsEmpty_whenNotFound() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
+        when(repository.findById("cont_9999")).thenReturn(Optional.empty());
 
-        assertThat(service.findById(99L)).isEmpty();
+        assertThat(service.findById("cont_9999")).isEmpty();
     }
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Contributor(1L, "Alice", null, null);
-        var mapped = response(1L, "Alice");
+        var entity = new Contributor("cont_0001", "Alice", null, null);
+        var mapped = response("cont_0001", "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -90,8 +90,8 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Contributor(1L, "Alice", null, null);
-        var mapped = response(1L, "Alice");
+        var entity = new Contributor("cont_0001", "Alice", null, null);
+        var mapped = response("cont_0001", "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -102,8 +102,8 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Contributor(1L, "Alice", null, null);
-        var mapped = response(1L, "Alice");
+        var entity = new Contributor("cont_0001", "Alice", null, null);
+        var mapped = response("cont_0001", "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -115,8 +115,8 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Contributor(1L, "Alice", null, null);
-        var mapped = response(1L, "Alice");
+        var entity = new Contributor("cont_0001", "Alice", null, null);
+        var mapped = response("cont_0001", "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -129,56 +129,56 @@ class ContributorServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdateContributorRequest("Bob", null, null);
-        var existing = new Contributor(1L, "Alice", null, null);
-        var saved = new Contributor(1L, "Bob", null, null);
-        var expected = response(1L, "Bob");
+        var existing = new Contributor("cont_0001", "Alice", null, null);
+        var saved = new Contributor("cont_0001", "Bob", null, null);
+        var expected = response("cont_0001", "Bob");
 
-        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(repository.findById("cont_0001")).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update(1L, request)).isEqualTo(expected);
+        assertThat(service.update("cont_0001", request)).isEqualTo(expected);
         verify(mapper).updateEntity(request, existing);
     }
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Contributor(1L, "Alice", null, null);
-        var saved = new Contributor(1L, "Bob", null, null);
-        var expected = response(1L, "Bob");
+        var existing = new Contributor("cont_0001", "Alice", null, null);
+        var saved = new Contributor("cont_0001", "Bob", null, null);
+        var expected = response("cont_0001", "Bob");
 
-        when(repository.findById(1L)).thenReturn(Optional.of(existing));
+        when(repository.findById("cont_0001")).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update(1L, b -> b.name("Bob"))).isEqualTo(expected);
+        assertThat(service.update("cont_0001", b -> b.name("Bob"))).isEqualTo(expected);
         verify(mapper).updateEntity(any(UpdateContributorRequest.class), eq(existing));
     }
 
     @Test
     void update_throwsNotFound_whenMissing() {
-        when(repository.findById(99L)).thenReturn(Optional.empty());
+        when(repository.findById("cont_9999")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(99L, new UpdateContributorRequest("X", null, null)))
+        assertThatThrownBy(() -> service.update("cont_9999", new UpdateContributorRequest("X", null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("99");
+                .hasMessageContaining("cont_9999");
     }
 
     @Test
     void delete_softDeletes_whenExists() {
-        when(repository.softDeleteById(eq(1L), any())).thenReturn(1);
+        when(repository.softDeleteById(eq("cont_0001"), any())).thenReturn(1);
 
-        service.delete(1L);
+        service.delete("cont_0001");
 
-        verify(repository).softDeleteById(eq(1L), any());
+        verify(repository).softDeleteById(eq("cont_0001"), any());
     }
 
     @Test
     void delete_throwsNotFound_whenMissing() {
-        when(repository.softDeleteById(eq(99L), any())).thenReturn(0);
+        when(repository.softDeleteById(eq("cont_9999"), any())).thenReturn(0);
 
-        assertThatThrownBy(() -> service.delete(99L))
+        assertThatThrownBy(() -> service.delete("cont_9999"))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("99");
+                .hasMessageContaining("cont_9999");
     }
 }

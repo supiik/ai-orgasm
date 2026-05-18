@@ -6,7 +6,7 @@ import java.time.Instant;
 
 @Builder
 public record SongResponse(
-        Long id,
+        String id,
         String artist,
         String name,
         String album,

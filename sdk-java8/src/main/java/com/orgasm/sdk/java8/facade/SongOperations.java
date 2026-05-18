@@ -14,8 +14,8 @@ public class SongOperations {
 
     public SongPage     list(int page, int size)                              { return api.findAllSongs(page, size, "id", null); }
     public SongPage     list(int page, int size, String sort, String name)    { return api.findAllSongs(page, size, sort, name); }
-    public SongResponse get(long id)                                          { return api.findSongById(id); }
+    public SongResponse get(String id)                                        { return api.findSongById(id); }
     public SongResponse create(CreateSongRequest request)                     { return api.createSong(request); }
-    public SongResponse update(long id, UpdateSongRequest request)            { return api.updateSong(id, request); }
-    public void         delete(long id)                                       { api.deleteSong(id); }
+    public SongResponse update(String id, UpdateSongRequest request)          { return api.updateSong(id, request); }
+    public void         delete(String id)                                     { api.deleteSong(id); }
 }

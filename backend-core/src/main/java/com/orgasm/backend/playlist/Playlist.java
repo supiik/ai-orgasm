@@ -1,6 +1,7 @@
 package com.orgasm.backend.playlist;
 
 import com.orgasm.backend.domain.AuditableEntity;
+import com.orgasm.backend.domain.TsidGenerator;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -16,8 +17,13 @@ import org.hibernate.annotations.SQLRestriction;
 public class Playlist extends AuditableEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id", length = 25)
+    private String id;
+
+    @PrePersist
+    void assignId() {
+        if (id == null) id = TsidGenerator.generate("play");
+    }
 
     @Column(name = "name", nullable = false)
     private String name;

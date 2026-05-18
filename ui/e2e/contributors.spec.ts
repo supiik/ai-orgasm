@@ -59,18 +59,18 @@ test.describe('contributors API (via MSW)', () => {
   })
 
   test('gets a contributor by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/contributors/1')
+    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont_0001')
     expect(status).toBe(200)
     expect(body.name).toBe('Thom Yorke')
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/contributors/9999')
+    const { status } = await browserFetch(page, '/api/v1/contributors/cont_9999')
     expect(status).toBe(404)
   })
 
   test('updates a contributor', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/contributors/2', {
+    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont_0002', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name', avatarUrl: 'https://example.com/updated.jpg' }),
@@ -82,10 +82,10 @@ test.describe('contributors API (via MSW)', () => {
   })
 
   test('deletes a contributor', async ({ page }) => {
-    const del = await browserFetch(page, '/api/v1/contributors/3', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/contributors/cont_0003', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/v1/contributors/3')
+    const get = await browserFetch(page, '/api/v1/contributors/cont_0003')
     expect(get.status).toBe(404)
   })
 

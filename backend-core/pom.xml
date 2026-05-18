@@ -51,6 +51,12 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
+        <!-- TSID Creator -->
+        <dependency>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>tsid-creator</artifactId>
+        </dependency>
+
         <!-- MapStruct -->
         <dependency>
             <groupId>org.mapstruct</groupId>

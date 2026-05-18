@@ -14,8 +14,8 @@ public class PlaylistOperations {
 
     public PlaylistPage     list(int page, int size)                              { return api.findAllPlaylists(page, size, "id", null); }
     public PlaylistPage     list(int page, int size, String sort, String name)    { return api.findAllPlaylists(page, size, sort, name); }
-    public PlaylistResponse get(long id)                                          { return api.findPlaylistById(id); }
+    public PlaylistResponse get(String id)                                        { return api.findPlaylistById(id); }
     public PlaylistResponse create(CreatePlaylistRequest request)                 { return api.createPlaylist(request); }
-    public PlaylistResponse update(long id, UpdatePlaylistRequest request)        { return api.updatePlaylist(id, request); }
-    public void             delete(long id)                                       { api.deletePlaylist(id); }
+    public PlaylistResponse update(String id, UpdatePlaylistRequest request)      { return api.updatePlaylist(id, request); }
+    public void             delete(String id)                                     { api.deletePlaylist(id); }
 }

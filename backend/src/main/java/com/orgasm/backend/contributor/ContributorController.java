@@ -28,7 +28,7 @@ public class ContributorController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ContributorResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<ContributorResponse> findById(@PathVariable String id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -46,13 +46,13 @@ public class ContributorController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ContributorResponse> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody @Valid UpdateContributorRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

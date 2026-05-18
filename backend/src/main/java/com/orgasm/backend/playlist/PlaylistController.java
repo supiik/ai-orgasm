@@ -28,7 +28,7 @@ public class PlaylistController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PlaylistResponse> findById(@PathVariable Long id) {
+    public ResponseEntity<PlaylistResponse> findById(@PathVariable String id) {
         return service.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -46,13 +46,13 @@ public class PlaylistController {
 
     @PutMapping("/{id}")
     public ResponseEntity<PlaylistResponse> update(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody @Valid UpdatePlaylistRequest request) {
         return ResponseEntity.ok(service.update(id, request));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }

@@ -22,7 +22,7 @@ public class ContributorsApiExtensions extends ContributorsApi {
         return createContributor(customizer.apply(CreateContributorRequest.builder()).build());
     }
 
-    public ContributorResponse updateContributor(Long id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) throws ApiException {
+    public ContributorResponse updateContributor(String id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) throws ApiException {
         return updateContributor(id, customizer.apply(UpdateContributorRequest.builder()).build());
     }
 }

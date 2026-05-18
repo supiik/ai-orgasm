@@ -22,7 +22,7 @@ public class PlaylistsApiExtensions extends PlaylistsApi {
         return createPlaylist(customizer.apply(CreatePlaylistRequest.builder()).build());
     }
 
-    public PlaylistResponse updatePlaylist(Long id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) throws ApiException {
+    public PlaylistResponse updatePlaylist(String id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) throws ApiException {
         return updatePlaylist(id, customizer.apply(UpdatePlaylistRequest.builder()).build());
     }
 }

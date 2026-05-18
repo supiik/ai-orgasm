@@ -14,8 +14,8 @@ public class ContributorOperations {
 
     public ContributorPage     list(int page, int size)                              { return api.findAllContributors(page, size, "id", null); }
     public ContributorPage     list(int page, int size, String sort, String name)    { return api.findAllContributors(page, size, sort, name); }
-    public ContributorResponse get(long id)                                          { return api.findContributorById(id); }
+    public ContributorResponse get(String id)                                        { return api.findContributorById(id); }
     public ContributorResponse create(CreateContributorRequest request)              { return api.createContributor(request); }
-    public ContributorResponse update(long id, UpdateContributorRequest request)     { return api.updateContributor(id, request); }
-    public void                delete(long id)                                       { api.deleteContributor(id); }
+    public ContributorResponse update(String id, UpdateContributorRequest request)   { return api.updateContributor(id, request); }
+    public void                delete(String id)                                     { api.deleteContributor(id); }
 }

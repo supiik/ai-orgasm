@@ -6,7 +6,7 @@ import java.time.Instant;
 
 @Builder
 public record PlaylistResponse(
-        Long id,
+        String id,
         String name,
         String description,
         PlaylistStatus status,

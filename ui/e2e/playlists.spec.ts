@@ -58,18 +58,18 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('gets a playlist by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/playlists/1')
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play_0001')
     expect(status).toBe(200)
     expect(body.name).toBe('Chill Vibes')
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/playlists/9999')
+    const { status } = await browserFetch(page, '/api/v1/playlists/play_9999')
     expect(status).toBe(404)
   })
 
   test('updates a playlist', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/playlists/2', {
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play_0002', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name' }),
@@ -80,10 +80,10 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('deletes a playlist', async ({ page }) => {
-    const del = await browserFetch(page, '/api/v1/playlists/3', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/playlists/play_0003', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/v1/playlists/3')
+    const get = await browserFetch(page, '/api/v1/playlists/play_0003')
     expect(get.status).toBe(404)
   })
 
