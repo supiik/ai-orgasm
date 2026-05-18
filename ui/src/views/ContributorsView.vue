@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { Configuration, ContributorsApi, type ContributorResponse } from '@orgasm/backend-client'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
+import NameFilter from '@/components/NameFilter.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -16,6 +17,7 @@ const api = new ContributorsApi(new Configuration({ basePath: '' }))
 
 const PAGE_SIZE = 10
 const page = ref(0)
+const nameFilter = ref('')
 const data = ref<Awaited<ReturnType<typeof api.findAllContributors>>['data'] | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -24,7 +26,7 @@ async function fetchPage(p: number) {
   loading.value = true
   error.value = null
   try {
-    const { data: body } = await api.findAllContributors(p, PAGE_SIZE, 'id')
+    const { data: body } = await api.findAllContributors(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
     data.value = body
   } catch {
     error.value = 'Failed to load contributors.'
@@ -34,6 +36,7 @@ async function fetchPage(p: number) {
 }
 
 watch(page, fetchPage, { immediate: true })
+watch(nameFilter, () => { page.value === 0 ? fetchPage(0) : (page.value = 0) })
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
@@ -106,10 +109,13 @@ async function submitForm() {
 
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold">Contributors</h1>
-      <Button @click="openCreate">
-        <Plus class="h-4 w-4" />
-        New contributor
-      </Button>
+      <div class="flex items-center gap-2">
+        <NameFilter v-model="nameFilter" placeholder="Filter by name…" />
+        <Button @click="openCreate">
+          <Plus class="h-4 w-4" />
+          New contributor
+        </Button>
+      </div>
     </div>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>

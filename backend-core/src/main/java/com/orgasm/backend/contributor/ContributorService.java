@@ -35,8 +35,17 @@ public class ContributorService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ContributorResponse> findAll(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toResponse);
+    public Page<ContributorResponse> findAll(FindContributorsRequest request, Pageable pageable) {
+        if (request.name() == null || request.name().isBlank()) {
+            return repository.findAll(pageable).map(mapper::toResponse);
+        }
+        return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ContributorResponse> findAll(
+            UnaryOperator<FindContributorsRequest.FindContributorsRequestBuilder> customizer, Pageable pageable) {
+        return findAll(customizer.apply(FindContributorsRequest.builder()).build(), pageable);
     }
 
     public ContributorResponse update(Long id, UpdateContributorRequest request) {

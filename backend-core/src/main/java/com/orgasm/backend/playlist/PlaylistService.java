@@ -35,8 +35,17 @@ public class PlaylistService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PlaylistResponse> findAll(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toResponse);
+    public Page<PlaylistResponse> findAll(FindPlaylistsRequest request, Pageable pageable) {
+        if (request.name() == null || request.name().isBlank()) {
+            return repository.findAll(pageable).map(mapper::toResponse);
+        }
+        return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PlaylistResponse> findAll(
+            UnaryOperator<FindPlaylistsRequest.FindPlaylistsRequestBuilder> customizer, Pageable pageable) {
+        return findAll(customizer.apply(FindPlaylistsRequest.builder()).build(), pageable);
     }
 
     public PlaylistResponse update(Long id, UpdatePlaylistRequest request) {

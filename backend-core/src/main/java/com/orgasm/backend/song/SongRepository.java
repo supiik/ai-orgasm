@@ -1,5 +1,7 @@
 package com.orgasm.backend.song;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +12,8 @@ import java.time.Instant;
 
 @Transactional("appTransactionManager")
 public interface SongRepository extends JpaRepository<Song, Long> {
+
+    Page<Song> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Song s SET s.deletedAt = :now WHERE s.id = :id AND s.deletedAt IS NULL")

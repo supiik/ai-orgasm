@@ -55,10 +55,20 @@ class PlaylistControllerTest {
 
     @Test
     void findAll_returns200() throws Exception {
-        when(service.findAll(any(Pageable.class)))
+        when(service.findAll(any(FindPlaylistsRequest.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
 
         mvc.perform(get("/api/v1/playlists"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Mix"));
+    }
+
+    @Test
+    void findAll_filtersBy_name() throws Exception {
+        when(service.findAll(eq(new FindPlaylistsRequest("mix")), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Mix", "desc"))));
+
+        mvc.perform(get("/api/v1/playlists").param("name", "mix"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("Mix"));
     }

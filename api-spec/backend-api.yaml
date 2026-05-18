@@ -35,6 +35,12 @@ paths:
           schema:
             type: string
             default: id
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by name (case-insensitive contains)
       responses:
         '200':
           description: OK
@@ -149,6 +155,12 @@ paths:
           schema:
             type: string
             default: id
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by name (case-insensitive contains)
       responses:
         '200':
           description: OK
@@ -276,6 +288,12 @@ paths:
           schema:
             type: string
             default: id
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by name (case-insensitive contains)
       responses:
         '200':
           description: OK

@@ -96,4 +96,26 @@ class ContributorRepositoryIT {
 
         assertThat(affected).isEqualTo(0);
     }
+
+    @Test
+    void findByNameContainingIgnoreCase_returnsMatches() {
+        repository.save(new Contributor(null, "Alice Smith", null, null));
+        repository.save(new Contributor(null, "Bob Jones", null, null));
+        repository.save(new Contributor(null, "Alicia Keys", null, null));
+
+        Page<Contributor> result = repository.findByNameContainingIgnoreCase("alic", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).extracting(Contributor::getName)
+                .containsExactlyInAnyOrder("Alice Smith", "Alicia Keys");
+    }
+
+    @Test
+    void findByNameContainingIgnoreCase_isCaseInsensitive() {
+        repository.save(new Contributor(null, "Thom Yorke", null, null));
+
+        Page<Contributor> result = repository.findByNameContainingIgnoreCase("THOM", PageRequest.of(0, 10));
+
+        assertThat(result.getTotalElements()).isGreaterThanOrEqualTo(1);
+        assertThat(result.getContent()).extracting(Contributor::getName).contains("Thom Yorke");
+    }
 }

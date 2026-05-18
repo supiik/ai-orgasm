@@ -55,10 +55,20 @@ class ContributorControllerTest {
 
     @Test
     void findAll_returns200() throws Exception {
-        when(service.findAll(any(Pageable.class)))
+        when(service.findAll(any(FindContributorsRequest.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(response(1L, "Alice"))));
 
         mvc.perform(get("/api/v1/contributors"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Alice"));
+    }
+
+    @Test
+    void findAll_filtersBy_name() throws Exception {
+        when(service.findAll(eq(new FindContributorsRequest("ali")), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response(1L, "Alice"))));
+
+        mvc.perform(get("/api/v1/contributors").param("name", "ali"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].name").value("Alice"));
     }

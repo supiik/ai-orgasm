@@ -77,13 +77,51 @@ class ContributorServiceTest {
     }
 
     @Test
-    void findAll_returnsMappedPage() {
+    void findAll_returnsMappedPage_whenNameIsNull() {
         var entity = new Contributor(1L, "Alice", null, null);
         var mapped = response(1L, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
-        Page<ContributorResponse> result = service.findAll(Pageable.unpaged());
+        Page<ContributorResponse> result = service.findAll(FindContributorsRequest.builder().build(), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_returnsMappedPage_whenNameIsBlank() {
+        var entity = new Contributor(1L, "Alice", null, null);
+        var mapped = response(1L, "Alice");
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<ContributorResponse> result = service.findAll(new FindContributorsRequest("  "), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_filtersBy_name() {
+        var entity = new Contributor(1L, "Alice", null, null);
+        var mapped = response(1L, "Alice");
+        when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<ContributorResponse> result = service.findAll(new FindContributorsRequest("ali"), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_filtersBy_name_viaBuilder() {
+        var entity = new Contributor(1L, "Alice", null, null);
+        var mapped = response(1L, "Alice");
+        when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<ContributorResponse> result = service.findAll(b -> b.name("ali"), Pageable.unpaged());
 
         assertThat(result.getContent()).containsExactly(mapped);
     }

@@ -77,13 +77,51 @@ class PlaylistServiceTest {
     }
 
     @Test
-    void findAll_returnsMappedPage() {
+    void findAll_returnsMappedPage_whenNameIsNull() {
         var entity = new Playlist(1L, "A", null, PlaylistStatus.NEW);
         var mapped = response(1L, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
-        Page<PlaylistResponse> result = service.findAll(Pageable.unpaged());
+        Page<PlaylistResponse> result = service.findAll(FindPlaylistsRequest.builder().build(), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_returnsMappedPage_whenNameIsBlank() {
+        var entity = new Playlist(1L, "A", null, PlaylistStatus.NEW);
+        var mapped = response(1L, "A");
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<PlaylistResponse> result = service.findAll(new FindPlaylistsRequest("  "), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_filtersBy_name() {
+        var entity = new Playlist(1L, "Chill", null, PlaylistStatus.NEW);
+        var mapped = response(1L, "Chill");
+        when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<PlaylistResponse> result = service.findAll(new FindPlaylistsRequest("chi"), Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(mapped);
+    }
+
+    @Test
+    void findAll_filtersBy_name_viaBuilder() {
+        var entity = new Playlist(1L, "Chill", null, PlaylistStatus.NEW);
+        var mapped = response(1L, "Chill");
+        when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(mapper.toResponse(entity)).thenReturn(mapped);
+
+        Page<PlaylistResponse> result = service.findAll(b -> b.name("chi"), Pageable.unpaged());
 
         assertThat(result.getContent()).containsExactly(mapped);
     }

@@ -35,8 +35,17 @@ public class SongService {
     }
 
     @Transactional(readOnly = true)
-    public Page<SongResponse> findAll(Pageable pageable) {
-        return repository.findAll(pageable).map(mapper::toResponse);
+    public Page<SongResponse> findAll(FindSongsRequest request, Pageable pageable) {
+        if (request.name() == null || request.name().isBlank()) {
+            return repository.findAll(pageable).map(mapper::toResponse);
+        }
+        return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SongResponse> findAll(
+            UnaryOperator<FindSongsRequest.FindSongsRequestBuilder> customizer, Pageable pageable) {
+        return findAll(customizer.apply(FindSongsRequest.builder()).build(), pageable);
     }
 
     public SongResponse update(Long id, UpdateSongRequest request) {

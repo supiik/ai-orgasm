@@ -22,8 +22,9 @@ public class SongController {
 
     @GetMapping
     public ResponseEntity<Page<SongResponse>> findAll(
+            @ModelAttribute FindSongsRequest request,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.findAll(pageable));
+        return ResponseEntity.ok(service.findAll(request, pageable));
     }
 
     @GetMapping("/{id}")

@@ -96,4 +96,26 @@ class PlaylistRepositoryIT {
 
         assertThat(affected).isEqualTo(0);
     }
+
+    @Test
+    void findByNameContainingIgnoreCase_returnsMatches() {
+        repository.save(new Playlist(null, "Chill Vibes", null, PlaylistStatus.NEW));
+        repository.save(new Playlist(null, "Workout Hits", null, PlaylistStatus.NEW));
+        repository.save(new Playlist(null, "Chillout Sessions", null, PlaylistStatus.NEW));
+
+        Page<Playlist> result = repository.findByNameContainingIgnoreCase("chill", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).extracting(Playlist::getName)
+                .containsExactlyInAnyOrder("Chill Vibes", "Chillout Sessions");
+    }
+
+    @Test
+    void findByNameContainingIgnoreCase_isCaseInsensitive() {
+        repository.save(new Playlist(null, "Late Night", null, PlaylistStatus.NEW));
+
+        Page<Playlist> result = repository.findByNameContainingIgnoreCase("LATE", PageRequest.of(0, 10));
+
+        assertThat(result.getTotalElements()).isGreaterThanOrEqualTo(1);
+        assertThat(result.getContent()).extracting(Playlist::getName).contains("Late Night");
+    }
 }

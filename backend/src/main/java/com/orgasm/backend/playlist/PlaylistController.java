@@ -22,8 +22,9 @@ public class PlaylistController {
 
     @GetMapping
     public ResponseEntity<Page<PlaylistResponse>> findAll(
+            @ModelAttribute FindPlaylistsRequest request,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.findAll(pageable));
+        return ResponseEntity.ok(service.findAll(request, pageable));
     }
 
     @GetMapping("/{id}")

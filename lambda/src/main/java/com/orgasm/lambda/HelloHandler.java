@@ -24,7 +24,7 @@ public class HelloHandler extends BaseHandler<Map<String, Object>> {
 
     @Override
     protected Map<String, Object> execute(APIGatewayV2HTTPEvent event) {
-        var playlists = playlistService.findAll(Pageable.ofSize(10));
+        var playlists = playlistService.findAll(r -> r, Pageable.ofSize(10));
         return Map.of("message", "Hello from Lambda!", "totalPlaylists", playlists.getTotalElements());
     }
 }

@@ -96,4 +96,25 @@ class SongRepositoryIT {
 
         assertThat(affected).isEqualTo(0);
     }
+
+    @Test
+    void findByNameContainingIgnoreCase_returnsMatches() {
+        repository.save(new Song(null, "Radiohead", "Creep", null, null));
+        repository.save(new Song(null, "Radiohead", "Karma Police", null, null));
+        repository.save(new Song(null, "Nirvana", "Come as You Are", null, null));
+
+        Page<Song> result = repository.findByNameContainingIgnoreCase("cree", PageRequest.of(0, 10));
+
+        assertThat(result.getContent()).extracting(Song::getName).containsExactly("Creep");
+    }
+
+    @Test
+    void findByNameContainingIgnoreCase_isCaseInsensitive() {
+        repository.save(new Song(null, "Radiohead", "Paranoid Android", null, null));
+
+        Page<Song> result = repository.findByNameContainingIgnoreCase("PARANOID", PageRequest.of(0, 10));
+
+        assertThat(result.getTotalElements()).isGreaterThanOrEqualTo(1);
+        assertThat(result.getContent()).extracting(Song::getName).contains("Paranoid Android");
+    }
 }

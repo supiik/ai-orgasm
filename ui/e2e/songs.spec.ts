@@ -108,4 +108,18 @@ test.describe('songs API (via MSW)', () => {
     const get = await browserFetch(page, '/api/v1/songs/3')
     expect(get.status).toBe(404)
   })
+
+  test('filters songs by name', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/songs?name=creep')
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(1)
+    expect(body.content[0].name).toBe('Creep')
+  })
+
+  test('filter by name returns empty when no match', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/songs?name=zzznomatch')
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(0)
+    expect(body.content).toHaveLength(0)
+  })
 })

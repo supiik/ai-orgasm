@@ -1,5 +1,7 @@
 package com.orgasm.backend.contributor;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -10,6 +12,8 @@ import java.time.Instant;
 
 @Transactional("appTransactionManager")
 public interface ContributorRepository extends JpaRepository<Contributor, Long> {
+
+    Page<Contributor> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Contributor c SET c.deletedAt = :now WHERE c.id = :id AND c.deletedAt IS NULL")

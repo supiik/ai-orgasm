@@ -3,6 +3,7 @@ package com.orgasm.lambda;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orgasm.backend.playlist.PlaylistService;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -16,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@SuppressWarnings("unchecked")
 @ExtendWith(MockitoExtension.class)
 class HelloHandlerTest {
 
@@ -25,7 +27,7 @@ class HelloHandlerTest {
 
     @Test
     void returns200WithMessage() {
-        when(playlistService.findAll(any())).thenReturn(Page.empty());
+        when(playlistService.findAll(any(UnaryOperator.class), any())).thenReturn(Page.empty());
         var handler = new HelloHandler(playlistService, mapper, VALIDATOR);
 
         var response = handler.handleRequest(getEvent(), context);
@@ -36,7 +38,7 @@ class HelloHandlerTest {
 
     @Test
     void returns500_whenSerializationFails() throws Exception {
-        when(playlistService.findAll(any())).thenReturn(Page.empty());
+        when(playlistService.findAll(any(UnaryOperator.class), any())).thenReturn(Page.empty());
         ObjectMapper failingMapper = mock(ObjectMapper.class);
         when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("boom"));
         var handler = new HelloHandler(playlistService, failingMapper, VALIDATOR);

@@ -22,8 +22,9 @@ public class ContributorController {
 
     @GetMapping
     public ResponseEntity<Page<ContributorResponse>> findAll(
+            @ModelAttribute FindContributorsRequest request,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(service.findAll(pageable));
+        return ResponseEntity.ok(service.findAll(request, pageable));
     }
 
     @GetMapping("/{id}")

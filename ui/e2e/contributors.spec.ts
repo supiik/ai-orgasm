@@ -83,4 +83,18 @@ test.describe('contributors API (via MSW)', () => {
     const get = await browserFetch(page, '/api/v1/contributors/3')
     expect(get.status).toBe(404)
   })
+
+  test('filters contributors by name', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/contributors?name=thom')
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(1)
+    expect(body.content[0].name).toBe('Thom Yorke')
+  })
+
+  test('filter by name returns empty when no match', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/contributors?name=zzznomatch')
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(0)
+    expect(body.content).toHaveLength(0)
+  })
 })

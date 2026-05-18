@@ -24,11 +24,13 @@ export const contributorHandlers = [
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
-    const content = db.slice(page * size, page * size + size)
+    const name = url.searchParams.get('name')?.toLowerCase()
+    const filtered = name ? db.filter(c => c.name.toLowerCase().includes(name)) : db
+    const content = filtered.slice(page * size, page * size + size)
     return HttpResponse.json({
       content,
-      totalElements: db.length,
-      totalPages: Math.ceil(db.length / size),
+      totalElements: filtered.length,
+      totalPages: Math.ceil(filtered.length / size),
       number: page,
       size,
     })
