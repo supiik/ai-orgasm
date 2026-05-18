@@ -10,6 +10,16 @@ const router = createRouter({
       component: HomeView,
     },
     {
+      path: '/contributors',
+      name: 'contributors',
+      component: () => import('../views/ContributorsView.vue'),
+    },
+    {
+      path: '/contributors/:id',
+      name: 'contributor-detail',
+      component: () => import('../views/ContributorDetailView.vue'),
+    },
+    {
       path: '/playlists',
       name: 'playlists',
       component: () => import('../views/PlaylistsView.vue'),

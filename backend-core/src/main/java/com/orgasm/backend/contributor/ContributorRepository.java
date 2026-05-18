@@ -1,0 +1,17 @@
+package com.orgasm.backend.contributor;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+
+@Transactional("appTransactionManager")
+public interface ContributorRepository extends JpaRepository<Contributor, Long> {
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Contributor c SET c.deletedAt = :now WHERE c.id = :id AND c.deletedAt IS NULL")
+    int softDeleteById(@Param("id") Long id, @Param("now") Instant now);
+}
