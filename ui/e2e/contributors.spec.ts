@@ -35,11 +35,12 @@ test.describe('contributors API (via MSW)', () => {
     const { status, body } = await browserFetch(page, '/api/v1/contributors', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'E2E Contributor', email: 'e2e@example.com' }),
+      body: JSON.stringify({ name: 'E2E Contributor', email: 'e2e@example.com', avatarUrl: 'https://example.com/e2e.jpg' }),
     })
     expect(status).toBe(201)
     expect(body.name).toBe('E2E Contributor')
     expect(body.email).toBe('e2e@example.com')
+    expect(body.avatarUrl).toBe('https://example.com/e2e.jpg')
     expect(body.id).toBeDefined()
   })
 
@@ -67,10 +68,11 @@ test.describe('contributors API (via MSW)', () => {
     const { status, body } = await browserFetch(page, '/api/v1/contributors/2', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Updated Name' }),
+      body: JSON.stringify({ name: 'Updated Name', avatarUrl: 'https://example.com/updated.jpg' }),
     })
     expect(status).toBe(200)
     expect(body.name).toBe('Updated Name')
+    expect(body.avatarUrl).toBe('https://example.com/updated.jpg')
     expect(body.version).toBe(1)
   })
 

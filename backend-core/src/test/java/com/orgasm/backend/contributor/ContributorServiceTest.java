@@ -29,14 +29,14 @@ class ContributorServiceTest {
     @InjectMocks ContributorService service;
 
     static ContributorResponse response(Long id, String name) {
-        return new ContributorResponse(id, name, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
     void create_savesAndReturnsResponse() {
-        var request = new CreateContributorRequest("Alice", null);
-        var entity = new Contributor(null, "Alice", null);
-        var saved = new Contributor(1L, "Alice", null);
+        var request = new CreateContributorRequest("Alice", null, null);
+        var entity = new Contributor(null, "Alice", null, null);
+        var saved = new Contributor(1L, "Alice", null, null);
         var expected = response(1L, "Alice");
 
         when(mapper.toEntity(request)).thenReturn(entity);
@@ -48,8 +48,8 @@ class ContributorServiceTest {
 
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
-        var entity = new Contributor(null, "Alice", null);
-        var saved = new Contributor(1L, "Alice", null);
+        var entity = new Contributor(null, "Alice", null, null);
+        var saved = new Contributor(1L, "Alice", null, null);
         var expected = response(1L, "Alice");
 
         when(mapper.toEntity(any(CreateContributorRequest.class))).thenReturn(entity);
@@ -61,7 +61,7 @@ class ContributorServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Contributor(1L, "Alice", null);
+        var entity = new Contributor(1L, "Alice", null, null);
         var expected = response(1L, "Alice");
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
@@ -78,7 +78,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage() {
-        var entity = new Contributor(1L, "Alice", null);
+        var entity = new Contributor(1L, "Alice", null, null);
         var mapped = response(1L, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -90,9 +90,9 @@ class ContributorServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse() {
-        var request = new UpdateContributorRequest("Bob", null);
-        var existing = new Contributor(1L, "Alice", null);
-        var saved = new Contributor(1L, "Bob", null);
+        var request = new UpdateContributorRequest("Bob", null, null);
+        var existing = new Contributor(1L, "Alice", null, null);
+        var saved = new Contributor(1L, "Bob", null, null);
         var expected = response(1L, "Bob");
 
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
@@ -105,8 +105,8 @@ class ContributorServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Contributor(1L, "Alice", null);
-        var saved = new Contributor(1L, "Bob", null);
+        var existing = new Contributor(1L, "Alice", null, null);
+        var saved = new Contributor(1L, "Bob", null, null);
         var expected = response(1L, "Bob");
 
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
@@ -121,7 +121,7 @@ class ContributorServiceTest {
     void update_throwsNotFound_whenMissing() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(99L, new UpdateContributorRequest("X", null)))
+        assertThatThrownBy(() -> service.update(99L, new UpdateContributorRequest("X", null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("99");
     }

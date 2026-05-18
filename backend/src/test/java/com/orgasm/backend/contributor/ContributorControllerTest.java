@@ -50,7 +50,7 @@ class ContributorControllerTest {
     }
 
     static ContributorResponse response(Long id, String name) {
-        return new ContributorResponse(id, name, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
@@ -87,7 +87,7 @@ class ContributorControllerTest {
 
         mvc.perform(post("/api/v1/contributors")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateContributorRequest("Alice", null))))
+                        .content(objectMapper.writeValueAsString(new CreateContributorRequest("Alice", null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/contributors/1")))
                 .andExpect(jsonPath("$.id").value(1));
@@ -97,7 +97,7 @@ class ContributorControllerTest {
     void create_returns400_whenNameBlank() throws Exception {
         mvc.perform(post("/api/v1/contributors")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateContributorRequest("", null))))
+                        .content(objectMapper.writeValueAsString(new CreateContributorRequest("", null, null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -107,7 +107,7 @@ class ContributorControllerTest {
 
         mvc.perform(put("/api/v1/contributors/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateContributorRequest("Bob", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateContributorRequest("Bob", null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Bob"));
     }
@@ -119,7 +119,7 @@ class ContributorControllerTest {
 
         mvc.perform(put("/api/v1/contributors/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateContributorRequest("X", null))))
+                        .content(objectMapper.writeValueAsString(new UpdateContributorRequest("X", null, null))))
                 .andExpect(status().isNotFound());
     }
 

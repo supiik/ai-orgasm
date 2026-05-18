@@ -380,6 +380,8 @@ components:
           minLength: 1
         email:
           type: string
+        avatarUrl:
+          type: string
 
     UpdateContributorRequest:
       type: object
@@ -389,6 +391,8 @@ components:
           type: string
           minLength: 1
         email:
+          type: string
+        avatarUrl:
           type: string
 
     ContributorResponse:
@@ -400,6 +404,8 @@ components:
         name:
           type: string
         email:
+          type: string
+        avatarUrl:
           type: string
         version:
           type: integer

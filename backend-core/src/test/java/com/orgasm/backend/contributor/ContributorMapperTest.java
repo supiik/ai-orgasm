@@ -16,7 +16,7 @@ class ContributorMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Contributor contributor = new Contributor(7L, "Alice", "alice@example.com");
+        Contributor contributor = new Contributor(7L, "Alice", "alice@example.com", "https://example.com/alice.jpg");
 
         ContributorResponse response = mapper.toResponse(contributor);
 
@@ -24,6 +24,7 @@ class ContributorMapperTest {
         assertThat(response.id()).isEqualTo(7L);
         assertThat(response.name()).isEqualTo("Alice");
         assertThat(response.email()).isEqualTo("alice@example.com");
+        assertThat(response.avatarUrl()).isEqualTo("https://example.com/alice.jpg");
     }
 
     @Test
@@ -33,27 +34,29 @@ class ContributorMapperTest {
 
     @Test
     void toEntity_mapsAllFields() {
-        CreateContributorRequest request = new CreateContributorRequest("Bob", "bob@example.com");
+        CreateContributorRequest request = new CreateContributorRequest("Bob", "bob@example.com", "https://example.com/bob.jpg");
 
         Contributor entity = mapper.toEntity(request);
 
         assertThat(entity).isNotNull();
         assertThat(entity.getName()).isEqualTo("Bob");
         assertThat(entity.getEmail()).isEqualTo("bob@example.com");
+        assertThat(entity.getAvatarUrl()).isEqualTo("https://example.com/bob.jpg");
     }
 
     @Test
     void toEntity_handlesNullEmail() {
-        CreateContributorRequest request = new CreateContributorRequest("Bob", null);
+        CreateContributorRequest request = new CreateContributorRequest("Bob", null, null);
 
         Contributor entity = mapper.toEntity(request);
 
         assertThat(entity.getEmail()).isNull();
+        assertThat(entity.getAvatarUrl()).isNull();
     }
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com");
+        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", null);
 
         mapper.updateEntity(null, contributor);
 
@@ -63,23 +66,25 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com");
-        UpdateContributorRequest request = new UpdateContributorRequest("Renamed", "new@example.com");
+        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", null);
+        UpdateContributorRequest request = new UpdateContributorRequest("Renamed", "new@example.com", "https://example.com/new.jpg");
 
         mapper.updateEntity(request, contributor);
 
         assertThat(contributor.getId()).isEqualTo(1L);
         assertThat(contributor.getName()).isEqualTo("Renamed");
         assertThat(contributor.getEmail()).isEqualTo("new@example.com");
+        assertThat(contributor.getAvatarUrl()).isEqualTo("https://example.com/new.jpg");
     }
 
     @Test
     void updateEntity_preservesEmail_whenNullInRequest() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com");
-        UpdateContributorRequest request = new UpdateContributorRequest("Renamed", null);
+        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", "https://example.com/orig.jpg");
+        UpdateContributorRequest request = new UpdateContributorRequest("Renamed", null, null);
 
         mapper.updateEntity(request, contributor);
 
         assertThat(contributor.getEmail()).isEqualTo("orig@example.com");
+        assertThat(contributor.getAvatarUrl()).isEqualTo("https://example.com/orig.jpg");
     }
 }

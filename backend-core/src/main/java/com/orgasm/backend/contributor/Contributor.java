@@ -24,4 +24,7 @@ public class Contributor extends AuditableEntity {
 
     @Column(name = "email")
     private String email;
+
+    @Column(name = "avatar_url", length = 1024)
+    private String avatarUrl;
 }

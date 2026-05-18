@@ -4,6 +4,7 @@ interface ContributorResponse {
   id: number
   name: string
   email: string | null
+  avatarUrl: string | null
   version: number
   createdAt: string
   updatedAt: string
@@ -11,9 +12,9 @@ interface ContributorResponse {
 
 let nextId = 4
 const db: ContributorResponse[] = [
-  { id: 1, name: 'Thom Yorke', email: 'thom@example.com', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 2, name: 'Nigel Godrich', email: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 3, name: 'Jonny Greenwood', email: 'jonny@example.com', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 1, name: 'Thom Yorke', email: 'thom@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=thom', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 2, name: 'Nigel Godrich', email: null, avatarUrl: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 3, name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()
@@ -34,7 +35,7 @@ export const contributorHandlers = [
   }),
 
   http.post('/api/v1/contributors', async ({ request }) => {
-    const body = await request.json() as { name: string; email?: string }
+    const body = await request.json() as { name: string; email?: string; avatarUrl?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -42,6 +43,7 @@ export const contributorHandlers = [
       id: nextId++,
       name: body.name,
       email: body.email ?? null,
+      avatarUrl: body.avatarUrl ?? null,
       version: 0,
       createdAt: now(),
       updatedAt: now(),
@@ -59,7 +61,7 @@ export const contributorHandlers = [
   http.put('/api/v1/contributors/:id', async ({ params, request }) => {
     const index = db.findIndex(c => c.id === Number(params.id))
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    const body = await request.json() as { name: string; email?: string }
+    const body = await request.json() as { name: string; email?: string; avatarUrl?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -67,6 +69,7 @@ export const contributorHandlers = [
       ...db[index],
       name: body.name,
       email: body.email ?? null,
+      avatarUrl: body.avatarUrl ?? null,
       version: db[index].version + 1,
       updatedAt: now(),
     }

@@ -6,5 +6,6 @@ import lombok.Builder;
 @Builder
 public record CreateContributorRequest(
         @NotBlank String name,
-        String email
+        String email,
+        String avatarUrl
 ) {}

@@ -53,7 +53,7 @@ class ContributorRepositoryIT {
 
     @Test
     void save_persistsContributor() {
-        Contributor saved = repository.save(new Contributor(null, "Alice", "alice@example.com"));
+        Contributor saved = repository.save(new Contributor(null, "Alice", "alice@example.com", null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -61,16 +61,16 @@ class ContributorRepositoryIT {
 
     @Test
     void findById_returnsContributor_afterSave() {
-        Contributor saved = repository.save(new Contributor(null, "Bob", null));
+        Contributor saved = repository.save(new Contributor(null, "Bob", null, null));
 
         assertThat(repository.findById(saved.getId())).contains(saved);
     }
 
     @Test
     void findAll_returnsPaginatedResults() {
-        repository.save(new Contributor(null, "A", null));
-        repository.save(new Contributor(null, "B", null));
-        repository.save(new Contributor(null, "C", null));
+        repository.save(new Contributor(null, "A", null, null));
+        repository.save(new Contributor(null, "B", null, null));
+        repository.save(new Contributor(null, "C", null, null));
 
         Page<Contributor> page = repository.findAll(PageRequest.of(0, 2));
 
@@ -80,7 +80,7 @@ class ContributorRepositoryIT {
 
     @Test
     void softDelete_hidesRowFromSubsequentFinds() {
-        Contributor saved = repository.save(new Contributor(null, "To Delete", null));
+        Contributor saved = repository.save(new Contributor(null, "To Delete", null, null));
         repository.flush();
 
         int affected = repository.softDeleteById(saved.getId(), Instant.now());

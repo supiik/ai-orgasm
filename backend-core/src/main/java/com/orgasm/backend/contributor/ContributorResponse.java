@@ -9,6 +9,7 @@ public record ContributorResponse(
         Long id,
         String name,
         String email,
+        String avatarUrl,
         Long version,
         Instant createdAt,
         Instant updatedAt
