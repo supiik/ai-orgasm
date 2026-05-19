@@ -3,6 +3,7 @@ package com.orgasm.backend.playlist;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.http.converter.json.ProblemDetailJacksonMixin;
 import com.orgasm.backend.config.GlobalExceptionHandler;
 import com.orgasm.backend.config.VersionTestSupport;
@@ -17,7 +18,6 @@ import org.springframework.data.web.config.EnableSpringDataWebSupport;
 import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 import org.springframework.data.web.config.SpringDataWebSettings;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -36,6 +36,7 @@ class PlaylistControllerTest {
 
     MockMvc mvc;
     PlaylistService service = mock(PlaylistService.class);
+    @SuppressWarnings("removal")
     ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .registerModule(new SpringDataJacksonConfiguration.PageModule(
