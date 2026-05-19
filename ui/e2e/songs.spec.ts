@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test'
 
 // MSW seed data (see src/mocks/handlers/songs.ts)
 const SEED = [
-  { id: 'song-0000000000000001', artist: 'Radiohead', name: 'Creep' },
-  { id: 'song-0000000000000002', artist: 'Nirvana', name: 'Smells Like Teen Spirit' },
-  { id: 'song-0000000000000003', artist: 'Oasis', name: 'Wonderwall' },
+  { id: 'song-0af3b7c2d1e8f905', artist: 'Radiohead', name: 'Creep' },
+  { id: 'song-9b2c5e3a7f1d4680', artist: 'Nirvana', name: 'Smells Like Teen Spirit' },
+  { id: 'song-c4d7a8e2f3b16509', artist: 'Oasis', name: 'Wonderwall' },
 ]
 
 // Helper: run a fetch inside the browser (where MSW intercepts it)
@@ -73,7 +73,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('gets a song by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/songs/song-0000000000000001')
+    const { status, body } = await browserFetch(page, '/api/v1/songs/song-0af3b7c2d1e8f905')
     expect(status).toBe(200)
     expect(body.artist).toBe('Radiohead')
     expect(body.name).toBe('Creep')
@@ -82,12 +82,12 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/songs/song-9999999999999999')
+    const { status } = await browserFetch(page, '/api/v1/songs/song-ffffffffffffffff')
     expect(status).toBe(404)
   })
 
   test('updates a song', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/songs/song-0000000000000002', {
+    const { status, body } = await browserFetch(page, '/api/v1/songs/song-9b2c5e3a7f1d4680', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: 'Nirvana', name: 'Come as You Are', album: 'Nevermind', releaseYear: 1992 }),
@@ -99,7 +99,7 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('returns 400 on update when artist is blank', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/songs/song-0000000000000001', {
+    const { status } = await browserFetch(page, '/api/v1/songs/song-0af3b7c2d1e8f905', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: '', name: 'Creep' }),
@@ -108,10 +108,10 @@ test.describe('songs API (via MSW)', () => {
   })
 
   test('deletes a song', async ({ page }) => {
-    const del = await browserFetch(page, '/api/v1/songs/song-0000000000000003', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/songs/song-c4d7a8e2f3b16509', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/v1/songs/song-0000000000000003')
+    const get = await browserFetch(page, '/api/v1/songs/song-c4d7a8e2f3b16509')
     expect(get.status).toBe(404)
   })
 
@@ -127,5 +127,13 @@ test.describe('songs API (via MSW)', () => {
     expect(status).toBe(200)
     expect(body.totalElements).toBe(0)
     expect(body.content).toHaveLength(0)
+  })
+
+  test('navigates to song detail on row click', async ({ page }) => {
+    await page.goto('/songs')
+    await expect(page.getByText('Radiohead')).toBeVisible()
+    await page.locator('table tbody tr').filter({ hasText: 'Radiohead' }).click()
+    await expect(page).toHaveURL(/\/songs\/song-/)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Creep')
   })
 })

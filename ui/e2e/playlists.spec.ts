@@ -58,18 +58,18 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('gets a playlist by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-0000000000000001')
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-a1b2c3d4e5f60718')
     expect(status).toBe(200)
     expect(body.name).toBe('Chill Vibes')
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/playlists/play-9999999999999999')
+    const { status } = await browserFetch(page, '/api/v1/playlists/play-ffffffffffffffff')
     expect(status).toBe(404)
   })
 
   test('updates a playlist', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-0000000000000002', {
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-2d3e4f5a6b7c8d90', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name' }),
@@ -80,10 +80,10 @@ test.describe('playlists API (via MSW)', () => {
   })
 
   test('deletes a playlist', async ({ page }) => {
-    const del = await browserFetch(page, '/api/v1/playlists/play-0000000000000003', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/playlists/play-e5f6a7b8c9d0e1f2', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/v1/playlists/play-0000000000000003')
+    const get = await browserFetch(page, '/api/v1/playlists/play-e5f6a7b8c9d0e1f2')
     expect(get.status).toBe(404)
   })
 
@@ -99,5 +99,13 @@ test.describe('playlists API (via MSW)', () => {
     expect(status).toBe(200)
     expect(body.totalElements).toBe(0)
     expect(body.content).toHaveLength(0)
+  })
+
+  test('navigates to playlist detail on row click', async ({ page }) => {
+    await page.goto('/playlists')
+    await expect(page.getByText('Chill Vibes')).toBeVisible()
+    await page.locator('table tbody tr').filter({ hasText: 'Chill Vibes' }).click()
+    await expect(page).toHaveURL(/\/playlists\/play-/)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Chill Vibes')
   })
 })

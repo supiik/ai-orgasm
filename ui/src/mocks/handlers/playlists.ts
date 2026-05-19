@@ -14,13 +14,12 @@ interface PlaylistResponse {
   updatedAt: string
 }
 
-let counter = 4
-const nextId = () => `play-${String(counter++).padStart(16, '0')}`
+const nextId = () => `play-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
 export const db: PlaylistResponse[] = [
-  { id: 'play-0000000000000001', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'play-0000000000000002', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-0000000000000001', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'play-0000000000000003', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-0000000000000001', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()

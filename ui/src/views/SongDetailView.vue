@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 const route = useRoute()
 const router = useRouter()
 
-const id = Number(route.params.id)
+const id = route.params.id as string
 const song = ref<SongResponse | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)

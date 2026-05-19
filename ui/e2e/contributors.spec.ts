@@ -59,18 +59,18 @@ test.describe('contributors API (via MSW)', () => {
   })
 
   test('gets a contributor by id', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-0000000000000001')
+    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-1a2b3c4d5e6f7089')
     expect(status).toBe(200)
     expect(body.name).toBe('Thom Yorke')
   })
 
   test('returns 404 for unknown id', async ({ page }) => {
-    const { status } = await browserFetch(page, '/api/v1/contributors/cont-9999999999999999')
+    const { status } = await browserFetch(page, '/api/v1/contributors/cont-ffffffffffffffff')
     expect(status).toBe(404)
   })
 
   test('updates a contributor', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-0000000000000002', {
+    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-8f7e6d5c4b3a2019', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name', avatarUrl: 'https://example.com/updated.jpg' }),
@@ -82,10 +82,10 @@ test.describe('contributors API (via MSW)', () => {
   })
 
   test('deletes a contributor', async ({ page }) => {
-    const del = await browserFetch(page, '/api/v1/contributors/cont-0000000000000003', { method: 'DELETE' })
+    const del = await browserFetch(page, '/api/v1/contributors/cont-0c1d2e3f4a5b6c7d', { method: 'DELETE' })
     expect(del.status).toBe(204)
 
-    const get = await browserFetch(page, '/api/v1/contributors/cont-0000000000000003')
+    const get = await browserFetch(page, '/api/v1/contributors/cont-0c1d2e3f4a5b6c7d')
     expect(get.status).toBe(404)
   })
 
@@ -101,5 +101,13 @@ test.describe('contributors API (via MSW)', () => {
     expect(status).toBe(200)
     expect(body.totalElements).toBe(0)
     expect(body.content).toHaveLength(0)
+  })
+
+  test('navigates to contributor detail on row click', async ({ page }) => {
+    await page.goto('/contributors')
+    await expect(page.getByText('Thom Yorke')).toBeVisible()
+    await page.locator('table tbody tr').filter({ hasText: 'Thom Yorke' }).click()
+    await expect(page).toHaveURL(/\/contributors\/cont-/)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Thom Yorke')
   })
 })
