@@ -3,11 +3,13 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api } from '@/api'
-import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Check } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
+import { SelectItem, SelectItemText, SelectItemIndicator } from 'radix-vue'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const route = useRoute()
@@ -16,6 +18,8 @@ const router = useRouter()
 const id = route.params.id as string
 const playlist = ref<PlaylistResponse | null>(null)
 const nominations = ref<NominationResponse[]>([])
+const songMap = ref<Record<string, { name: string; artist: string }>>({})
+const contributorMap = ref<Record<string, { name: string; avatarUrl: string | null }>>({})
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -39,9 +43,29 @@ async function loadNominations() {
   try {
     const { data } = await api.nominations().list(id)
     nominations.value = data.content ?? []
+    await resolveNominationDetails()
   } catch {
     // non-critical
   }
+}
+
+async function resolveNominationDetails() {
+  const songIds = [...new Set(nominations.value.map(n => n.songId!).filter(Boolean))]
+  const contributorIds = [...new Set(nominations.value.map(n => n.nominatedById!).filter(Boolean))]
+  await Promise.allSettled([
+    ...songIds.map(async sid => {
+      try {
+        const { data } = await api.songs().get(sid)
+        songMap.value[sid] = { name: data.name!, artist: data.artist! }
+      } catch {}
+    }),
+    ...contributorIds.map(async cid => {
+      try {
+        const { data } = await api.contributors().get(cid)
+        contributorMap.value[cid] = { name: data.name!, avatarUrl: data.avatarUrl ?? null }
+      } catch {}
+    }),
+  ])
 }
 
 onMounted(load)
@@ -123,27 +147,44 @@ async function submitOpen() {
 // ── Nominate song dialog ──────────────────────────────────────────────────────
 
 const nominateOpen = ref(false)
-const nominateForm = ref({ contributorId: '', songId: '' })
+const nominateForm = ref({ contributorId: '', artist: '', name: '', album: '', releaseYear: '' })
 const nominateError = ref<string | null>(null)
 const nominating = ref(false)
+const allContributors = ref<Array<{ id: string; name: string; avatarUrl: string | null }>>([])
 
-function showNominate() {
-  nominateForm.value = { contributorId: '', songId: '' }
+const eligibleContributors = computed(() => {
+  const nominated = new Set(nominations.value.map(n => n.nominatedById).filter(Boolean))
+  return allContributors.value.filter(c => !nominated.has(c.id))
+})
+
+async function showNominate() {
+  nominateForm.value = { contributorId: '', artist: '', name: '', album: '', releaseYear: '' }
   nominateError.value = null
   nominateOpen.value = true
+  try {
+    const { data } = await api.contributors().list(0, 100)
+    allContributors.value = (data.content ?? []).map(c => ({ id: c.id!, name: c.name!, avatarUrl: c.avatarUrl ?? null }))
+  } catch {}
 }
 
 async function submitNominate() {
-  if (!nominateForm.value.contributorId.trim() || !nominateForm.value.songId.trim()) {
-    nominateError.value = 'All fields are required.'
+  if (!nominateForm.value.contributorId || !nominateForm.value.artist.trim() || !nominateForm.value.name.trim()) {
+    nominateError.value = 'Contributor, artist, and song name are required.'
     return
   }
   nominating.value = true
   nominateError.value = null
   try {
+    const year = nominateForm.value.releaseYear ? parseInt(nominateForm.value.releaseYear) : undefined
+    const { data: song } = await api.songs().create({
+      artist: nominateForm.value.artist.trim(),
+      name: nominateForm.value.name.trim(),
+      album: nominateForm.value.album.trim() || undefined,
+      releaseYear: year,
+    })
     await api.nominations().create(id, {
-      contributorId: nominateForm.value.contributorId.trim(),
-      songId: nominateForm.value.songId.trim(),
+      contributorId: nominateForm.value.contributorId,
+      songId: song.id!,
     })
     nominateOpen.value = false
     await loadNominations()
@@ -156,39 +197,17 @@ async function submitNominate() {
 
 // ── Approve / Decline ─────────────────────────────────────────────────────────
 
-const reviewId = ref('')
-const reviewOpen = ref(false)
-const reviewError = ref<string | null>(null)
-const reviewing = ref(false)
-const pendingNomId = ref<string | null>(null)
-const pendingAction = ref<'approve' | 'decline'>('approve')
-
-function showReview(nomId: string, action: 'approve' | 'decline') {
-  pendingNomId.value = nomId
-  pendingAction.value = action
-  reviewId.value = ''
-  reviewError.value = null
-  reviewOpen.value = true
-}
-
-async function submitReview() {
-  if (!reviewId.value.trim()) { reviewError.value = 'Reviewer ID is required.'; return }
-  reviewing.value = true
-  reviewError.value = null
+async function reviewNomination(nomId: string, action: 'approve' | 'decline') {
+  const reviewerId = playlist.value?.leadContributorId
+  if (!reviewerId) return
   try {
-    const req = { reviewerId: reviewId.value.trim() }
-    if (pendingAction.value === 'approve') {
-      await api.nominations().approve(pendingNomId.value!, req)
+    if (action === 'approve') {
+      await api.nominations().approve(nomId, { reviewerId })
     } else {
-      await api.nominations().decline(pendingNomId.value!, req)
+      await api.nominations().decline(nomId, { reviewerId })
     }
-    reviewOpen.value = false
     await loadNominations()
-  } catch (e: unknown) {
-    reviewError.value = extractDetail(e) ?? 'Failed to review nomination.'
-  } finally {
-    reviewing.value = false
-  }
+  } catch {}
 }
 
 // ── Publish dialog ────────────────────────────────────────────────────────────
@@ -274,7 +293,7 @@ function statusClass(s: NominationStatus | undefined) {
 
     <!-- Details -->
     <template v-if="playlist">
-      <dl class="divide-y divide-border rounded-md border border-border text-sm">
+      <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-36 shrink-0 text-muted-foreground">ID</dt>
           <dd>{{ playlist.id }}</dd>
@@ -331,21 +350,30 @@ function statusClass(s: NominationStatus | undefined) {
           No nominations yet.
         </div>
 
-        <div v-else class="divide-y divide-border rounded-md border border-border">
-          <div v-for="nom in nominations" :key="nom.id" class="flex items-center px-4 py-3 gap-4 text-sm">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium truncate">{{ nom.songId }}</div>
-              <div class="text-muted-foreground text-xs truncate">by {{ nom.nominatedById }}</div>
+        <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
+          <div v-for="nom in nominations" :key="nom.id" class="grid grid-cols-3 items-center px-4 py-3 gap-4 text-sm">
+            <!-- Song -->
+            <div class="min-w-0">
+              <div class="font-medium truncate">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
+              <div class="text-muted-foreground text-xs truncate">{{ songMap[nom.songId!]?.artist }}</div>
             </div>
-            <span :class="['text-xs font-medium', statusClass(nom.status)]">{{ statusLabel(nom.status) }}</span>
-            <template v-if="nom.status === NominationStatus.Pending && playlist.status === PlaylistStatus.Open">
-              <Button size="sm" variant="ghost" class="text-green-600 hover:text-green-700" @click="showReview(nom.id!, 'approve')">
-                <CheckCircle class="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="ghost" class="text-destructive hover:text-destructive/80" @click="showReview(nom.id!, 'decline')">
-                <XCircle class="h-4 w-4" />
-              </Button>
-            </template>
+            <!-- Contributor -->
+            <div class="flex items-center gap-2 min-w-0 text-xs text-muted-foreground">
+              <img v-if="contributorMap[nom.nominatedById!]?.avatarUrl" :src="contributorMap[nom.nominatedById!].avatarUrl!" class="w-5 h-5 rounded-full object-cover shrink-0" :alt="contributorMap[nom.nominatedById!].name" />
+              <span class="truncate">{{ contributorMap[nom.nominatedById!]?.name ?? nom.nominatedById }}</span>
+            </div>
+            <!-- Status / actions -->
+            <div class="flex items-center justify-end gap-1">
+              <template v-if="playlist.status === PlaylistStatus.Open">
+                <Button size="sm" variant="ghost" :class="nom.status === NominationStatus.Approved ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'" @click="reviewNomination(nom.id!, 'approve')">
+                  <CheckCircle class="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" :class="nom.status === NominationStatus.Declined ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'" @click="reviewNomination(nom.id!, 'decline')">
+                  <XCircle class="h-4 w-4" />
+                </Button>
+              </template>
+              <span v-else :class="['text-xs font-medium', statusClass(nom.status)]">{{ statusLabel(nom.status) }}</span>
+            </div>
           </div>
         </div>
       </section>
@@ -403,40 +431,47 @@ function statusClass(s: NominationStatus | undefined) {
       <DialogHeader><DialogTitle>Nominate a song</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitNominate">
         <div class="space-y-1.5">
-          <Label for="nom-contributor">Your contributor ID <span class="text-destructive">*</span></Label>
-          <Input id="nom-contributor" v-model="nominateForm.contributorId" placeholder="cont-…" />
+          <Label>Contributor <span class="text-destructive">*</span></Label>
+          <Select v-model="nominateForm.contributorId" placeholder="Select contributor…">
+            <SelectItem
+              v-for="c in eligibleContributors" :key="c.id" :value="c.id"
+              class="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+            >
+              <span class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
+                <SelectItemIndicator><Check class="h-4 w-4" /></SelectItemIndicator>
+              </span>
+              <img v-if="c.avatarUrl" :src="c.avatarUrl" :alt="c.name" class="w-6 h-6 rounded-full object-cover shrink-0" />
+              <div v-else class="w-6 h-6 rounded-full bg-muted shrink-0" />
+              <SelectItemText>{{ c.name }}</SelectItemText>
+            </SelectItem>
+          </Select>
         </div>
-        <div class="space-y-1.5">
-          <Label for="nom-song">Song ID <span class="text-destructive">*</span></Label>
-          <Input id="nom-song" v-model="nominateForm.songId" placeholder="song-…" />
+        <div class="border-t border-border pt-4 space-y-3">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Song</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <Label for="nom-artist">Artist <span class="text-destructive">*</span></Label>
+              <Input id="nom-artist" v-model="nominateForm.artist" placeholder="Radiohead" />
+            </div>
+            <div class="space-y-1.5">
+              <Label for="nom-name">Title <span class="text-destructive">*</span></Label>
+              <Input id="nom-name" v-model="nominateForm.name" placeholder="Creep" />
+            </div>
+            <div class="space-y-1.5">
+              <Label for="nom-album">Album</Label>
+              <Input id="nom-album" v-model="nominateForm.album" placeholder="Pablo Honey" />
+            </div>
+            <div class="space-y-1.5">
+              <Label for="nom-year">Year</Label>
+              <Input id="nom-year" v-model="nominateForm.releaseYear" type="number" placeholder="1993" />
+            </div>
+          </div>
         </div>
         <p v-if="nominateError" class="text-sm text-destructive">{{ nominateError }}</p>
       </form>
       <DialogFooter>
         <Button variant="outline" :disabled="nominating" @click="nominateOpen = false">Cancel</Button>
         <Button :disabled="nominating" @click="submitNominate">{{ nominating ? 'Nominating…' : 'Nominate' }}</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-
-  <!-- Approve/Decline dialog -->
-  <Dialog v-model:open="reviewOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{{ pendingAction === 'approve' ? 'Approve' : 'Decline' }} nomination</DialogTitle>
-      </DialogHeader>
-      <form class="space-y-4" @submit.prevent="submitReview">
-        <div class="space-y-1.5">
-          <Label for="review-id">Your contributor ID <span class="text-destructive">*</span></Label>
-          <Input id="review-id" v-model="reviewId" placeholder="cont-…" autofocus />
-        </div>
-        <p v-if="reviewError" class="text-sm text-destructive">{{ reviewError }}</p>
-      </form>
-      <DialogFooter>
-        <Button variant="outline" :disabled="reviewing" @click="reviewOpen = false">Cancel</Button>
-        <Button :disabled="reviewing" :variant="pendingAction === 'decline' ? 'destructive' : 'default'" @click="submitReview">
-          {{ reviewing ? 'Submitting…' : (pendingAction === 'approve' ? 'Approve' : 'Decline') }}
-        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

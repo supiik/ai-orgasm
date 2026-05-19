@@ -103,7 +103,7 @@ async function submitEdit() {
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 
     <template v-if="song">
-      <dl class="divide-y divide-border rounded-md border border-border text-sm">
+      <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">ID</dt>
           <dd>{{ song.id }}</dd>

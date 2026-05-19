@@ -109,7 +109,7 @@ async function submitEdit() {
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 
     <template v-if="contributor">
-      <dl class="divide-y divide-border rounded-md border border-border text-sm">
+      <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">ID</dt>
           <dd>{{ contributor.id }}</dd>
@@ -149,7 +149,7 @@ async function submitEdit() {
         <div v-if="playlists.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
           No playlists led by this contributor.
         </div>
-        <div v-else class="divide-y divide-border rounded-md border border-border">
+        <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>a:nth-child(even)]:bg-muted/40">
           <RouterLink
             v-for="pl in playlists"
             :key="pl.id"

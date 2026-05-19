@@ -17,7 +17,7 @@ interface NominationResponse {
 const nextId = () => `nom-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
 export const nominationsDb: NominationResponse[] = [
-  { id: 'nom-f1e2d3c4b5a69708', playlistId: 'play-2d3e4f5a6b7c8d90', songId: 'song-0af3b7c2d1e8f905', nominatedById: 'cont-8f7e6d5c4b3a2019', status: 'PENDING', version: 0, createdAt: '2024-01-10T10:00:00Z', updatedAt: '2024-01-10T10:00:00Z' },
+  { id: 'nom-f1e2d3c4b5a69708', playlistId: 'play-2d3e4f5a6b7c8d90', songId: 'song-0af3b7c2d1e8f905', nominatedById: 'cont-1a2b3c4d5e6f7089', status: 'PENDING', version: 0, createdAt: '2024-01-10T10:00:00Z', updatedAt: '2024-01-10T10:00:00Z' },
   { id: 'nom-3c4d5e6f7a8b9c0d', playlistId: 'play-2d3e4f5a6b7c8d90', songId: 'song-9b2c5e3a7f1d4680', nominatedById: 'cont-0c1d2e3f4a5b6c7d', status: 'APPROVED', version: 1, createdAt: '2024-01-10T11:00:00Z', updatedAt: '2024-01-10T12:00:00Z' },
   { id: 'nom-7a8b9c0d1e2f3a4b', playlistId: 'play-e5f6a7b8c9d0e1f2', songId: 'song-c4d7a8e2f3b16509', nominatedById: 'cont-8f7e6d5c4b3a2019', status: 'PENDING', version: 0, createdAt: '2024-01-11T09:00:00Z', updatedAt: '2024-01-11T09:00:00Z' },
 ]
@@ -71,9 +71,6 @@ export const nominationHandlers = [
   http.put('/api/v1/nominations/:id/approve', async ({ params, request }) => {
     const index = nominationsDb.findIndex(n => n.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    if (nominationsDb[index].status !== 'PENDING') {
-      return HttpResponse.json({ title: 'Conflict', detail: 'Nomination is not pending' }, { status: 409 })
-    }
     const body = await request.json() as { reviewerId: string }
     const playlist = playlistDb.find(p => p.id === nominationsDb[index].playlistId)
     if (playlist?.leadContributorId !== body.reviewerId) {
@@ -86,9 +83,6 @@ export const nominationHandlers = [
   http.put('/api/v1/nominations/:id/decline', async ({ params, request }) => {
     const index = nominationsDb.findIndex(n => n.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    if (nominationsDb[index].status !== 'PENDING') {
-      return HttpResponse.json({ title: 'Conflict', detail: 'Nomination is not pending' }, { status: 409 })
-    }
     const body = await request.json() as { reviewerId: string }
     const playlist = playlistDb.find(p => p.id === nominationsDb[index].playlistId)
     if (playlist?.leadContributorId !== body.reviewerId) {
