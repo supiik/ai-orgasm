@@ -316,8 +316,10 @@ function statusClass(s: NominationStatus | undefined) {
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-36 shrink-0 text-muted-foreground">Lead contributor</dt>
           <dd>
-            <RouterLink v-if="playlist.leadContributorId" :to="`/contributors/${playlist.leadContributorId}`" class="underline underline-offset-2">
-              {{ playlist.leadContributorId }}
+            <RouterLink v-if="playlist.leadContributorId" :to="`/contributors/${playlist.leadContributorId}`" class="flex items-center gap-2 w-fit hover:underline underline-offset-2">
+              <img v-if="(playlist as any).leadContributorAvatarUrl" :src="(playlist as any).leadContributorAvatarUrl" :alt="(playlist as any).leadContributorName" class="w-6 h-6 rounded-full object-cover shrink-0" />
+              <div v-else class="w-6 h-6 rounded-full bg-muted shrink-0" />
+              <span>{{ (playlist as any).leadContributorName ?? playlist.leadContributorId }}</span>
             </RouterLink>
             <span v-else class="text-muted-foreground">—</span>
           </dd>

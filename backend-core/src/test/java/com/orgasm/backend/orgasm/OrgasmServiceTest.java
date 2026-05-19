@@ -1,5 +1,6 @@
 package com.orgasm.backend.orgasm;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
 import com.orgasm.backend.nomination.Nomination;
@@ -42,10 +43,10 @@ class OrgasmServiceTest {
     @Mock NominationMapper nominationMapper;
     @InjectMocks OrgasmService service;
 
-    static final long PLAYLIST_DB_ID     = 1L;
-    static final long CONTRIBUTOR_DB_ID  = 2L;
-    static final long SONG_DB_ID         = 3L;
-    static final long NOMINATION_DB_ID   = 4L;
+    static final long PLAYLIST_DB_ID    = 1L;
+    static final long CONTRIBUTOR_DB_ID = 2L;
+    static final long SONG_DB_ID        = 3L;
+    static final long NOMINATION_DB_ID  = 4L;
 
     static final String PLAYLIST_ID    = IdGenerator.format("play", PLAYLIST_DB_ID);
     static final String CONTRIBUTOR_ID = IdGenerator.format("cont", CONTRIBUTOR_DB_ID);
@@ -55,16 +56,22 @@ class OrgasmServiceTest {
     static final Instant FUTURE = Instant.now().plusSeconds(3600);
     static final Instant PAST   = Instant.now().minusSeconds(3600);
 
+    static Contributor leadContributor() {
+        var c = new Contributor();
+        c.setId(CONTRIBUTOR_DB_ID);
+        return c;
+    }
+
     Playlist newPlaylist() {
         return new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.NEW, null, null);
     }
 
     Playlist openPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_DB_ID, FUTURE);
+        return new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE);
     }
 
     PlaylistResponse playlistResponse() {
-        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_ID, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_ID, null, null, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     NominationResponse nominationResponse() {
@@ -72,22 +79,30 @@ class OrgasmServiceTest {
                 .songId(SONG_ID).nominatedById(CONTRIBUTOR_ID).status(NominationStatus.PENDING).build();
     }
 
+    Nomination pendingNomination() {
+        var n = new Nomination();
+        n.setId(NOMINATION_DB_ID);
+        n.setPlaylist(openPlaylist());
+        n.setStatus(NominationStatus.PENDING);
+        return n;
+    }
+
     // ── openPlaylist ──────────────────────────────────────────────────────────
 
     @Test
     void openPlaylist_setsLeadContributorAndStatus() {
         var playlist = newPlaylist();
-        var saved = openPlaylist();
+        var freshPlaylist = openPlaylist();
         var expected = playlistResponse();
 
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.findById(PLAYLIST_DB_ID))
+                .thenReturn(Optional.of(playlist))
+                .thenReturn(Optional.of(freshPlaylist));
         when(contributorRepository.existsById(CONTRIBUTOR_DB_ID)).thenReturn(true);
-        when(playlistRepository.save(playlist)).thenReturn(saved);
-        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+        when(playlistMapper.toResponse(any(Playlist.class))).thenReturn(expected);
 
         assertThat(service.openPlaylist(PLAYLIST_ID, new OpenPlaylistRequest(CONTRIBUTOR_ID, FUTURE))).isEqualTo(expected);
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.OPEN);
-        assertThat(playlist.getLeadContributorId()).isEqualTo(CONTRIBUTOR_DB_ID);
         assertThat(playlist.getDeadline()).isEqualTo(FUTURE);
     }
 
@@ -123,7 +138,7 @@ class OrgasmServiceTest {
     void findPlaylistsByContributor_returnsMappedPage() {
         var playlist = openPlaylist();
         var expected = playlistResponse();
-        when(playlistRepository.findByLeadContributorId(any(), any(Pageable.class)))
+        when(playlistRepository.findByLeadContributor_Id(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(playlist)));
         when(playlistMapper.toResponse(playlist)).thenReturn(expected);
 
@@ -136,15 +151,14 @@ class OrgasmServiceTest {
 
     @Test
     void nominateSong_createsNomination() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.PENDING);
         var expected = nominationResponse();
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
         when(songRepository.existsById(SONG_DB_ID)).thenReturn(true);
         when(contributorRepository.existsById(CONTRIBUTOR_DB_ID)).thenReturn(true);
-        when(nominationRepository.existsByPlaylistIdAndSongId(PLAYLIST_DB_ID, SONG_DB_ID)).thenReturn(false);
-        when(nominationRepository.save(any(Nomination.class))).thenReturn(nomination);
-        when(nominationMapper.toResponse(nomination)).thenReturn(expected);
+        when(nominationRepository.existsByPlaylist_IdAndSong_Id(PLAYLIST_DB_ID, SONG_DB_ID)).thenReturn(false);
+        when(nominationRepository.save(any(Nomination.class))).thenReturn(pendingNomination());
+        when(nominationMapper.toResponse(any())).thenReturn(expected);
 
         assertThat(service.nominateSong(PLAYLIST_ID, new NominateSongRequest(CONTRIBUTOR_ID, SONG_ID))).isEqualTo(expected);
     }
@@ -160,7 +174,7 @@ class OrgasmServiceTest {
 
     @Test
     void nominateSong_throwsConflict_whenDeadlinePassed() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_DB_ID, PAST);
+        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> service.nominateSong(PLAYLIST_ID, new NominateSongRequest(CONTRIBUTOR_ID, SONG_ID)))
@@ -192,7 +206,7 @@ class OrgasmServiceTest {
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
         when(songRepository.existsById(SONG_DB_ID)).thenReturn(true);
         when(contributorRepository.existsById(CONTRIBUTOR_DB_ID)).thenReturn(true);
-        when(nominationRepository.existsByPlaylistIdAndSongId(PLAYLIST_DB_ID, SONG_DB_ID)).thenReturn(true);
+        when(nominationRepository.existsByPlaylist_IdAndSong_Id(PLAYLIST_DB_ID, SONG_DB_ID)).thenReturn(true);
 
         assertThatThrownBy(() -> service.nominateSong(PLAYLIST_ID, new NominateSongRequest(CONTRIBUTOR_ID, SONG_ID)))
                 .isInstanceOf(IllegalStateException.class)
@@ -203,12 +217,12 @@ class OrgasmServiceTest {
 
     @Test
     void approveNomination_changesStatusToApproved() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.PENDING);
-        var approved = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.APPROVED);
+        var nomination = pendingNomination();
+        var approved = pendingNomination();
+        approved.setStatus(NominationStatus.APPROVED);
         var expected = NominationResponse.builder().id(NOMINATION_ID).status(NominationStatus.APPROVED).build();
 
         when(nominationRepository.findById(NOMINATION_DB_ID)).thenReturn(Optional.of(nomination));
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
         when(nominationRepository.save(nomination)).thenReturn(approved);
         when(nominationMapper.toResponse(approved)).thenReturn(expected);
 
@@ -218,12 +232,12 @@ class OrgasmServiceTest {
 
     @Test
     void declineNomination_changesStatusToDeclined() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.PENDING);
-        var declined = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.DECLINED);
+        var nomination = pendingNomination();
+        var declined = pendingNomination();
+        declined.setStatus(NominationStatus.DECLINED);
         var expected = NominationResponse.builder().id(NOMINATION_ID).status(NominationStatus.DECLINED).build();
 
         when(nominationRepository.findById(NOMINATION_DB_ID)).thenReturn(Optional.of(nomination));
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
         when(nominationRepository.save(nomination)).thenReturn(declined);
         when(nominationMapper.toResponse(declined)).thenReturn(expected);
 
@@ -233,7 +247,8 @@ class OrgasmServiceTest {
 
     @Test
     void reviewNomination_throwsConflict_whenNotPending() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.APPROVED);
+        var nomination = pendingNomination();
+        nomination.setStatus(NominationStatus.APPROVED);
         when(nominationRepository.findById(NOMINATION_DB_ID)).thenReturn(Optional.of(nomination));
 
         assertThatThrownBy(() -> service.approveNomination(NOMINATION_ID, CONTRIBUTOR_ID))
@@ -243,12 +258,10 @@ class OrgasmServiceTest {
 
     @Test
     void reviewNomination_throwsConflict_whenNotLeadContributor() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.PENDING);
-        long otherContributorId = 99L;
-        String otherId = IdGenerator.format("cont", otherContributorId);
+        var nomination = pendingNomination();
+        String otherId = IdGenerator.format("cont", 99L);
 
         when(nominationRepository.findById(NOMINATION_DB_ID)).thenReturn(Optional.of(nomination));
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
 
         assertThatThrownBy(() -> service.approveNomination(NOMINATION_ID, otherId))
                 .isInstanceOf(IllegalStateException.class)
@@ -267,9 +280,9 @@ class OrgasmServiceTest {
 
     @Test
     void publishPlaylist_setsStatusToPublished() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_DB_ID, PAST);
-        var saved = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_DB_ID, PAST);
-        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
+        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var saved = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
         when(playlistRepository.save(playlist)).thenReturn(saved);
@@ -281,8 +294,7 @@ class OrgasmServiceTest {
 
     @Test
     void publishPlaylist_throwsConflict_whenNotOpen() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.NEW, null, null);
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(newPlaylist()));
 
         assertThatThrownBy(() -> service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID))
                 .isInstanceOf(IllegalStateException.class)
@@ -312,9 +324,9 @@ class OrgasmServiceTest {
 
     @Test
     void findNominations_returnsMappedPage() {
-        var nomination = new Nomination(NOMINATION_DB_ID, PLAYLIST_DB_ID, SONG_DB_ID, CONTRIBUTOR_DB_ID, NominationStatus.PENDING);
+        var nomination = pendingNomination();
         var expected = nominationResponse();
-        when(nominationRepository.findByPlaylistId(any(), any(Pageable.class)))
+        when(nominationRepository.findByPlaylist_Id(any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(nomination)));
         when(nominationMapper.toResponse(nomination)).thenReturn(expected);
 

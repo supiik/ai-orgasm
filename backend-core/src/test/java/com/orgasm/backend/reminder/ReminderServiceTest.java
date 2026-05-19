@@ -51,9 +51,11 @@ class ReminderServiceTest {
     }
 
     static Nomination approvedNomination(long nominatedById) {
+        var c = new Contributor();
+        c.setId(nominatedById);
         var n = new Nomination();
         n.setId(99L);
-        n.setNominatedById(nominatedById);
+        n.setNominatedBy(c);
         n.setStatus(NominationStatus.APPROVED);
         return n;
     }
@@ -71,7 +73,7 @@ class ReminderServiceTest {
                     Instant to = inv.getArgument(2);
                     return deadline.isAfter(from) && deadline.isBefore(to) ? List.of(playlist) : List.of();
                 });
-        when(nominationRepository.findByPlaylistIdAndStatus(10L, NominationStatus.APPROVED))
+        when(nominationRepository.findByPlaylist_IdAndStatus(10L, NominationStatus.APPROVED))
                 .thenReturn(List.of());
 
         var reminders = service.findReminders();
@@ -95,7 +97,7 @@ class ReminderServiceTest {
                     Instant to = inv.getArgument(2);
                     return deadline.isAfter(from) && deadline.isBefore(to) ? List.of(playlist) : List.of();
                 });
-        when(nominationRepository.findByPlaylistIdAndStatus(10L, NominationStatus.APPROVED))
+        when(nominationRepository.findByPlaylist_IdAndStatus(10L, NominationStatus.APPROVED))
                 .thenReturn(List.of());
 
         var reminders = service.findReminders();
@@ -117,7 +119,7 @@ class ReminderServiceTest {
                     Instant to = inv.getArgument(2);
                     return deadline.isAfter(from) && deadline.isBefore(to) ? List.of(playlist) : List.of();
                 });
-        when(nominationRepository.findByPlaylistIdAndStatus(10L, NominationStatus.APPROVED))
+        when(nominationRepository.findByPlaylist_IdAndStatus(10L, NominationStatus.APPROVED))
                 .thenReturn(List.of());
 
         var reminders = service.findReminders();
@@ -140,7 +142,7 @@ class ReminderServiceTest {
                     Instant to = inv.getArgument(2);
                     return deadline.isAfter(from) && deadline.isBefore(to) ? List.of(playlist) : List.of();
                 });
-        when(nominationRepository.findByPlaylistIdAndStatus(10L, NominationStatus.APPROVED))
+        when(nominationRepository.findByPlaylist_IdAndStatus(10L, NominationStatus.APPROVED))
                 .thenReturn(List.of(approvedNomination(1L)));
 
         var reminders = service.findReminders();
@@ -162,7 +164,7 @@ class ReminderServiceTest {
                     Instant to = inv.getArgument(2);
                     return deadline.isAfter(from) && deadline.isBefore(to) ? List.of(playlist) : List.of();
                 });
-        when(nominationRepository.findByPlaylistIdAndStatus(10L, NominationStatus.APPROVED))
+        when(nominationRepository.findByPlaylist_IdAndStatus(10L, NominationStatus.APPROVED))
                 .thenReturn(List.of(approvedNomination(1L)));
 
         assertThat(service.findReminders()).isEmpty();

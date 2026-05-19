@@ -1,5 +1,6 @@
 package com.orgasm.backend.playlist;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.domain.AuditableEntity;
 import com.orgasm.backend.domain.IdGenerator;
 import jakarta.persistence.*;
@@ -36,8 +37,9 @@ public class Playlist extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     private PlaylistStatus status;
 
-    @Column(name = "lead_contributor_id")
-    private Long leadContributorId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_contributor_id", updatable = false)
+    private Contributor leadContributor;
 
     @Column(name = "deadline")
     private Instant deadline;

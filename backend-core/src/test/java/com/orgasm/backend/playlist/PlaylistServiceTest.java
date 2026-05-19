@@ -33,7 +33,7 @@ class PlaylistServiceTest {
     static final String USER_ID = IdGenerator.format("play", DB_ID);
 
     static PlaylistResponse response(String id, String name) {
-        return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test

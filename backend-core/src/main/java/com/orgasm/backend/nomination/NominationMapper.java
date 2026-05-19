@@ -10,8 +10,8 @@ import org.mapstruct.ReportingPolicy;
 public interface NominationMapper {
 
     @Mapping(target = "id",            expression = "java(IdGenerator.format(\"nom\",  nomination.getId()))")
-    @Mapping(target = "playlistId",    expression = "java(IdGenerator.format(\"play\", nomination.getPlaylistId()))")
-    @Mapping(target = "songId",        expression = "java(IdGenerator.format(\"song\", nomination.getSongId()))")
-    @Mapping(target = "nominatedById", expression = "java(IdGenerator.format(\"cont\", nomination.getNominatedById()))")
+    @Mapping(target = "playlistId",    expression = "java(IdGenerator.format(\"play\", nomination.getPlaylist().getId()))")
+    @Mapping(target = "songId",        expression = "java(IdGenerator.format(\"song\", nomination.getSong().getId()))")
+    @Mapping(target = "nominatedById", expression = "java(IdGenerator.format(\"cont\", nomination.getNominatedBy().getId()))")
     NominationResponse toResponse(Nomination nomination);
 }

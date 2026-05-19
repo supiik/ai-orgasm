@@ -18,7 +18,11 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     List<Playlist> findByStatusAndDeadlineBetween(PlaylistStatus status, Instant from, Instant to);
 
-    Page<Playlist> findByLeadContributorId(Long leadContributorId, Pageable pageable);
+    Page<Playlist> findByLeadContributor_Id(Long leadContributorId, Pageable pageable);
+
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Playlist p SET p.leadContributor = :contributor WHERE p.id = :id")
+    void assignLeadContributor(@Param("id") Long id, @Param("contributor") com.orgasm.backend.contributor.Contributor contributor);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Playlist p SET p.deletedAt = :now WHERE p.id = :id AND p.deletedAt IS NULL")

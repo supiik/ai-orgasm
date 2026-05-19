@@ -13,7 +13,9 @@ import org.mapstruct.ReportingPolicy;
 public interface PlaylistMapper {
 
     @Mapping(target = "id", expression = "java(IdGenerator.format(\"play\", playlist.getId()))")
-    @Mapping(target = "leadContributorId", expression = "java(playlist.getLeadContributorId() != null ? IdGenerator.format(\"cont\", playlist.getLeadContributorId()) : null)")
+    @Mapping(target = "leadContributorId",      expression = "java(playlist.getLeadContributor() != null ? IdGenerator.format(\"cont\", playlist.getLeadContributor().getId()) : null)")
+    @Mapping(target = "leadContributorName",    expression = "java(playlist.getLeadContributor() != null ? playlist.getLeadContributor().getName() : null)")
+    @Mapping(target = "leadContributorAvatarUrl", expression = "java(playlist.getLeadContributor() != null ? playlist.getLeadContributor().getAvatarUrl() : null)")
     PlaylistResponse toResponse(Playlist playlist);
 
     @Mapping(target = "status", defaultValue = "NEW")

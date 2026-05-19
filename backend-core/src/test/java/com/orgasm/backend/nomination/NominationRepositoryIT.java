@@ -72,7 +72,7 @@ class NominationRepositoryIT {
     @Test
     void save_persistsNomination() {
         Nomination saved = nominationRepository.save(
-                new Nomination(null, playlist.getId(), song.getId(), contributor.getId(), null));
+                new Nomination(null, playlist, song, contributor, null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getStatus()).isEqualTo(NominationStatus.PENDING);
@@ -80,25 +80,25 @@ class NominationRepositoryIT {
     }
 
     @Test
-    void findByPlaylistId_returnsNominations() {
-        nominationRepository.save(new Nomination(null, playlist.getId(), song.getId(), contributor.getId(), null));
+    void findByPlaylist_Id_returnsNominations() {
+        nominationRepository.save(new Nomination(null, playlist, song, contributor, null));
 
-        var page = nominationRepository.findByPlaylistId(playlist.getId(), PageRequest.of(0, 10));
+        var page = nominationRepository.findByPlaylist_Id(playlist.getId(), PageRequest.of(0, 10));
 
         assertThat(page.getTotalElements()).isEqualTo(1);
-        assertThat(page.getContent().get(0).getSongId()).isEqualTo(song.getId());
+        assertThat(page.getContent().get(0).getSong().getId()).isEqualTo(song.getId());
     }
 
     @Test
-    void existsByPlaylistIdAndSongId_returnsTrue_whenNominated() {
-        nominationRepository.save(new Nomination(null, playlist.getId(), song.getId(), contributor.getId(), null));
+    void existsByPlaylist_IdAndSong_Id_returnsTrue_whenNominated() {
+        nominationRepository.save(new Nomination(null, playlist, song, contributor, null));
         nominationRepository.flush();
 
-        assertThat(nominationRepository.existsByPlaylistIdAndSongId(playlist.getId(), song.getId())).isTrue();
+        assertThat(nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), song.getId())).isTrue();
     }
 
     @Test
-    void existsByPlaylistIdAndSongId_returnsFalse_whenNotNominated() {
-        assertThat(nominationRepository.existsByPlaylistIdAndSongId(playlist.getId(), song.getId())).isFalse();
+    void existsByPlaylist_IdAndSong_Id_returnsFalse_whenNotNominated() {
+        assertThat(nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), song.getId())).isFalse();
     }
 }

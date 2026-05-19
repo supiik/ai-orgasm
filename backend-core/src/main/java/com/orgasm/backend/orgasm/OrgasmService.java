@@ -1,5 +1,6 @@
 package com.orgasm.backend.orgasm;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
 import com.orgasm.backend.nomination.Nomination;
@@ -12,6 +13,7 @@ import com.orgasm.backend.playlist.PlaylistMapper;
 import com.orgasm.backend.playlist.PlaylistRepository;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.song.Song;
 import com.orgasm.backend.song.SongRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
@@ -46,17 +48,18 @@ public class OrgasmService {
         if (!contributorRepository.existsById(contributorDbId)) {
             throw new EntityNotFoundException("Contributor not found: " + request.contributorId());
         }
-        playlist.setLeadContributorId(contributorDbId);
         playlist.setDeadline(request.deadline());
         playlist.setStatus(PlaylistStatus.OPEN);
-        return playlistMapper.toResponse(playlistRepository.save(playlist));
+        playlistRepository.save(playlist);
+        playlistRepository.assignLeadContributor(playlist.getId(), contributorRepository.getReferenceById(contributorDbId));
+        return playlistMapper.toResponse(playlistRepository.findById(playlist.getId()).orElseThrow());
     }
 
     @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<PlaylistResponse> findPlaylistsByContributor(String contributorId, Pageable pageable) {
         return playlistRepository
-                .findByLeadContributorId(IdGenerator.parse(contributorId), pageable)
+                .findByLeadContributor_Id(IdGenerator.parse(contributorId), pageable)
                 .map(playlistMapper::toResponse);
     }
 
@@ -77,11 +80,13 @@ public class OrgasmService {
         if (!contributorRepository.existsById(contributorDbId)) {
             throw new EntityNotFoundException("Contributor not found: " + request.contributorId());
         }
-        if (nominationRepository.existsByPlaylistIdAndSongId(playlist.getId(), songDbId)) {
+        if (nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), songDbId)) {
             throw new IllegalStateException("Song already nominated to this playlist");
         }
+        Song song = songRepository.getReferenceById(songDbId);
+        Contributor contributor = contributorRepository.getReferenceById(contributorDbId);
         return nominationMapper.toResponse(
-                nominationRepository.save(new Nomination(null, playlist.getId(), songDbId, contributorDbId, null)));
+                nominationRepository.save(new Nomination(null, playlist, song, contributor, null)));
     }
 
     @CircuitBreaker(name = "db")
@@ -100,7 +105,7 @@ public class OrgasmService {
         if (playlist.getStatus() != PlaylistStatus.OPEN) {
             throw new IllegalStateException("Only open playlists can be published");
         }
-        if (!Objects.equals(IdGenerator.parse(contributorId), playlist.getLeadContributorId())) {
+        if (!Objects.equals(IdGenerator.parse(contributorId), playlist.getLeadContributor().getId())) {
             throw new IllegalStateException("Only the lead contributor can publish the playlist");
         }
         if (playlist.getDeadline() != null && Instant.now().isBefore(playlist.getDeadline())) {
@@ -114,7 +119,7 @@ public class OrgasmService {
     @Transactional(readOnly = true)
     public Page<NominationResponse> findNominations(String playlistId, Pageable pageable) {
         return nominationRepository
-                .findByPlaylistId(IdGenerator.parse(playlistId), pageable)
+                .findByPlaylist_Id(IdGenerator.parse(playlistId), pageable)
                 .map(nominationMapper::toResponse);
     }
 
@@ -124,9 +129,7 @@ public class OrgasmService {
         if (nomination.getStatus() != NominationStatus.PENDING) {
             throw new IllegalStateException("Nomination is not pending: " + nomination.getStatus());
         }
-        Playlist playlist = playlistRepository.findById(nomination.getPlaylistId())
-                .orElseThrow(() -> new EntityNotFoundException("Playlist not found: " + nominationId));
-        if (!Objects.equals(IdGenerator.parse(reviewerId), playlist.getLeadContributorId())) {
+        if (!Objects.equals(IdGenerator.parse(reviewerId), nomination.getPlaylist().getLeadContributor().getId())) {
             throw new IllegalStateException("Only the lead contributor can review nominations");
         }
         nomination.setStatus(newStatus);

@@ -10,9 +10,9 @@ import java.util.List;
 @Transactional("appTransactionManager")
 public interface NominationRepository extends JpaRepository<Nomination, Long> {
 
-    Page<Nomination> findByPlaylistId(Long playlistId, Pageable pageable);
+    Page<Nomination> findByPlaylist_Id(Long playlistId, Pageable pageable);
 
-    boolean existsByPlaylistIdAndSongId(Long playlistId, Long songId);
+    boolean existsByPlaylist_IdAndSong_Id(Long playlistId, Long songId);
 
-    List<Nomination> findByPlaylistIdAndStatus(Long playlistId, NominationStatus status);
+    List<Nomination> findByPlaylist_IdAndStatus(Long playlistId, NominationStatus status);
 }

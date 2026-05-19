@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw'
+import { db as contributorDb } from './contributors'
 
 type PlaylistStatus = 'NEW' | 'OPEN' | 'UNDER_EVALUATION' | 'CLOSED' | 'PUBLISHED'
 
@@ -8,6 +9,8 @@ interface PlaylistResponse {
   description: string | null
   status: PlaylistStatus
   leadContributorId: string | null
+  leadContributorName: string | null
+  leadContributorAvatarUrl: string | null
   deadline: string | null
   version: number
   createdAt: string
@@ -17,9 +20,9 @@ interface PlaylistResponse {
 const nextId = () => `play-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
 export const db: PlaylistResponse[] = [
-  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, leadContributorName: null, leadContributorAvatarUrl: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()
@@ -52,6 +55,8 @@ export const playlistHandlers = [
       description: body.description ?? null,
       status: 'NEW',
       leadContributorId: null,
+      leadContributorName: null,
+      leadContributorAvatarUrl: null,
       deadline: null,
       version: 0,
       createdAt: now(),
@@ -98,7 +103,8 @@ export const playlistHandlers = [
       return HttpResponse.json({ title: 'Conflict', detail: 'Only NEW playlists can be opened' }, { status: 409 })
     }
     const body = await request.json() as { contributorId: string; deadline: string }
-    db[index] = { ...db[index], status: 'OPEN', leadContributorId: body.contributorId, deadline: body.deadline, updatedAt: now() }
+    const contributor = contributorDb.find(c => c.id === body.contributorId)
+    db[index] = { ...db[index], status: 'OPEN', leadContributorId: body.contributorId, leadContributorName: contributor?.name ?? null, leadContributorAvatarUrl: contributor?.avatarUrl ?? null, deadline: body.deadline, updatedAt: now() }
     return HttpResponse.json(db[index])
   }),
 

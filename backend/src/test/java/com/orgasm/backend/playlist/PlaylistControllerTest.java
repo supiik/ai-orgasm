@@ -55,7 +55,7 @@ class PlaylistControllerTest {
     }
 
     static PlaylistResponse response(String id, String name, String description) {
-        return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test

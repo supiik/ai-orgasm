@@ -1,5 +1,6 @@
 package com.orgasm.backend.playlist;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.domain.IdGenerator;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -12,6 +13,12 @@ class PlaylistMapperTest {
 
     private final PlaylistMapper mapper = Mappers.getMapper(PlaylistMapper.class);
 
+    static Contributor contributor(long id) {
+        var c = new Contributor();
+        c.setId(id);
+        return c;
+    }
+
     @Test
     void toResponse_returnsNull_whenInputNull() {
         assertThat(mapper.toResponse(null)).isNull();
@@ -19,7 +26,7 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Playlist playlist = new Playlist(7L, "Workout", "Pump up", PlaylistStatus.OPEN, 2L, Instant.EPOCH);
+        Playlist playlist = new Playlist(7L, "Workout", "Pump up", PlaylistStatus.OPEN, contributor(2L), Instant.EPOCH);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 

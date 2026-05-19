@@ -11,6 +11,8 @@ public record PlaylistResponse(
         String description,
         PlaylistStatus status,
         String leadContributorId,
+        String leadContributorName,
+        String leadContributorAvatarUrl,
         Instant deadline,
         Long version,
         Instant createdAt,

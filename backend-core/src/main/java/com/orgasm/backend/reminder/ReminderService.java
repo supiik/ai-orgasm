@@ -45,9 +45,9 @@ public class ReminderService {
 
             for (Playlist playlist : playlists) {
                 Set<Long> approvedNominatorIds = nominationRepository
-                        .findByPlaylistIdAndStatus(playlist.getId(), NominationStatus.APPROVED)
+                        .findByPlaylist_IdAndStatus(playlist.getId(), NominationStatus.APPROVED)
                         .stream()
-                        .map(Nomination::getNominatedById)
+                        .map(n -> n.getNominatedBy().getId())
                         .collect(Collectors.toSet());
 
                 List<Contributor> toRemind = allWithEmail.stream()

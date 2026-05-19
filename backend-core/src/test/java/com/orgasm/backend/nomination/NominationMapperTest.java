@@ -1,6 +1,10 @@
 package com.orgasm.backend.nomination;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.playlist.Playlist;
+import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.song.Song;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -10,6 +14,25 @@ class NominationMapperTest {
 
     private final NominationMapper mapper = Mappers.getMapper(NominationMapper.class);
 
+    static Playlist playlist(long id) {
+        var p = new Playlist();
+        p.setId(id);
+        p.setStatus(PlaylistStatus.OPEN);
+        return p;
+    }
+
+    static Song song(long id) {
+        var s = new Song();
+        s.setId(id);
+        return s;
+    }
+
+    static Contributor contributor(long id) {
+        var c = new Contributor();
+        c.setId(id);
+        return c;
+    }
+
     @Test
     void toResponse_returnsNull_whenInputNull() {
         assertThat(mapper.toResponse(null)).isNull();
@@ -17,7 +40,7 @@ class NominationMapperTest {
 
     @Test
     void toResponse_formatsAllPrefixedIds() {
-        Nomination nomination = new Nomination(10L, 1L, 2L, 3L, NominationStatus.PENDING);
+        var nomination = new Nomination(10L, playlist(1L), song(2L), contributor(3L), NominationStatus.PENDING);
 
         NominationResponse response = mapper.toResponse(nomination);
 
@@ -35,14 +58,14 @@ class NominationMapperTest {
 
     @Test
     void toResponse_mapsApprovedStatus() {
-        Nomination nomination = new Nomination(1L, 2L, 3L, 4L, NominationStatus.APPROVED);
+        var nomination = new Nomination(1L, playlist(2L), song(3L), contributor(4L), NominationStatus.APPROVED);
 
         assertThat(mapper.toResponse(nomination).status()).isEqualTo(NominationStatus.APPROVED);
     }
 
     @Test
     void toResponse_mapsDeclinedStatus() {
-        Nomination nomination = new Nomination(1L, 2L, 3L, 4L, NominationStatus.DECLINED);
+        var nomination = new Nomination(1L, playlist(2L), song(3L), contributor(4L), NominationStatus.DECLINED);
 
         assertThat(mapper.toResponse(nomination).status()).isEqualTo(NominationStatus.DECLINED);
     }

@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { type PlaylistPage, type PlaylistResponse } from '@orgasm/backend-client'
+import { type PlaylistPage, type PlaylistResponse as BasePlaylistResponse } from '@orgasm/backend-client'
+
+type PlaylistResponse = BasePlaylistResponse & {
+  leadContributorName?: string | null
+  leadContributorAvatarUrl?: string | null
+}
+type EnrichedPlaylistPage = Omit<PlaylistPage, 'content'> & { content?: PlaylistResponse[] }
 import { api } from '@/api'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
@@ -18,7 +24,7 @@ const router = useRouter()
 const PAGE_SIZE = 10
 const page = ref(0)
 const nameFilter = ref('')
-const data = ref<PlaylistPage | null>(null)
+const data = ref<EnrichedPlaylistPage | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -27,7 +33,7 @@ async function fetchPage(p: number) {
   error.value = null
   try {
     const { data: body } = await api.playlists().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
-    data.value = body
+    data.value = body as EnrichedPlaylistPage
   } catch {
     error.value = 'Failed to load playlists.'
   } finally {
@@ -123,10 +129,10 @@ async function submitForm() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-16">ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Description</TableHead>
             <TableHead class="w-36">Status</TableHead>
+            <TableHead class="w-44">Lead</TableHead>
             <TableHead class="w-36">Created</TableHead>
             <TableHead class="w-36">Updated</TableHead>
             <TableHead class="w-12" />
@@ -147,10 +153,17 @@ async function submitForm() {
               class="cursor-pointer"
               @click="router.push({ name: 'playlist-detail', params: { id: playlist.id } })"
             >
-              <TableCell class="text-muted-foreground">{{ playlist.id }}</TableCell>
               <TableCell class="font-medium">{{ playlist.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ playlist.description ?? '—' }}</TableCell>
               <TableCell><PlaylistStatusBadge v-if="playlist.status" :status="playlist.status" /></TableCell>
+              <TableCell>
+                <div v-if="playlist.leadContributorId" class="flex items-center gap-2">
+                  <img v-if="playlist.leadContributorAvatarUrl" :src="playlist.leadContributorAvatarUrl" :alt="playlist.leadContributorName ?? ''" class="w-6 h-6 rounded-full object-cover shrink-0" />
+                  <div v-else class="w-6 h-6 rounded-full bg-muted shrink-0" />
+                  <span class="text-sm truncate">{{ playlist.leadContributorName ?? playlist.leadContributorId }}</span>
+                </div>
+                <span v-else class="text-muted-foreground">—</span>
+              </TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt!) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt!) }}</TableCell>
               <TableCell>
