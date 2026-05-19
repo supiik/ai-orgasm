@@ -155,6 +155,41 @@ class PlaylistControllerTest {
                 .thenThrow(mock(CallNotPermittedException.class));
 
         mvc.perform(get("/api/v1/playlists"))
-                .andExpect(status().isServiceUnavailable());
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error").value("Service temporarily unavailable"));
+    }
+
+    @Test
+    void create_returns400_withFieldErrors() throws Exception {
+        mvc.perform(post("/api/v1/playlists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.name").exists());
+    }
+
+    @Test
+    void create_returns400_whenBodyMalformed() throws Exception {
+        mvc.perform(post("/api/v1/playlists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("not-json{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Invalid request body"));
+    }
+
+    @Test
+    void findAll_returns500_whenUnexpected() throws Exception {
+        when(service.findAll(any(FindPlaylistsRequest.class), any(Pageable.class)))
+                .thenThrow(new RuntimeException("db exploded"));
+
+        mvc.perform(get("/api/v1/playlists"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.error").value("Internal server error"));
+    }
+
+    @Test
+    void get_returns404_whenPathUnknown() throws Exception {
+        mvc.perform(get("/api/v99/playlists"))
+                .andExpect(status().isNotFound());
     }
 }
