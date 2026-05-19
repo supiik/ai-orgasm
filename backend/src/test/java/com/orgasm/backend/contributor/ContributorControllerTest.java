@@ -56,7 +56,7 @@ class ContributorControllerTest {
     @Test
     void findAll_returns200() throws Exception {
         when(service.findAll(any(FindContributorsRequest.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response("cont_0001", "Alice"))));
+                .thenReturn(new PageImpl<>(List.of(response("cont-0001", "Alice"))));
 
         mvc.perform(get("/api/v1/contributors"))
                 .andExpect(status().isOk())
@@ -66,7 +66,7 @@ class ContributorControllerTest {
     @Test
     void findAll_filtersBy_name() throws Exception {
         when(service.findAll(eq(new FindContributorsRequest("ali")), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response("cont_0001", "Alice"))));
+                .thenReturn(new PageImpl<>(List.of(response("cont-0001", "Alice"))));
 
         mvc.perform(get("/api/v1/contributors").param("name", "ali"))
                 .andExpect(status().isOk())
@@ -75,32 +75,32 @@ class ContributorControllerTest {
 
     @Test
     void findById_returns200_whenFound() throws Exception {
-        when(service.findById("cont_0001")).thenReturn(Optional.of(response("cont_0001", "Alice")));
+        when(service.findById("cont-0001")).thenReturn(Optional.of(response("cont-0001", "Alice")));
 
-        mvc.perform(get("/api/v1/contributors/cont_0001"))
+        mvc.perform(get("/api/v1/contributors/cont-0001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("cont_0001"))
+                .andExpect(jsonPath("$.id").value("cont-0001"))
                 .andExpect(jsonPath("$.name").value("Alice"));
     }
 
     @Test
     void findById_returns404_whenNotFound() throws Exception {
-        when(service.findById("cont_9999")).thenReturn(Optional.empty());
+        when(service.findById("cont-9999")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/api/v1/contributors/cont_9999"))
+        mvc.perform(get("/api/v1/contributors/cont-9999"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void create_returns201WithLocation() throws Exception {
-        when(service.create(any(CreateContributorRequest.class))).thenReturn(response("cont_0001", "Alice"));
+        when(service.create(any(CreateContributorRequest.class))).thenReturn(response("cont-0001", "Alice"));
 
         mvc.perform(post("/api/v1/contributors")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateContributorRequest("Alice", null, null))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/api/v1/contributors/cont_0001")))
-                .andExpect(jsonPath("$.id").value("cont_0001"));
+                .andExpect(header().string("Location", endsWith("/api/v1/contributors/cont-0001")))
+                .andExpect(jsonPath("$.id").value("cont-0001"));
     }
 
     @Test
@@ -113,9 +113,9 @@ class ContributorControllerTest {
 
     @Test
     void update_returns200_whenFound() throws Exception {
-        when(service.update(eq("cont_0001"), any(UpdateContributorRequest.class))).thenReturn(response("cont_0001", "Bob"));
+        when(service.update(eq("cont-0001"), any(UpdateContributorRequest.class))).thenReturn(response("cont-0001", "Bob"));
 
-        mvc.perform(put("/api/v1/contributors/cont_0001")
+        mvc.perform(put("/api/v1/contributors/cont-0001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateContributorRequest("Bob", null, null))))
                 .andExpect(status().isOk())
@@ -124,10 +124,10 @@ class ContributorControllerTest {
 
     @Test
     void update_returns404_whenNotFound() throws Exception {
-        when(service.update(eq("cont_9999"), any(UpdateContributorRequest.class)))
+        when(service.update(eq("cont-9999"), any(UpdateContributorRequest.class)))
                 .thenThrow(new EntityNotFoundException("Contributor not found: cont_9999"));
 
-        mvc.perform(put("/api/v1/contributors/cont_9999")
+        mvc.perform(put("/api/v1/contributors/cont-9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateContributorRequest("X", null, null))))
                 .andExpect(status().isNotFound());
@@ -135,16 +135,16 @@ class ContributorControllerTest {
 
     @Test
     void delete_returns204_whenFound() throws Exception {
-        mvc.perform(delete("/api/v1/contributors/cont_0001"))
+        mvc.perform(delete("/api/v1/contributors/cont-0001"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void delete_returns404_whenNotFound() throws Exception {
         doThrow(new EntityNotFoundException("Contributor not found: cont_9999"))
-                .when(service).delete("cont_9999");
+                .when(service).delete("cont-9999");
 
-        mvc.perform(delete("/api/v1/contributors/cont_9999"))
+        mvc.perform(delete("/api/v1/contributors/cont-9999"))
                 .andExpect(status().isNotFound());
     }
 }

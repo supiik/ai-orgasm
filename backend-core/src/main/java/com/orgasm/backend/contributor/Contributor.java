@@ -1,7 +1,7 @@
 package com.orgasm.backend.contributor;
 
 import com.orgasm.backend.domain.AuditableEntity;
-import com.orgasm.backend.domain.TsidGenerator;
+import com.orgasm.backend.domain.IdGenerator;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +22,7 @@ public class Contributor extends AuditableEntity {
 
     @PrePersist
     void assignId() {
-        if (id == null) id = TsidGenerator.generate("cont");
+        if (id == null) id = IdGenerator.generate("cont");
     }
 
     @Column(name = "name", nullable = false)

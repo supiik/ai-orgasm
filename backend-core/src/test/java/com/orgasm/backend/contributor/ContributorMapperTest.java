@@ -16,12 +16,12 @@ class ContributorMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Contributor contributor = new Contributor("cont_0007", "Alice", "alice@example.com", "https://example.com/alice.jpg");
+        Contributor contributor = new Contributor("cont-0007", "Alice", "alice@example.com", "https://example.com/alice.jpg");
 
         ContributorResponse response = mapper.toResponse(contributor);
 
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo("cont_0007");
+        assertThat(response.id()).isEqualTo("cont-0007");
         assertThat(response.name()).isEqualTo("Alice");
         assertThat(response.email()).isEqualTo("alice@example.com");
         assertThat(response.avatarUrl()).isEqualTo("https://example.com/alice.jpg");
@@ -56,7 +56,7 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Contributor contributor = new Contributor("cont_0001", "Original", "orig@example.com", null);
+        Contributor contributor = new Contributor("cont-0001", "Original", "orig@example.com", null);
 
         mapper.updateEntity(null, contributor);
 
@@ -66,12 +66,12 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Contributor contributor = new Contributor("cont_0001", "Original", "orig@example.com", null);
+        Contributor contributor = new Contributor("cont-0001", "Original", "orig@example.com", null);
         UpdateContributorRequest request = new UpdateContributorRequest("Renamed", "new@example.com", "https://example.com/new.jpg");
 
         mapper.updateEntity(request, contributor);
 
-        assertThat(contributor.getId()).isEqualTo("cont_0001");
+        assertThat(contributor.getId()).isEqualTo("cont-0001");
         assertThat(contributor.getName()).isEqualTo("Renamed");
         assertThat(contributor.getEmail()).isEqualTo("new@example.com");
         assertThat(contributor.getAvatarUrl()).isEqualTo("https://example.com/new.jpg");
@@ -79,7 +79,7 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_preservesEmail_whenNullInRequest() {
-        Contributor contributor = new Contributor("cont_0001", "Original", "orig@example.com", "https://example.com/orig.jpg");
+        Contributor contributor = new Contributor("cont-0001", "Original", "orig@example.com", "https://example.com/orig.jpg");
         UpdateContributorRequest request = new UpdateContributorRequest("Renamed", null, null);
 
         mapper.updateEntity(request, contributor);

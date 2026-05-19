@@ -44,8 +44,8 @@ class OrgasmClientTest {
 
     @Test void playlists_get() {
         PlaylistResponse r = new PlaylistResponse();
-        when(playlistsApi.findPlaylistById("play_0001")).thenReturn(r);
-        assertThat(client.playlists().get("play_0001")).isSameAs(r);
+        when(playlistsApi.findPlaylistById("play-0001")).thenReturn(r);
+        assertThat(client.playlists().get("play-0001")).isSameAs(r);
     }
 
     @Test void playlists_create() {
@@ -58,13 +58,13 @@ class OrgasmClientTest {
     @Test void playlists_update() {
         UpdatePlaylistRequest req = new UpdatePlaylistRequest().name("Updated");
         PlaylistResponse r = new PlaylistResponse();
-        when(playlistsApi.updatePlaylist("play_0002", req)).thenReturn(r);
-        assertThat(client.playlists().update("play_0002", req)).isSameAs(r);
+        when(playlistsApi.updatePlaylist("play-0002", req)).thenReturn(r);
+        assertThat(client.playlists().update("play-0002", req)).isSameAs(r);
     }
 
     @Test void playlists_delete() {
-        client.playlists().delete("play_0003");
-        verify(playlistsApi).deletePlaylist("play_0003");
+        client.playlists().delete("play-0003");
+        verify(playlistsApi).deletePlaylist("play-0003");
     }
 
     @Test void songs_list_defaultSort() {
@@ -81,8 +81,8 @@ class OrgasmClientTest {
 
     @Test void songs_get() {
         SongResponse r = new SongResponse();
-        when(songsApi.findSongById("song_0001")).thenReturn(r);
-        assertThat(client.songs().get("song_0001")).isSameAs(r);
+        when(songsApi.findSongById("song-0001")).thenReturn(r);
+        assertThat(client.songs().get("song-0001")).isSameAs(r);
     }
 
     @Test void songs_create() {
@@ -95,13 +95,13 @@ class OrgasmClientTest {
     @Test void songs_update() {
         UpdateSongRequest req = new UpdateSongRequest().artist("Radiohead").name("Karma Police");
         SongResponse r = new SongResponse();
-        when(songsApi.updateSong("song_0002", req)).thenReturn(r);
-        assertThat(client.songs().update("song_0002", req)).isSameAs(r);
+        when(songsApi.updateSong("song-0002", req)).thenReturn(r);
+        assertThat(client.songs().update("song-0002", req)).isSameAs(r);
     }
 
     @Test void songs_delete() {
-        client.songs().delete("song_0003");
-        verify(songsApi).deleteSong("song_0003");
+        client.songs().delete("song-0003");
+        verify(songsApi).deleteSong("song-0003");
     }
 
     @Test void contributors_list_defaultSort() {
@@ -118,8 +118,8 @@ class OrgasmClientTest {
 
     @Test void contributors_get() {
         ContributorResponse r = new ContributorResponse();
-        when(contributorsApi.findContributorById("cont_0001")).thenReturn(r);
-        assertThat(client.contributors().get("cont_0001")).isSameAs(r);
+        when(contributorsApi.findContributorById("cont-0001")).thenReturn(r);
+        assertThat(client.contributors().get("cont-0001")).isSameAs(r);
     }
 
     @Test void contributors_create() {
@@ -132,12 +132,12 @@ class OrgasmClientTest {
     @Test void contributors_update() {
         UpdateContributorRequest req = new UpdateContributorRequest().name("Jonny Greenwood");
         ContributorResponse r = new ContributorResponse();
-        when(contributorsApi.updateContributor("cont_0002", req)).thenReturn(r);
-        assertThat(client.contributors().update("cont_0002", req)).isSameAs(r);
+        when(contributorsApi.updateContributor("cont-0002", req)).thenReturn(r);
+        assertThat(client.contributors().update("cont-0002", req)).isSameAs(r);
     }
 
     @Test void contributors_delete() {
-        client.contributors().delete("cont_0003");
-        verify(contributorsApi).deleteContributor("cont_0003");
+        client.contributors().delete("cont-0003");
+        verify(contributorsApi).deleteContributor("cont-0003");
     }
 }

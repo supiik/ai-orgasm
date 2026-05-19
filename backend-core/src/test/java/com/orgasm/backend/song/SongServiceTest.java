@@ -36,8 +36,8 @@ class SongServiceTest {
     void create_savesAndReturnsResponse() {
         var request = new CreateSongRequest("Radiohead", "Creep", "Pablo Honey", 1993);
         var entity = new Song(null, "Radiohead", "Creep", "Pablo Honey", 1993);
-        var saved = new Song("song_0001", "Radiohead", "Creep", "Pablo Honey", 1993);
-        var expected = response("song_0001", "Radiohead", "Creep");
+        var saved = new Song("song-0001", "Radiohead", "Creep", "Pablo Honey", 1993);
+        var expected = response("song-0001", "Radiohead", "Creep");
 
         when(mapper.toEntity(request)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -49,8 +49,8 @@ class SongServiceTest {
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
         var entity = new Song(null, "Radiohead", "Creep", null, null);
-        var saved = new Song("song_0001", "Radiohead", "Creep", null, null);
-        var expected = response("song_0001", "Radiohead", "Creep");
+        var saved = new Song("song-0001", "Radiohead", "Creep", null, null);
+        var expected = response("song-0001", "Radiohead", "Creep");
 
         when(mapper.toEntity(any(CreateSongRequest.class))).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -61,25 +61,25 @@ class SongServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Song("song_0001", "Radiohead", "Creep", null, null);
-        var expected = response("song_0001", "Radiohead", "Creep");
-        when(repository.findById("song_0001")).thenReturn(Optional.of(entity));
+        var entity = new Song("song-0001", "Radiohead", "Creep", null, null);
+        var expected = response("song-0001", "Radiohead", "Creep");
+        when(repository.findById("song-0001")).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
 
-        assertThat(service.findById("song_0001")).contains(expected);
+        assertThat(service.findById("song-0001")).contains(expected);
     }
 
     @Test
     void findById_returnsEmpty_whenNotFound() {
-        when(repository.findById("song_9999")).thenReturn(Optional.empty());
+        when(repository.findById("song-9999")).thenReturn(Optional.empty());
 
-        assertThat(service.findById("song_9999")).isEmpty();
+        assertThat(service.findById("song-9999")).isEmpty();
     }
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Song("song_0001", "Artist", "Track", null, null);
-        var mapped = response("song_0001", "Artist", "Track");
+        var entity = new Song("song-0001", "Artist", "Track", null, null);
+        var mapped = response("song-0001", "Artist", "Track");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -90,8 +90,8 @@ class SongServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Song("song_0001", "Artist", "Track", null, null);
-        var mapped = response("song_0001", "Artist", "Track");
+        var entity = new Song("song-0001", "Artist", "Track", null, null);
+        var mapped = response("song-0001", "Artist", "Track");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -102,8 +102,8 @@ class SongServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Song("song_0001", "Radiohead", "Creep", null, null);
-        var mapped = response("song_0001", "Radiohead", "Creep");
+        var entity = new Song("song-0001", "Radiohead", "Creep", null, null);
+        var mapped = response("song-0001", "Radiohead", "Creep");
         when(repository.findByNameContainingIgnoreCase(eq("cree"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -115,8 +115,8 @@ class SongServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Song("song_0001", "Radiohead", "Creep", null, null);
-        var mapped = response("song_0001", "Radiohead", "Creep");
+        var entity = new Song("song-0001", "Radiohead", "Creep", null, null);
+        var mapped = response("song-0001", "Radiohead", "Creep");
         when(repository.findByNameContainingIgnoreCase(eq("cree"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -129,56 +129,56 @@ class SongServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdateSongRequest("New Artist", "New Name", null, null);
-        var existing = new Song("song_0001", "Old Artist", "Old Name", null, null);
-        var saved = new Song("song_0001", "New Artist", "New Name", null, null);
-        var expected = response("song_0001", "New Artist", "New Name");
+        var existing = new Song("song-0001", "Old Artist", "Old Name", null, null);
+        var saved = new Song("song-0001", "New Artist", "New Name", null, null);
+        var expected = response("song-0001", "New Artist", "New Name");
 
-        when(repository.findById("song_0001")).thenReturn(Optional.of(existing));
+        when(repository.findById("song-0001")).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update("song_0001", request)).isEqualTo(expected);
+        assertThat(service.update("song-0001", request)).isEqualTo(expected);
         verify(mapper).updateEntity(request, existing);
     }
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Song("song_0001", "Old Artist", "Old Name", null, null);
-        var saved = new Song("song_0001", "New Artist", "New Name", null, null);
-        var expected = response("song_0001", "New Artist", "New Name");
+        var existing = new Song("song-0001", "Old Artist", "Old Name", null, null);
+        var saved = new Song("song-0001", "New Artist", "New Name", null, null);
+        var expected = response("song-0001", "New Artist", "New Name");
 
-        when(repository.findById("song_0001")).thenReturn(Optional.of(existing));
+        when(repository.findById("song-0001")).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update("song_0001", b -> b.artist("New Artist").name("New Name"))).isEqualTo(expected);
+        assertThat(service.update("song-0001", b -> b.artist("New Artist").name("New Name"))).isEqualTo(expected);
         verify(mapper).updateEntity(any(UpdateSongRequest.class), eq(existing));
     }
 
     @Test
     void update_throwsNotFound_whenMissing() {
-        when(repository.findById("song_9999")).thenReturn(Optional.empty());
+        when(repository.findById("song-9999")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update("song_9999", new UpdateSongRequest("X", "Y", null, null)))
+        assertThatThrownBy(() -> service.update("song-9999", new UpdateSongRequest("X", "Y", null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("song_9999");
+                .hasMessageContaining("song-9999");
     }
 
     @Test
     void delete_softDeletes_whenExists() {
-        when(repository.softDeleteById(eq("song_0001"), any())).thenReturn(1);
+        when(repository.softDeleteById(eq("song-0001"), any())).thenReturn(1);
 
-        service.delete("song_0001");
+        service.delete("song-0001");
 
-        verify(repository).softDeleteById(eq("song_0001"), any());
+        verify(repository).softDeleteById(eq("song-0001"), any());
     }
 
     @Test
     void delete_throwsNotFound_whenMissing() {
-        when(repository.softDeleteById(eq("song_9999"), any())).thenReturn(0);
+        when(repository.softDeleteById(eq("song-9999"), any())).thenReturn(0);
 
-        assertThatThrownBy(() -> service.delete("song_9999"))
+        assertThatThrownBy(() -> service.delete("song-9999"))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("song_9999");
+                .hasMessageContaining("song-9999");
     }
 }

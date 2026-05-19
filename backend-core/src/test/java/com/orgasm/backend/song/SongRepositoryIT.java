@@ -92,7 +92,7 @@ class SongRepositoryIT {
 
     @Test
     void softDelete_returnsZero_whenIdNotFound() {
-        int affected = repository.softDeleteById("song_nonexistent", Instant.now());
+        int affected = repository.softDeleteById("song-nonexistent", Instant.now());
 
         assertThat(affected).isEqualTo(0);
     }

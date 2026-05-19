@@ -92,7 +92,7 @@ class ContributorRepositoryIT {
 
     @Test
     void softDelete_returnsZero_whenIdNotFound() {
-        int affected = repository.softDeleteById("cont_nonexistent", Instant.now());
+        int affected = repository.softDeleteById("cont-nonexistent", Instant.now());
 
         assertThat(affected).isEqualTo(0);
     }

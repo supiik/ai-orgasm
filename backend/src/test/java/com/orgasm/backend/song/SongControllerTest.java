@@ -56,7 +56,7 @@ class SongControllerTest {
     @Test
     void findAll_returns200() throws Exception {
         when(service.findAll(any(FindSongsRequest.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response("song_0001", "Radiohead", "Creep"))));
+                .thenReturn(new PageImpl<>(List.of(response("song-0001", "Radiohead", "Creep"))));
 
         mvc.perform(get("/api/v1/songs"))
                 .andExpect(status().isOk())
@@ -67,7 +67,7 @@ class SongControllerTest {
     @Test
     void findAll_filtersBy_name() throws Exception {
         when(service.findAll(eq(new FindSongsRequest("cree")), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(response("song_0001", "Radiohead", "Creep"))));
+                .thenReturn(new PageImpl<>(List.of(response("song-0001", "Radiohead", "Creep"))));
 
         mvc.perform(get("/api/v1/songs").param("name", "cree"))
                 .andExpect(status().isOk())
@@ -76,32 +76,32 @@ class SongControllerTest {
 
     @Test
     void findById_returns200_whenFound() throws Exception {
-        when(service.findById("song_0001")).thenReturn(Optional.of(response("song_0001", "Radiohead", "Creep")));
+        when(service.findById("song-0001")).thenReturn(Optional.of(response("song-0001", "Radiohead", "Creep")));
 
-        mvc.perform(get("/api/v1/songs/song_0001"))
+        mvc.perform(get("/api/v1/songs/song-0001"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("song_0001"))
+                .andExpect(jsonPath("$.id").value("song-0001"))
                 .andExpect(jsonPath("$.artist").value("Radiohead"));
     }
 
     @Test
     void findById_returns404_whenNotFound() throws Exception {
-        when(service.findById("song_9999")).thenReturn(Optional.empty());
+        when(service.findById("song-9999")).thenReturn(Optional.empty());
 
-        mvc.perform(get("/api/v1/songs/song_9999"))
+        mvc.perform(get("/api/v1/songs/song-9999"))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void create_returns201WithLocation() throws Exception {
-        when(service.create(any(CreateSongRequest.class))).thenReturn(response("song_0001", "Radiohead", "Creep"));
+        when(service.create(any(CreateSongRequest.class))).thenReturn(response("song-0001", "Radiohead", "Creep"));
 
         mvc.perform(post("/api/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "Creep", "Pablo Honey", 1993))))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", endsWith("/api/v1/songs/song_0001")))
-                .andExpect(jsonPath("$.id").value("song_0001"));
+                .andExpect(header().string("Location", endsWith("/api/v1/songs/song-0001")))
+                .andExpect(jsonPath("$.id").value("song-0001"));
     }
 
     @Test
@@ -122,9 +122,9 @@ class SongControllerTest {
 
     @Test
     void update_returns200_whenFound() throws Exception {
-        when(service.update(eq("song_0001"), any(UpdateSongRequest.class))).thenReturn(response("song_0001", "Radiohead", "Karma Police"));
+        when(service.update(eq("song-0001"), any(UpdateSongRequest.class))).thenReturn(response("song-0001", "Radiohead", "Karma Police"));
 
-        mvc.perform(put("/api/v1/songs/song_0001")
+        mvc.perform(put("/api/v1/songs/song-0001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateSongRequest("Radiohead", "Karma Police", "OK Computer", 1997))))
                 .andExpect(status().isOk())
@@ -133,10 +133,10 @@ class SongControllerTest {
 
     @Test
     void update_returns404_whenNotFound() throws Exception {
-        when(service.update(eq("song_9999"), any(UpdateSongRequest.class)))
+        when(service.update(eq("song-9999"), any(UpdateSongRequest.class)))
                 .thenThrow(new EntityNotFoundException("Song not found: song_9999"));
 
-        mvc.perform(put("/api/v1/songs/song_9999")
+        mvc.perform(put("/api/v1/songs/song-9999")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new UpdateSongRequest("X", "Y", null, null))))
                 .andExpect(status().isNotFound());
@@ -144,16 +144,16 @@ class SongControllerTest {
 
     @Test
     void delete_returns204_whenFound() throws Exception {
-        mvc.perform(delete("/api/v1/songs/song_0001"))
+        mvc.perform(delete("/api/v1/songs/song-0001"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void delete_returns404_whenNotFound() throws Exception {
         doThrow(new EntityNotFoundException("Song not found: song_9999"))
-                .when(service).delete("song_9999");
+                .when(service).delete("song-9999");
 
-        mvc.perform(delete("/api/v1/songs/song_9999"))
+        mvc.perform(delete("/api/v1/songs/song-9999"))
                 .andExpect(status().isNotFound());
     }
 }

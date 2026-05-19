@@ -1,7 +1,7 @@
 package com.orgasm.backend.song;
 
 import com.orgasm.backend.domain.AuditableEntity;
-import com.orgasm.backend.domain.TsidGenerator;
+import com.orgasm.backend.domain.IdGenerator;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class Song extends AuditableEntity {
 
     @PrePersist
     void assignId() {
-        if (id == null) id = TsidGenerator.generate("song");
+        if (id == null) id = IdGenerator.generate("song");
     }
 
     @Column(name = "artist", nullable = false)

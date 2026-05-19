@@ -51,7 +51,6 @@
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
         <native-maven-plugin.version>0.10.4</native-maven-plugin.version>
         <aws-lambda-java-ric.version>2.8.0</aws-lambda-java-ric.version>
-        <tsid-creator.version>5.2.6</tsid-creator.version>
 
         <!-- JaCoCo line-coverage gate: per-module BUNDLE minimum.
              Override to 0 in modules with no hand-written code (generated SDKs). -->
@@ -93,13 +92,6 @@
                 <groupId>com.orgasm</groupId>
                 <artifactId>orgasm-backend-core</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-
-            <!-- TSID Creator -->
-            <dependency>
-                <groupId>com.github.f4b6a3</groupId>
-                <artifactId>tsid-creator</artifactId>
-                <version>${tsid-creator.version}</version>
             </dependency>
 
             <!-- AWS Lambda -->

@@ -16,12 +16,12 @@ class SongMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Song song = new Song("song_0003", "Radiohead", "Creep", "Pablo Honey", 1993);
+        Song song = new Song("song-0003", "Radiohead", "Creep", "Pablo Honey", 1993);
 
         SongResponse response = mapper.toResponse(song);
 
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo("song_0003");
+        assertThat(response.id()).isEqualTo("song-0003");
         assertThat(response.artist()).isEqualTo("Radiohead");
         assertThat(response.name()).isEqualTo("Creep");
         assertThat(response.album()).isEqualTo("Pablo Honey");
@@ -58,7 +58,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Song song = new Song("song_0001", "Original Artist", "Original Name", "Original Album", 2000);
+        Song song = new Song("song-0001", "Original Artist", "Original Name", "Original Album", 2000);
 
         mapper.updateEntity(null, song);
 
@@ -70,12 +70,12 @@ class SongMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Song song = new Song("song_0001", "Old Artist", "Old Name", "Old Album", 1990);
+        Song song = new Song("song-0001", "Old Artist", "Old Name", "Old Album", 1990);
         UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", "New Album", 2020);
 
         mapper.updateEntity(request, song);
 
-        assertThat(song.getId()).isEqualTo("song_0001");
+        assertThat(song.getId()).isEqualTo("song-0001");
         assertThat(song.getArtist()).isEqualTo("New Artist");
         assertThat(song.getName()).isEqualTo("New Name");
         assertThat(song.getAlbum()).isEqualTo("New Album");
@@ -84,7 +84,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_preservesOptionalFields_whenNullInRequest() {
-        Song song = new Song("song_0001", "Artist", "Name", "Album", 2000);
+        Song song = new Song("song-0001", "Artist", "Name", "Album", 2000);
         UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", null, null);
 
         mapper.updateEntity(request, song);
