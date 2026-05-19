@@ -2,6 +2,8 @@ package com.orgasm.backend.playlist;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.json.ProblemDetailJacksonMixin;
 import com.orgasm.backend.config.GlobalExceptionHandler;
 import com.orgasm.backend.config.VersionTestSupport;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -37,7 +39,8 @@ class PlaylistControllerTest {
     ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .registerModule(new SpringDataJacksonConfiguration.PageModule(
-                    new SpringDataWebSettings(EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)));
+                    new SpringDataWebSettings(EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)))
+            .addMixIn(ProblemDetail.class, ProblemDetailJacksonMixin.class);
 
     @BeforeEach
     void setup() {
@@ -156,7 +159,9 @@ class PlaylistControllerTest {
 
         mvc.perform(get("/api/v1/playlists"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.error").value("Service temporarily unavailable"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.detail").value("Service temporarily unavailable"));
     }
 
     @Test
@@ -165,6 +170,8 @@ class PlaylistControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
                 .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.errors.name").exists());
     }
 
@@ -174,7 +181,9 @@ class PlaylistControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("not-json{"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Invalid request body"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("Invalid request body"));
     }
 
     @Test
@@ -184,12 +193,16 @@ class PlaylistControllerTest {
 
         mvc.perform(get("/api/v1/playlists"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.error").value("Internal server error"));
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.detail").value("Internal server error"));
     }
 
     @Test
     void get_returns404_whenPathUnknown() throws Exception {
         mvc.perform(get("/api/v99/playlists"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(404));
     }
 }
