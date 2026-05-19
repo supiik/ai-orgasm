@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { type PlaylistPage, type PlaylistResponse, PlaylistStatus } from '@orgasm/backend-client'
+import { type PlaylistPage, type PlaylistResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const router = useRouter()
@@ -49,12 +48,10 @@ type DialogMode = 'create' | 'edit'
 
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
-const editingId = ref<number | null>(null)
-const form = ref({ name: '', description: '', status: PlaylistStatus.New as PlaylistStatus })
+const editingId = ref<string | null>(null)
+const form = ref({ name: '', description: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)
-
-const statusOptions = Object.values(PlaylistStatus)
 
 const dialogTitle = computed(() => dialogMode.value === 'create' ? 'New playlist' : 'Edit playlist')
 const submitLabel = computed(() => {
@@ -65,7 +62,7 @@ const submitLabel = computed(() => {
 function openCreate() {
   dialogMode.value = 'create'
   editingId.value = null
-  form.value = { name: '', description: '', status: PlaylistStatus.New }
+  form.value = { name: '', description: '' }
   formError.value = null
   dialogOpen.value = true
 }
@@ -73,7 +70,7 @@ function openCreate() {
 function openEdit(playlist: PlaylistResponse) {
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
-  form.value = { name: playlist.name!, description: playlist.description ?? '', status: playlist.status ?? PlaylistStatus.New }
+  form.value = { name: playlist.name!, description: playlist.description ?? '' }
   formError.value = null
   dialogOpen.value = true
 }
@@ -89,7 +86,6 @@ async function submitForm() {
     const payload = {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
-      status: form.value.status,
     }
     if (dialogMode.value === 'create') {
       await api.playlists().create(payload)
@@ -208,14 +204,6 @@ async function submitForm() {
         <div class="space-y-1.5">
           <Label for="description">Description</Label>
           <Input id="description" v-model="form.description" placeholder="Optional description" />
-        </div>
-        <div class="space-y-1.5">
-          <Label>Status</Label>
-          <Select v-model="form.status">
-            <SelectItem v-for="s in statusOptions" :key="s" :value="s">
-              <PlaylistStatusBadge :status="s" />
-            </SelectItem>
-          </Select>
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>

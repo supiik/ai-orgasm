@@ -11,12 +11,12 @@ interface ContributorResponse {
 }
 
 let counter = 4
-const nextId = () => `cont_${String(counter++).padStart(4, '0')}`
+const nextId = () => `cont-${String(counter++).padStart(16, '0')}`
 
 const db: ContributorResponse[] = [
-  { id: 'cont_0001', name: 'Thom Yorke', email: 'thom@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=thom', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'cont_0002', name: 'Nigel Godrich', email: null, avatarUrl: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'cont_0003', name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'cont-0000000000000001', name: 'Thom Yorke', email: 'thom@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=thom', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'cont-0000000000000002', name: 'Nigel Godrich', email: null, avatarUrl: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'cont-0000000000000003', name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()

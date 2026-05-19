@@ -4,5 +4,6 @@ public enum PlaylistStatus {
     NEW,
     OPEN,
     UNDER_EVALUATION,
-    CLOSED
+    CLOSED,
+    PUBLISHED
 }

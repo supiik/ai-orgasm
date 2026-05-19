@@ -1,24 +1,26 @@
 import { http, HttpResponse } from 'msw'
 
-type PlaylistStatus = 'NEW' | 'OPEN' | 'UNDER_EVALUATION' | 'CLOSED'
+type PlaylistStatus = 'NEW' | 'OPEN' | 'UNDER_EVALUATION' | 'CLOSED' | 'PUBLISHED'
 
 interface PlaylistResponse {
   id: string
   name: string
   description: string | null
   status: PlaylistStatus
+  leadContributorId: string | null
+  deadline: string | null
   version: number
   createdAt: string
   updatedAt: string
 }
 
 let counter = 4
-const nextId = () => `play_${String(counter++).padStart(4, '0')}`
+const nextId = () => `play-${String(counter++).padStart(16, '0')}`
 
-const db: PlaylistResponse[] = [
-  { id: 'play_0001', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'play_0002', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'play_0003', name: 'Late Night', description: null, status: 'UNDER_EVALUATION', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+export const db: PlaylistResponse[] = [
+  { id: 'play-0000000000000001', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'play-0000000000000002', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-0000000000000001', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'play-0000000000000003', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-0000000000000001', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()
@@ -41,7 +43,7 @@ export const playlistHandlers = [
   }),
 
   http.post('/api/v1/playlists', async ({ request }) => {
-    const body = await request.json() as { name: string; description?: string; status?: PlaylistStatus }
+    const body = await request.json() as { name: string; description?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -49,7 +51,9 @@ export const playlistHandlers = [
       id: nextId(),
       name: body.name,
       description: body.description ?? null,
-      status: body.status ?? 'NEW',
+      status: 'NEW',
+      leadContributorId: null,
+      deadline: null,
       version: 0,
       createdAt: now(),
       updatedAt: now(),
@@ -67,7 +71,7 @@ export const playlistHandlers = [
   http.put('/api/v1/playlists/:id', async ({ params, request }) => {
     const index = db.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    const body = await request.json() as { name: string; description?: string; status?: PlaylistStatus }
+    const body = await request.json() as { name: string; description?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -75,7 +79,6 @@ export const playlistHandlers = [
       ...db[index],
       name: body.name,
       description: body.description ?? null,
-      status: body.status ?? db[index].status,
       version: db[index].version + 1,
       updatedAt: now(),
     }
@@ -87,5 +90,48 @@ export const playlistHandlers = [
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.post('/api/v1/playlists/:id/open', async ({ params, request }) => {
+    const index = db.findIndex(p => p.id === params.id)
+    if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    if (db[index].status !== 'NEW') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only NEW playlists can be opened' }, { status: 409 })
+    }
+    const body = await request.json() as { contributorId: string; deadline: string }
+    db[index] = { ...db[index], status: 'OPEN', leadContributorId: body.contributorId, deadline: body.deadline, updatedAt: now() }
+    return HttpResponse.json(db[index])
+  }),
+
+  http.post('/api/v1/playlists/:id/publish', async ({ params, request }) => {
+    const index = db.findIndex(p => p.id === params.id)
+    if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    if (db[index].status !== 'OPEN') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only open playlists can be published' }, { status: 409 })
+    }
+    const body = await request.json() as { contributorId: string }
+    if (db[index].leadContributorId !== body.contributorId) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only the lead contributor can publish' }, { status: 409 })
+    }
+    if (db[index].deadline && new Date(db[index].deadline!) > new Date()) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Deadline has not yet passed' }, { status: 409 })
+    }
+    db[index] = { ...db[index], status: 'PUBLISHED', updatedAt: now() }
+    return HttpResponse.json(db[index])
+  }),
+
+  http.get('/api/v1/contributors/:id/playlists', ({ params, request }) => {
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') ?? 0)
+    const size = Number(url.searchParams.get('size') ?? 20)
+    const filtered = db.filter(p => p.leadContributorId === params.id)
+    const content = filtered.slice(page * size, page * size + size)
+    return HttpResponse.json({
+      content,
+      totalElements: filtered.length,
+      totalPages: Math.ceil(filtered.length / size),
+      number: page,
+      size,
+    })
   }),
 ]

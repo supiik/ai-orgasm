@@ -47,7 +47,7 @@ type DialogMode = 'create' | 'edit'
 
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
-const editingId = ref<number | null>(null)
+const editingId = ref<string | null>(null)
 const form = ref({ artist: '', name: '', album: '', releaseYear: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)

@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { type ContributorResponse } from '@orgasm/backend-client'
+import { type ContributorResponse, type PlaylistResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
 
-const id = Number(route.params.id)
+const id = route.params.id as string
 const contributor = ref<ContributorResponse | null>(null)
+const playlists = ref<PlaylistResponse[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -21,8 +23,12 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.contributors().get(id)
-    contributor.value = data
+    const [contRes, plRes] = await Promise.all([
+      api.contributors().get(id),
+      api.contributors().playlists(id),
+    ])
+    contributor.value = contRes.data
+    playlists.value = plRes.data.content ?? []
   } catch {
     error.value = 'Contributor not found.'
   } finally {
@@ -32,7 +38,8 @@ async function load() {
 
 onMounted(load)
 
-function formatDate(iso: string) {
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—'
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
@@ -124,17 +131,39 @@ async function submitEdit() {
         </div>
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">Created</dt>
-          <dd>{{ formatDate(contributor.createdAt!) }}</dd>
+          <dd>{{ formatDate(contributor.createdAt) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">Updated</dt>
-          <dd>{{ formatDate(contributor.updatedAt!) }}</dd>
+          <dd>{{ formatDate(contributor.updatedAt) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-32 shrink-0 text-muted-foreground">Version</dt>
           <dd class="text-muted-foreground">{{ contributor.version }}</dd>
         </div>
       </dl>
+
+      <!-- Playlists section -->
+      <section>
+        <h2 class="text-lg font-semibold mb-3">Led playlists</h2>
+        <div v-if="playlists.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
+          No playlists led by this contributor.
+        </div>
+        <div v-else class="divide-y divide-border rounded-md border border-border">
+          <RouterLink
+            v-for="pl in playlists"
+            :key="pl.id"
+            :to="`/playlists/${pl.id}`"
+            class="flex items-center px-4 py-3 gap-4 text-sm hover:bg-muted/50 transition-colors"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">{{ pl.name }}</div>
+              <div v-if="pl.description" class="text-muted-foreground text-xs truncate">{{ pl.description }}</div>
+            </div>
+            <PlaylistStatusBadge v-if="pl.status" :status="pl.status" />
+          </RouterLink>
+        </div>
+      </section>
     </template>
 
   </div>

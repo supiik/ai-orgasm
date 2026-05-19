@@ -3,6 +3,7 @@ package com.orgasm.backend.playlist;
 import com.orgasm.backend.domain.AuditableEntity;
 import com.orgasm.backend.domain.IdGenerator;
 import jakarta.persistence.*;
+import java.time.Instant;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.SQLRestriction;
@@ -34,4 +35,10 @@ public class Playlist extends AuditableEntity {
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private PlaylistStatus status;
+
+    @Column(name = "lead_contributor_id")
+    private Long leadContributorId;
+
+    @Column(name = "deadline")
+    private Instant deadline;
 }

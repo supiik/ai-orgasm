@@ -10,6 +10,7 @@ servers:
 tags:
   - name: contributors
   - name: playlists
+  - name: nominations
   - name: songs
   - name: health
 
@@ -315,6 +316,207 @@ paths:
         '400':
           description: Validation error
 
+  /api/v1/playlists/{id}/open:
+    post:
+      tags: [playlists]
+      operationId: openPlaylist
+      summary: Open a playlist for nominations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenPlaylistRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
+  /api/v1/playlists/{id}/publish:
+    post:
+      tags: [playlists]
+      operationId: publishPlaylist
+      summary: Publish a playlist after deadline
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishPlaylistRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
+  /api/v1/playlists/{id}/nominations:
+    post:
+      tags: [nominations]
+      operationId: nominateSong
+      summary: Nominate a song to a playlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NominateSongRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NominationResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+    get:
+      tags: [nominations]
+      operationId: findNominations
+      summary: List nominations for a playlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NominationPage'
+
+  /api/v1/nominations/{id}/approve:
+    put:
+      tags: [nominations]
+      operationId: approveNomination
+      summary: Approve a nomination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewNominationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NominationResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
+  /api/v1/nominations/{id}/decline:
+    put:
+      tags: [nominations]
+      operationId: declineNomination
+      summary: Decline a nomination
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewNominationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NominationResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
+  /api/v1/contributors/{id}/playlists:
+    get:
+      tags: [contributors]
+      operationId: findPlaylistsByContributor
+      summary: List playlists led by a contributor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistPage'
+
   /api/v1/playlists/{id}:
     get:
       tags: [playlists]
@@ -446,7 +648,84 @@ components:
 
     PlaylistStatus:
       type: string
-      enum: [NEW, OPEN, UNDER_EVALUATION, CLOSED]
+      enum: [NEW, OPEN, UNDER_EVALUATION, CLOSED, PUBLISHED]
+
+    NominationStatus:
+      type: string
+      enum: [PENDING, APPROVED, DECLINED]
+
+    OpenPlaylistRequest:
+      type: object
+      required: [contributorId, deadline]
+      properties:
+        contributorId:
+          type: string
+        deadline:
+          type: string
+          format: date-time
+
+    PublishPlaylistRequest:
+      type: object
+      required: [contributorId]
+      properties:
+        contributorId:
+          type: string
+
+    NominateSongRequest:
+      type: object
+      required: [contributorId, songId]
+      properties:
+        contributorId:
+          type: string
+        songId:
+          type: string
+
+    ReviewNominationRequest:
+      type: object
+      required: [reviewerId]
+      properties:
+        reviewerId:
+          type: string
+
+    NominationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        playlistId:
+          type: string
+        songId:
+          type: string
+        nominatedById:
+          type: string
+        status:
+          $ref: '#/components/schemas/NominationStatus'
+        version:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NominationPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/NominationResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        number:
+          type: integer
+        size:
+          type: integer
 
     CreatePlaylistRequest:
       type: object
@@ -483,6 +762,13 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PlaylistStatus'
+        leadContributorId:
+          type: string
+          nullable: true
+        deadline:
+          type: string
+          format: date-time
+          nullable: true
         version:
           type: integer
           format: int64

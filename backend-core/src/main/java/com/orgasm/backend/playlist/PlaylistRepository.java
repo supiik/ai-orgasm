@@ -15,6 +15,8 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Page<Playlist> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
+    Page<Playlist> findByLeadContributorId(Long leadContributorId, Pageable pageable);
+
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Playlist p SET p.deletedAt = :now WHERE p.id = :id AND p.deletedAt IS NULL")
     int softDeleteById(@Param("id") Long id, @Param("now") Instant now);

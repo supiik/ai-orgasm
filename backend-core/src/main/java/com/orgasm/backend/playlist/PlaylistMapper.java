@@ -13,6 +13,7 @@ import org.mapstruct.ReportingPolicy;
 public interface PlaylistMapper {
 
     @Mapping(target = "id", expression = "java(IdGenerator.format(\"play\", playlist.getId()))")
+    @Mapping(target = "leadContributorId", expression = "java(playlist.getLeadContributorId() != null ? IdGenerator.format(\"cont\", playlist.getLeadContributorId()) : null)")
     PlaylistResponse toResponse(Playlist playlist);
 
     @Mapping(target = "status", defaultValue = "NEW")
