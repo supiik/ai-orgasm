@@ -43,10 +43,17 @@ async function loadNominations() {
   try {
     const { data } = await api.nominations().list(id)
     nominations.value = data.content ?? []
-    await resolveNominationDetails()
+    await Promise.all([resolveNominationDetails(), loadAllContributors()])
   } catch {
     // non-critical
   }
+}
+
+async function loadAllContributors() {
+  try {
+    const { data } = await api.contributors().list(0, 100)
+    allContributors.value = (data.content ?? []).map(c => ({ id: c.id!, name: c.name!, avatarUrl: c.avatarUrl ?? null }))
+  } catch {}
 }
 
 async function resolveNominationDetails() {
@@ -157,14 +164,10 @@ const eligibleContributors = computed(() => {
   return allContributors.value.filter(c => !nominated.has(c.id))
 })
 
-async function showNominate() {
-  nominateForm.value = { contributorId: '', artist: '', name: '', album: '', releaseYear: '' }
+function showNominate(contributorId = '') {
+  nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '' }
   nominateError.value = null
   nominateOpen.value = true
-  try {
-    const { data } = await api.contributors().list(0, 100)
-    allContributors.value = (data.content ?? []).map(c => ({ id: c.id!, name: c.name!, avatarUrl: c.avatarUrl ?? null }))
-  } catch {}
 }
 
 async function submitNominate() {
@@ -374,6 +377,22 @@ function statusClass(s: NominationStatus | undefined) {
               </template>
               <span v-else :class="['text-xs font-medium', statusClass(nom.status)]">{{ statusLabel(nom.status) }}</span>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contributors not yet nominated -->
+      <section v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed && eligibleContributors.length > 0">
+        <h2 class="text-lg font-semibold mb-3">Not yet nominated</h2>
+        <div class="divide-y divide-border rounded-md border border-border overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
+          <div v-for="c in eligibleContributors" :key="c.id" class="flex items-center px-4 py-3 gap-3 text-sm">
+            <img v-if="c.avatarUrl" :src="c.avatarUrl" :alt="c.name" class="w-7 h-7 rounded-full object-cover shrink-0" />
+            <div v-else class="w-7 h-7 rounded-full bg-muted shrink-0" />
+            <span class="flex-1">{{ c.name }}</span>
+            <Button size="sm" variant="ghost" @click="showNominate(c.id)">
+              <Send class="h-4 w-4" />
+              Nominate
+            </Button>
           </div>
         </div>
       </section>

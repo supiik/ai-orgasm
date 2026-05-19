@@ -9,11 +9,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 @Transactional("appTransactionManager")
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Page<Playlist> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+    List<Playlist> findByStatusAndDeadlineBetween(PlaylistStatus status, Instant from, Instant to);
 
     Page<Playlist> findByLeadContributorId(Long leadContributorId, Pageable pageable);
 
