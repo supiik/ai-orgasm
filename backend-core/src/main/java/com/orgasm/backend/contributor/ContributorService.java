@@ -1,5 +1,6 @@
 package com.orgasm.backend.contributor;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,19 +22,23 @@ public class ContributorService {
     private final ContributorRepository repository;
     private final ContributorMapper mapper;
 
+    @CircuitBreaker(name = "db")
     public ContributorResponse create(CreateContributorRequest request) {
         return mapper.toResponse(repository.save(mapper.toEntity(request)));
     }
 
+    @CircuitBreaker(name = "db")
     public ContributorResponse create(UnaryOperator<CreateContributorRequest.CreateContributorRequestBuilder> customizer) {
         return create(customizer.apply(CreateContributorRequest.builder()).build());
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Optional<ContributorResponse> findById(String id) {
         return repository.findById(id).map(mapper::toResponse);
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<ContributorResponse> findAll(FindContributorsRequest request, Pageable pageable) {
         if (request.name() == null || request.name().isBlank()) {
@@ -42,22 +47,26 @@ public class ContributorService {
         return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<ContributorResponse> findAll(
             UnaryOperator<FindContributorsRequest.FindContributorsRequestBuilder> customizer, Pageable pageable) {
         return findAll(customizer.apply(FindContributorsRequest.builder()).build(), pageable);
     }
 
+    @CircuitBreaker(name = "db")
     public ContributorResponse update(String id, UpdateContributorRequest request) {
         Contributor existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }
 
+    @CircuitBreaker(name = "db")
     public ContributorResponse update(String id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdateContributorRequest.builder()).build());
     }
 
+    @CircuitBreaker(name = "db")
     public void delete(String id) {
         if (repository.softDeleteById(id, Instant.now()) == 0) {
             throw new EntityNotFoundException("Contributor not found: " + id);

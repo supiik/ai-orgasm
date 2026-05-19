@@ -5,6 +5,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -60,6 +61,8 @@ public abstract class BaseHandler<T>
             return respond(400, Map.of("error", "Invalid request body: " + e.getMessage()));
         } catch (EntityNotFoundException e) {
             return respond(404, Map.of("error", e.getMessage()));
+        } catch (CallNotPermittedException e) {
+            return respond(503, Map.of("error", "Service temporarily unavailable"));
         } catch (Exception e) {
             log.error("Handler error", e);
             return respond(500, Map.of("error", "Internal server error"));

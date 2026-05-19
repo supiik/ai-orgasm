@@ -3,6 +3,7 @@ package com.orgasm.lambda;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orgasm.backend.playlist.PlaylistService;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +35,18 @@ class HelloHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(200);
         assertThat(response.getBody()).contains("Hello from Lambda!");
+    }
+
+    @Test
+    void returns503_whenCircuitOpen() {
+        when(playlistService.findAll(any(UnaryOperator.class), any()))
+                .thenThrow(mock(CallNotPermittedException.class));
+        var handler = new HelloHandler(playlistService, mapper, VALIDATOR);
+
+        var response = handler.handleRequest(getEvent(), context);
+
+        assertThat(response.getStatusCode()).isEqualTo(503);
+        assertThat(response.getBody()).contains("temporarily unavailable");
     }
 
     @Test

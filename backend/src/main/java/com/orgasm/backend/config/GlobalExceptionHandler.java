@@ -1,5 +1,6 @@
 package com.orgasm.backend.config;
 
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,12 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ResponseEntity<Map<String, String>> handleCircuitOpen(CallNotPermittedException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "Service temporarily unavailable"));
+    }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Void> handleNotFound(EntityNotFoundException ex) {

@@ -48,6 +48,19 @@ management:
     health:
       show-details: always
 
+resilience4j:
+  circuitbreaker:
+    instances:
+      db:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - org.springframework.dao.DataAccessException
+          - java.sql.SQLException
+
 logging:
   level:
     com.orgasm: DEBUG

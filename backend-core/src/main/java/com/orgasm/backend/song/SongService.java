@@ -1,5 +1,6 @@
 package com.orgasm.backend.song;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,19 +22,23 @@ public class SongService {
     private final SongRepository repository;
     private final SongMapper mapper;
 
+    @CircuitBreaker(name = "db")
     public SongResponse create(CreateSongRequest request) {
         return mapper.toResponse(repository.save(mapper.toEntity(request)));
     }
 
+    @CircuitBreaker(name = "db")
     public SongResponse create(UnaryOperator<CreateSongRequest.CreateSongRequestBuilder> customizer) {
         return create(customizer.apply(CreateSongRequest.builder()).build());
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Optional<SongResponse> findById(String id) {
         return repository.findById(id).map(mapper::toResponse);
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<SongResponse> findAll(FindSongsRequest request, Pageable pageable) {
         if (request.name() == null || request.name().isBlank()) {
@@ -42,22 +47,26 @@ public class SongService {
         return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
     }
 
+    @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<SongResponse> findAll(
             UnaryOperator<FindSongsRequest.FindSongsRequestBuilder> customizer, Pageable pageable) {
         return findAll(customizer.apply(FindSongsRequest.builder()).build(), pageable);
     }
 
+    @CircuitBreaker(name = "db")
     public SongResponse update(String id, UpdateSongRequest request) {
         Song existing = requireById(id);
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }
 
+    @CircuitBreaker(name = "db")
     public SongResponse update(String id, UnaryOperator<UpdateSongRequest.UpdateSongRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdateSongRequest.builder()).build());
     }
 
+    @CircuitBreaker(name = "db")
     public void delete(String id) {
         if (repository.softDeleteById(id, Instant.now()) == 0) {
             throw new EntityNotFoundException("Song not found: " + id);

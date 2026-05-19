@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.orgasm.backend.config.GlobalExceptionHandler;
 import com.orgasm.backend.config.VersionTestSupport;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -146,5 +147,14 @@ class PlaylistControllerTest {
 
         mvc.perform(delete("/api/v1/playlists/play-9999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void findAll_returns503_whenCircuitOpen() throws Exception {
+        when(service.findAll(any(FindPlaylistsRequest.class), any(Pageable.class)))
+                .thenThrow(mock(CallNotPermittedException.class));
+
+        mvc.perform(get("/api/v1/playlists"))
+                .andExpect(status().isServiceUnavailable());
     }
 }
