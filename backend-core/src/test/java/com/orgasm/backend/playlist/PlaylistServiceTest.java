@@ -1,6 +1,7 @@
 package com.orgasm.backend.playlist;
 
 import jakarta.persistence.EntityNotFoundException;
+import com.orgasm.backend.domain.IdGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +29,9 @@ class PlaylistServiceTest {
     @Mock PlaylistMapper mapper;
     @InjectMocks PlaylistService service;
 
+    static final long DB_ID = 1L;
+    static final String USER_ID = IdGenerator.format("play", DB_ID);
+
     static PlaylistResponse response(String id, String name) {
         return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, 0L, Instant.EPOCH, Instant.EPOCH);
     }
@@ -36,8 +40,8 @@ class PlaylistServiceTest {
     void create_savesAndReturnsResponse() {
         var request = new CreatePlaylistRequest("My Mix", "desc", null);
         var entity = new Playlist(null, "My Mix", "desc", null);
-        var saved = new Playlist("play-0001", "My Mix", "desc", PlaylistStatus.NEW);
-        var expected = response("play-0001", "My Mix");
+        var saved = new Playlist(DB_ID, "My Mix", "desc", PlaylistStatus.NEW);
+        var expected = response(USER_ID, "My Mix");
 
         when(mapper.toEntity(request)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -49,8 +53,8 @@ class PlaylistServiceTest {
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
         var entity = new Playlist(null, "My Mix", "desc", null);
-        var saved = new Playlist("play-0001", "My Mix", "desc", PlaylistStatus.NEW);
-        var expected = response("play-0001", "My Mix");
+        var saved = new Playlist(DB_ID, "My Mix", "desc", PlaylistStatus.NEW);
+        var expected = response(USER_ID, "My Mix");
 
         when(mapper.toEntity(any(CreatePlaylistRequest.class))).thenReturn(entity);
         when(repository.save(entity)).thenReturn(saved);
@@ -61,25 +65,25 @@ class PlaylistServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Playlist("play-0001", "My Mix", "desc", PlaylistStatus.NEW);
-        var expected = response("play-0001", "My Mix");
-        when(repository.findById("play-0001")).thenReturn(Optional.of(entity));
+        var entity = new Playlist(DB_ID, "My Mix", "desc", PlaylistStatus.NEW);
+        var expected = response(USER_ID, "My Mix");
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
 
-        assertThat(service.findById("play-0001")).contains(expected);
+        assertThat(service.findById(USER_ID)).contains(expected);
     }
 
     @Test
     void findById_returnsEmpty_whenNotFound() {
-        when(repository.findById("play-9999")).thenReturn(Optional.empty());
+        when(repository.findById(DB_ID)).thenReturn(Optional.empty());
 
-        assertThat(service.findById("play-9999")).isEmpty();
+        assertThat(service.findById(USER_ID)).isEmpty();
     }
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Playlist("play-0001", "A", null, PlaylistStatus.NEW);
-        var mapped = response("play-0001", "A");
+        var entity = new Playlist(DB_ID, "A", null, PlaylistStatus.NEW);
+        var mapped = response(USER_ID, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -90,8 +94,8 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Playlist("play-0001", "A", null, PlaylistStatus.NEW);
-        var mapped = response("play-0001", "A");
+        var entity = new Playlist(DB_ID, "A", null, PlaylistStatus.NEW);
+        var mapped = response(USER_ID, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
 
@@ -102,8 +106,8 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Playlist("play-0001", "Chill", null, PlaylistStatus.NEW);
-        var mapped = response("play-0001", "Chill");
+        var entity = new Playlist(DB_ID, "Chill", null, PlaylistStatus.NEW);
+        var mapped = response(USER_ID, "Chill");
         when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -115,8 +119,8 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Playlist("play-0001", "Chill", null, PlaylistStatus.NEW);
-        var mapped = response("play-0001", "Chill");
+        var entity = new Playlist(DB_ID, "Chill", null, PlaylistStatus.NEW);
+        var mapped = response(USER_ID, "Chill");
         when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -129,56 +133,56 @@ class PlaylistServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdatePlaylistRequest("New", "new desc", null);
-        var existing = new Playlist("play-0001", "Old", "old desc", PlaylistStatus.NEW);
-        var saved = new Playlist("play-0001", "New", "new desc", PlaylistStatus.OPEN);
-        var expected = response("play-0001", "New");
+        var existing = new Playlist(DB_ID, "Old", "old desc", PlaylistStatus.NEW);
+        var saved = new Playlist(DB_ID, "New", "new desc", PlaylistStatus.OPEN);
+        var expected = response(USER_ID, "New");
 
-        when(repository.findById("play-0001")).thenReturn(Optional.of(existing));
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update("play-0001", request)).isEqualTo(expected);
+        assertThat(service.update(USER_ID, request)).isEqualTo(expected);
         verify(mapper).updateEntity(request, existing);
     }
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Playlist("play-0001", "Old", "old desc", PlaylistStatus.NEW);
-        var saved = new Playlist("play-0001", "New", "new desc", PlaylistStatus.OPEN);
-        var expected = response("play-0001", "New");
+        var existing = new Playlist(DB_ID, "Old", "old desc", PlaylistStatus.NEW);
+        var saved = new Playlist(DB_ID, "New", "new desc", PlaylistStatus.OPEN);
+        var expected = response(USER_ID, "New");
 
-        when(repository.findById("play-0001")).thenReturn(Optional.of(existing));
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(saved);
         when(mapper.toResponse(saved)).thenReturn(expected);
 
-        assertThat(service.update("play-0001", b -> b.name("New").description("new desc"))).isEqualTo(expected);
+        assertThat(service.update(USER_ID, b -> b.name("New").description("new desc"))).isEqualTo(expected);
         verify(mapper).updateEntity(any(UpdatePlaylistRequest.class), eq(existing));
     }
 
     @Test
     void update_throwsNotFound_whenMissing() {
-        when(repository.findById("play-9999")).thenReturn(Optional.empty());
+        when(repository.findById(DB_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update("play-9999", new UpdatePlaylistRequest("X", null, null)))
+        assertThatThrownBy(() -> service.update(USER_ID, new UpdatePlaylistRequest("X", null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("play-9999");
+                .hasMessageContaining(USER_ID);
     }
 
     @Test
     void delete_softDeletes_whenExists() {
-        when(repository.softDeleteById(eq("play-0001"), any())).thenReturn(1);
+        when(repository.softDeleteById(eq(DB_ID), any())).thenReturn(1);
 
-        service.delete("play-0001");
+        service.delete(USER_ID);
 
-        verify(repository).softDeleteById(eq("play-0001"), any());
+        verify(repository).softDeleteById(eq(DB_ID), any());
     }
 
     @Test
     void delete_throwsNotFound_whenMissing() {
-        when(repository.softDeleteById(eq("play-9999"), any())).thenReturn(0);
+        when(repository.softDeleteById(eq(DB_ID), any())).thenReturn(0);
 
-        assertThatThrownBy(() -> service.delete("play-9999"))
+        assertThatThrownBy(() -> service.delete(USER_ID))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("play-9999");
+                .hasMessageContaining(USER_ID);
     }
 }

@@ -36,6 +36,8 @@ spring:
 app:
   mail:
     from: ${MAIL_FROM:noreply@orgasm.local}
+  id:
+    secret: ${ID_SECRET:0000000000000000}
 
 datasource:
   app:

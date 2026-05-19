@@ -1,5 +1,6 @@
 package com.orgasm.backend.playlist;
 
+import com.orgasm.backend.domain.IdGenerator;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 
@@ -16,12 +17,13 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Playlist playlist = new Playlist("play-0007", "Workout", "Pump up", PlaylistStatus.OPEN);
+        Playlist playlist = new Playlist(7L, "Workout", "Pump up", PlaylistStatus.OPEN);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 
         assertThat(response).isNotNull();
-        assertThat(response.id()).isEqualTo("play-0007");
+        assertThat(response.id()).startsWith("play-");
+        assertThat(IdGenerator.parse(response.id())).isEqualTo(7L);
         assertThat(response.name()).isEqualTo("Workout");
         assertThat(response.description()).isEqualTo("Pump up");
         assertThat(response.status()).isEqualTo(PlaylistStatus.OPEN);
@@ -55,7 +57,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Playlist playlist = new Playlist("play-0001", "Original", "Original desc", PlaylistStatus.NEW);
+        Playlist playlist = new Playlist(1L, "Original", "Original desc", PlaylistStatus.NEW);
 
         mapper.updateEntity(null, playlist);
 
@@ -66,12 +68,12 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Playlist playlist = new Playlist("play-0001", "Original", "Original desc", PlaylistStatus.NEW);
+        Playlist playlist = new Playlist(1L, "Original", "Original desc", PlaylistStatus.NEW);
         UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED);
 
         mapper.updateEntity(request, playlist);
 
-        assertThat(playlist.getId()).isEqualTo("play-0001");
+        assertThat(playlist.getId()).isEqualTo(1L);
         assertThat(playlist.getName()).isEqualTo("Renamed");
         assertThat(playlist.getDescription()).isEqualTo("New desc");
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.CLOSED);
@@ -79,7 +81,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_preservesStatus_whenNullInRequest() {
-        Playlist playlist = new Playlist("play-0001", "Original", "desc", PlaylistStatus.OPEN);
+        Playlist playlist = new Playlist(1L, "Original", "desc", PlaylistStatus.OPEN);
         UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null);
 
         mapper.updateEntity(request, playlist);

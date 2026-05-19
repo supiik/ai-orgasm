@@ -1,5 +1,6 @@
 package com.orgasm.backend.contributor;
 
+import com.orgasm.backend.domain.IdGenerator;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ public class ContributorService {
     @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Optional<ContributorResponse> findById(String id) {
-        return repository.findById(id).map(mapper::toResponse);
+        return repository.findById(IdGenerator.parse(id)).map(mapper::toResponse);
     }
 
     @CircuitBreaker(name = "db")
@@ -68,13 +69,13 @@ public class ContributorService {
 
     @CircuitBreaker(name = "db")
     public void delete(String id) {
-        if (repository.softDeleteById(id, Instant.now()) == 0) {
+        if (repository.softDeleteById(IdGenerator.parse(id), Instant.now()) == 0) {
             throw new EntityNotFoundException("Contributor not found: " + id);
         }
     }
 
     private Contributor requireById(String id) {
-        return repository.findById(id)
+        return repository.findById(IdGenerator.parse(id))
                 .orElseThrow(() -> new EntityNotFoundException("Contributor not found: " + id));
     }
 }

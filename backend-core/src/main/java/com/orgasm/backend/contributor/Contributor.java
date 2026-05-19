@@ -17,12 +17,12 @@ import org.hibernate.annotations.SQLRestriction;
 public class Contributor extends AuditableEntity {
 
     @Id
-    @Column(name = "id", length = 25)
-    private String id;
+    @Column(name = "id")
+    private Long id;
 
     @PrePersist
     void assignId() {
-        if (id == null) id = IdGenerator.generate("cont");
+        if (id == null) id = IdGenerator.generate();
     }
 
     @Column(name = "name", nullable = false)

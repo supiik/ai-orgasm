@@ -11,11 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 
 @Transactional("appTransactionManager")
-public interface SongRepository extends JpaRepository<Song, String> {
+public interface SongRepository extends JpaRepository<Song, Long> {
 
     Page<Song> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Song s SET s.deletedAt = :now WHERE s.id = :id AND s.deletedAt IS NULL")
-    int softDeleteById(@Param("id") String id, @Param("now") Instant now);
+    int softDeleteById(@Param("id") Long id, @Param("now") Instant now);
 }

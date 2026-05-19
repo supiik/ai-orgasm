@@ -92,7 +92,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void softDelete_returnsZero_whenIdNotFound() {
-        int affected = repository.softDeleteById("play-nonexistent", Instant.now());
+        int affected = repository.softDeleteById(0L, Instant.now());
 
         assertThat(affected).isEqualTo(0);
     }

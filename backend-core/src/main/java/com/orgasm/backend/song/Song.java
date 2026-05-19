@@ -18,12 +18,12 @@ import org.hibernate.annotations.SQLRestriction;
 public class Song extends AuditableEntity {
 
     @Id
-    @Column(name = "id", length = 25)
-    private String id;
+    @Column(name = "id")
+    private Long id;
 
     @PrePersist
     void assignId() {
-        if (id == null) id = IdGenerator.generate("song");
+        if (id == null) id = IdGenerator.generate();
     }
 
     @Column(name = "artist", nullable = false)
