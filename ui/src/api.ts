@@ -8,9 +8,21 @@ import {
   type NominateSongRequest, type ReviewNominationRequest,
 } from '@orgasm/backend-client'
 
+async function getAccessToken(): Promise<string> {
+  if (import.meta.env.VITE_MOCK === 'true') return ''
+  const keycloak = (await import('./keycloak')).default
+  if (!keycloak.authenticated) return ''
+  try {
+    await keycloak.updateToken(60)
+  } catch {
+    await keycloak.login()
+  }
+  return keycloak.token ?? ''
+}
+
 const config = new Configuration({
   basePath: '',
-  baseOptions: { headers: { 'X-Tenant-ID': 'default' } },
+  accessToken: getAccessToken,
 })
 const _contributors = new ContributorsApi(config)
 const _playlists = new PlaylistsApi(config)

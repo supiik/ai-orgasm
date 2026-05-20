@@ -24,6 +24,12 @@ spring:
   mail:
     host: localhost
     port: 1025
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ""
+          jwk-set-uri: http://localhost:8180/realms/orgasm/protocol/openid-connect/certs
 
 app:
   mail:
