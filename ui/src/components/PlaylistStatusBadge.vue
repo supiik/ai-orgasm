@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PlaylistStatus } from '@etactics/proxima-service-client'
+import type { PlaylistStatus } from '@etactics/proxima-sal-client'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{ status: PlaylistStatus }>()

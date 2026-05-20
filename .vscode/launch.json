@@ -11,11 +11,11 @@
         },
         {
             "type": "java",
-            "name": "Spring Boot-BackendApplication<proxima-service-backend>",
+            "name": "Spring Boot-BackendApplication<proxima-sal-backend>",
             "request": "launch",
             "cwd": "${workspaceFolder}/backend",
-            "mainClass": "com.etactics.proxima.service.backend.BackendApplication",
-            "projectName": "proxima-service-backend",
+            "mainClass": "com.etactics.proxima.sal.backend.BackendApplication",
+            "projectName": "proxima-sal-backend",
             "args": "",
             "vmArgs": "-Dspring.profiles.active=dev",
             "envFile": "${workspaceFolder}/backend/.env"

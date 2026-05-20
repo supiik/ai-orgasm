@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>com.etactics</groupId>
-        <artifactId>proxima-service-parent</artifactId>
+        <artifactId>proxima-sal-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>proxima-service-backend-core</artifactId>
+    <artifactId>proxima-sal-backend-core</artifactId>
     <packaging>jar</packaging>
-    <name>proxima-service-backend-core</name>
+    <name>proxima-sal-backend-core</name>
     <description>Service layer, JPA entities, repositories, and datasource config — shared by backend and lambda</description>
 
     <dependencies>
@@ -123,10 +123,10 @@
                 <artifactId>pitest-maven</artifactId>
                 <configuration>
                     <excludedClasses>
-                        <param>com.etactics.proxima.service.backend.config.*</param>
+                        <param>com.etactics.proxima.sal.backend.config.*</param>
                     </excludedClasses>
                     <excludedTestClasses>
-                        <param>com.etactics.proxima.service.backend.*IT</param>
+                        <param>com.etactics.proxima.sal.backend.*IT</param>
                     </excludedTestClasses>
                 </configuration>
             </plugin>

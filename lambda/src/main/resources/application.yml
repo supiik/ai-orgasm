@@ -1,6 +1,6 @@
 spring:
   application:
-    name: proxima-service-lambda
+    name: proxima-sal-lambda
   autoconfigure:
     exclude:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
@@ -12,14 +12,14 @@ spring:
 
 datasource:
   app:
-    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/proxima_service}
-    username: ${DATASOURCE_APP_USERNAME:proxima_service}
-    password: ${DATASOURCE_APP_PASSWORD:proxima_service}
+    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/proxima_sal}
+    username: ${DATASOURCE_APP_USERNAME:proxima_sal}
+    password: ${DATASOURCE_APP_PASSWORD:proxima_sal}
     driver-class-name: org.mariadb.jdbc.Driver
   billing:
-    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/proxima_service_billing}
-    username: ${DATASOURCE_BILLING_USERNAME:proxima_service_billing}
-    password: ${DATASOURCE_BILLING_PASSWORD:proxima_service_billing}
+    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/proxima_sal_billing}
+    username: ${DATASOURCE_BILLING_USERNAME:proxima_sal_billing}
+    password: ${DATASOURCE_BILLING_PASSWORD:proxima_sal_billing}
     driver-class-name: org.mariadb.jdbc.Driver
   flyway:
     enabled: false
@@ -39,4 +39,4 @@ resilience4j:
 
 logging:
   level:
-    com.etactics.proxima.service: INFO
+    com.etactics.proxima.sal: INFO

@@ -12,12 +12,12 @@ Globals:
     PackageType: Image
     Environment:
       Variables:
-        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/url}}"
-        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/username}}"
-        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/password}}"
-        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/url}}"
-        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/username}}"
-        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/password}}"
+        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/app/url}}"
+        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/app/username}}"
+        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/app/password}}"
+        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/billing/url}}"
+        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/billing/username}}"
+        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/proxima-sal/${Env}/datasource/billing/password}}"
 
 Parameters:
   Env:
@@ -28,18 +28,18 @@ Parameters:
     Type: String
     Description: >
       ECR image URI built from lambda/Dockerfile.
-      Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/proxima-service-lambda:latest
+      Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/proxima-sal-lambda:latest
 
 Resources:
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "proxima-service-hello-${Env}"
+      FunctionName: !Sub "proxima-sal-hello-${Env}"
       Description: Health-check / hello endpoint
       ImageUri: !Ref ImageUri
       ImageConfig:
         Command:
-          - com.etactics.proxima.service.lambda.HelloHandler::handleRequest
+          - com.etactics.proxima.sal.lambda.HelloHandler::handleRequest
       FunctionUrlConfig:
         AuthType: NONE
         Cors:
@@ -51,12 +51,12 @@ Resources:
   CreatePlaylistFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "proxima-service-create-playlist-${Env}"
+      FunctionName: !Sub "proxima-sal-create-playlist-${Env}"
       Description: Create a playlist
       ImageUri: !Ref ImageUri
       ImageConfig:
         Command:
-          - com.etactics.proxima.service.lambda.CreatePlaylistHandler::handleRequest
+          - com.etactics.proxima.sal.lambda.CreatePlaylistHandler::handleRequest
       FunctionUrlConfig:
         AuthType: NONE
         Cors:

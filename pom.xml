@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.etactics</groupId>
-    <artifactId>proxima-service-parent</artifactId>
+    <artifactId>proxima-sal-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>proxima-service-parent</name>
+    <name>proxima-sal-parent</name>
     <description>Parent POM for the Proxima Service project</description>
 
     <modules>
@@ -81,17 +81,17 @@
             <!-- Internal modules -->
             <dependency>
                 <groupId>com.etactics</groupId>
-                <artifactId>proxima-service-sdk-models</artifactId>
+                <artifactId>proxima-sal-sdk-models</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.etactics</groupId>
-                <artifactId>proxima-service-sdk</artifactId>
+                <artifactId>proxima-sal-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.etactics</groupId>
-                <artifactId>proxima-service-backend-core</artifactId>
+                <artifactId>proxima-sal-backend-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

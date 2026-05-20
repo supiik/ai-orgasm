@@ -6,13 +6,13 @@
 
     <parent>
         <groupId>com.etactics</groupId>
-        <artifactId>proxima-service-parent</artifactId>
+        <artifactId>proxima-sal-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>proxima-service-lambda</artifactId>
+    <artifactId>proxima-sal-lambda</artifactId>
     <packaging>jar</packaging>
-    <name>proxima-service-lambda</name>
+    <name>proxima-sal-lambda</name>
     <description>AWS Serverless Lambda functions</description>
 
     <properties>
@@ -27,7 +27,7 @@
         <!-- Backend core: service layer, JPA entities, Flyway, datasource config -->
         <dependency>
             <groupId>com.etactics</groupId>
-            <artifactId>proxima-service-backend-core</artifactId>
+            <artifactId>proxima-sal-backend-core</artifactId>
         </dependency>
 
         <!-- Spring Boot core (no web) – provides ApplicationContext bootstrap -->
@@ -128,7 +128,7 @@
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
-                            <mainClass>com.etactics.proxima.service.lambda.LambdaApplication</mainClass>
+                            <mainClass>com.etactics.proxima.sal.lambda.LambdaApplication</mainClass>
                             <profiles>
                                 <profile>aot</profile>
                             </profiles>
