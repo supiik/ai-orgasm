@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { type SongPage, type SongResponse } from '@orgasm/backend-client'
+import { type SongPage, type SongResponse } from '@etactics/proxima-service-client'
 import { api } from '@/api'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'

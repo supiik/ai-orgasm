@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { type PlaylistPage, type PlaylistResponse as BasePlaylistResponse } from '@orgasm/backend-client'
+import { type PlaylistPage, type PlaylistResponse as BasePlaylistResponse } from '@etactics/proxima-service-client'
 
 type PlaylistResponse = BasePlaylistResponse & {
   leadContributorName?: string | null

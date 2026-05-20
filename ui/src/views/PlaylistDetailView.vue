@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
+import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@etactics/proxima-service-client'
 import { api } from '@/api'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Check } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
