@@ -63,11 +63,11 @@ class OrgasmServiceTest {
     }
 
     Playlist newPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.NEW, null, null);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.NEW, null, null);
     }
 
     Playlist openPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE);
     }
 
     PlaylistResponse playlistResponse() {
@@ -174,7 +174,7 @@ class OrgasmServiceTest {
 
     @Test
     void nominateSong_throwsConflict_whenDeadlinePassed() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> service.nominateSong(PLAYLIST_ID, new NominateSongRequest(CONTRIBUTOR_ID, SONG_ID)))
@@ -280,8 +280,8 @@ class OrgasmServiceTest {
 
     @Test
     void publishPlaylist_setsStatusToPublished() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
-        var saved = new Playlist(PLAYLIST_DB_ID, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
+        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
         var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.TenantId;
 
 @Entity
 @Table(name = "songs")
@@ -25,6 +26,10 @@ public class Song extends AuditableEntity {
     void assignId() {
         if (id == null) id = IdGenerator.generate();
     }
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
 
     @Column(name = "artist", nullable = false)
     private String artist;

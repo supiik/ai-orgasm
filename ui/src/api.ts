@@ -8,7 +8,10 @@ import {
   type NominateSongRequest, type ReviewNominationRequest,
 } from '@orgasm/backend-client'
 
-const config = new Configuration({ basePath: '' })
+const config = new Configuration({
+  basePath: '',
+  baseOptions: { headers: { 'X-Tenant-ID': 'default' } },
+})
 const _contributors = new ContributorsApi(config)
 const _playlists = new PlaylistsApi(config)
 const _songs = new SongsApi(config)

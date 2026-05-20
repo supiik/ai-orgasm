@@ -7,6 +7,9 @@ import com.orgasm.backend.playlist.Playlist;
 import com.orgasm.backend.playlist.PlaylistStatus;
 import com.orgasm.backend.reminder.ReminderService;
 import com.orgasm.backend.reminder.ReminderService.PlaylistReminder;
+import com.orgasm.backend.tenant.Tenant;
+import com.orgasm.backend.tenant.TenantRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +30,17 @@ class PlaylistReminderSchedulerTest {
 
     @Mock ReminderService reminderService;
     @Mock EmailService emailService;
+    @Mock TenantRepository tenantRepository;
     @InjectMocks PlaylistReminderScheduler scheduler;
+
+    static Tenant defaultTenant() {
+        return new Tenant(1L, "default", "Default Tenant");
+    }
+
+    @BeforeEach
+    void stubTenants() {
+        when(tenantRepository.findAll()).thenReturn(List.of(defaultTenant()));
+    }
 
     static Contributor contributor(long id, String name, String email) {
         var c = new Contributor();

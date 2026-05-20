@@ -17,7 +17,7 @@ class ContributorMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Contributor contributor = new Contributor(7L, "Alice", "alice@example.com", "https://example.com/alice.jpg");
+        Contributor contributor = new Contributor(7L, null, "Alice", "alice@example.com", "https://example.com/alice.jpg");
 
         ContributorResponse response = mapper.toResponse(contributor);
 
@@ -58,7 +58,7 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", null);
+        Contributor contributor = new Contributor(1L, null, "Original", "orig@example.com", null);
 
         mapper.updateEntity(null, contributor);
 
@@ -68,7 +68,7 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", null);
+        Contributor contributor = new Contributor(1L, null, "Original", "orig@example.com", null);
         UpdateContributorRequest request = new UpdateContributorRequest("Renamed", "new@example.com", "https://example.com/new.jpg");
 
         mapper.updateEntity(request, contributor);
@@ -81,7 +81,7 @@ class ContributorMapperTest {
 
     @Test
     void updateEntity_preservesEmail_whenNullInRequest() {
-        Contributor contributor = new Contributor(1L, "Original", "orig@example.com", "https://example.com/orig.jpg");
+        Contributor contributor = new Contributor(1L, null, "Original", "orig@example.com", "https://example.com/orig.jpg");
         UpdateContributorRequest request = new UpdateContributorRequest("Renamed", null, null);
 
         mapper.updateEntity(request, contributor);

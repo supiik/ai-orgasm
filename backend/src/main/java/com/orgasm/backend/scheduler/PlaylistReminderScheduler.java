@@ -1,10 +1,12 @@
 package com.orgasm.backend.scheduler;
 
+import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.email.EmailMessage;
 import com.orgasm.backend.email.EmailService;
-import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.reminder.ReminderService;
 import com.orgasm.backend.reminder.ReminderService.PlaylistReminder;
+import com.orgasm.backend.tenant.TenantContext;
+import com.orgasm.backend.tenant.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,20 +19,28 @@ public class PlaylistReminderScheduler {
 
     private final ReminderService reminderService;
     private final EmailService emailService;
+    private final TenantRepository tenantRepository;
 
     @Scheduled(cron = "${app.scheduler.reminder-cron:0 0 9 * * *}")
     public void sendReminders() {
-        var reminders = reminderService.findReminders();
-        log.info("Sending deadline reminders: {} playlist(s) with pending contributors", reminders.size());
-        for (PlaylistReminder reminder : reminders) {
-            for (Contributor contributor : reminder.contributorsToRemind()) {
-                try {
-                    emailService.send(buildMessage(reminder, contributor));
-                } catch (Exception e) {
-                    log.warn("Failed to send reminder to {}: {}", contributor.getEmail(), e.getMessage());
+        tenantRepository.findAll().forEach(tenant -> {
+            TenantContext.set(tenant.getId());
+            try {
+                var reminders = reminderService.findReminders();
+                log.info("Tenant {}: sending deadline reminders for {} playlist(s)", tenant.getSlug(), reminders.size());
+                for (PlaylistReminder reminder : reminders) {
+                    for (Contributor contributor : reminder.contributorsToRemind()) {
+                        try {
+                            emailService.send(buildMessage(reminder, contributor));
+                        } catch (Exception e) {
+                            log.warn("Failed to send reminder to {}: {}", contributor.getEmail(), e.getMessage());
+                        }
+                    }
                 }
+            } finally {
+                TenantContext.clear();
             }
-        }
+        });
     }
 
     private EmailMessage buildMessage(PlaylistReminder reminder, Contributor contributor) {

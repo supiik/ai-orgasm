@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.TenantId;
 
 @Entity
 @Table(name = "nominations",
@@ -29,6 +30,10 @@ public class Nomination extends AuditableEntity {
         if (id == null) id = IdGenerator.generate();
         if (status == null) status = NominationStatus.PENDING;
     }
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "playlist_id", nullable = false, updatable = false)

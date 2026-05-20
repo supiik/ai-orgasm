@@ -53,7 +53,7 @@ class ContributorRepositoryIT {
 
     @Test
     void save_persistsContributor() {
-        Contributor saved = repository.save(new Contributor(null, "Alice", "alice@example.com", null));
+        Contributor saved = repository.save(new Contributor(null, null, "Alice", "alice@example.com", null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -61,16 +61,16 @@ class ContributorRepositoryIT {
 
     @Test
     void findById_returnsContributor_afterSave() {
-        Contributor saved = repository.save(new Contributor(null, "Bob", null, null));
+        Contributor saved = repository.save(new Contributor(null, null, "Bob", null, null));
 
         assertThat(repository.findById(saved.getId())).contains(saved);
     }
 
     @Test
     void findAll_returnsPaginatedResults() {
-        repository.save(new Contributor(null, "A", null, null));
-        repository.save(new Contributor(null, "B", null, null));
-        repository.save(new Contributor(null, "C", null, null));
+        repository.save(new Contributor(null, null, "A", null, null));
+        repository.save(new Contributor(null, null, "B", null, null));
+        repository.save(new Contributor(null, null, "C", null, null));
 
         Page<Contributor> page = repository.findAll(PageRequest.of(0, 2));
 
@@ -80,7 +80,7 @@ class ContributorRepositoryIT {
 
     @Test
     void softDelete_hidesRowFromSubsequentFinds() {
-        Contributor saved = repository.save(new Contributor(null, "To Delete", null, null));
+        Contributor saved = repository.save(new Contributor(null, null, "To Delete", null, null));
         repository.flush();
 
         int affected = repository.softDeleteById(saved.getId(), Instant.now());
@@ -99,9 +99,9 @@ class ContributorRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_returnsMatches() {
-        repository.save(new Contributor(null, "Alice Smith", null, null));
-        repository.save(new Contributor(null, "Bob Jones", null, null));
-        repository.save(new Contributor(null, "Alicia Keys", null, null));
+        repository.save(new Contributor(null, null, "Alice Smith", null, null));
+        repository.save(new Contributor(null, null, "Bob Jones", null, null));
+        repository.save(new Contributor(null, null, "Alicia Keys", null, null));
 
         Page<Contributor> result = repository.findByNameContainingIgnoreCase("alic", PageRequest.of(0, 10));
 
@@ -111,7 +111,7 @@ class ContributorRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_isCaseInsensitive() {
-        repository.save(new Contributor(null, "Thom Yorke", null, null));
+        repository.save(new Contributor(null, null, "Thom Yorke", null, null));
 
         Page<Contributor> result = repository.findByNameContainingIgnoreCase("THOM", PageRequest.of(0, 10));
 

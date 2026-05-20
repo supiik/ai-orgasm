@@ -64,15 +64,15 @@ class NominationRepositoryIT {
 
     @BeforeEach
     void setUp() {
-        playlist = playlistRepository.save(new Playlist(null, "Test Playlist", null, PlaylistStatus.OPEN, null, null));
-        song = songRepository.save(new Song(null, "Artist", "Track", null, null));
-        contributor = contributorRepository.save(new Contributor(null, "Alice", null, null));
+        playlist = playlistRepository.save(new Playlist(null, null, "Test Playlist", null, PlaylistStatus.OPEN, null, null));
+        song = songRepository.save(new Song(null, null, "Artist", "Track", null, null));
+        contributor = contributorRepository.save(new Contributor(null, null, "Alice", null, null));
     }
 
     @Test
     void save_persistsNomination() {
         Nomination saved = nominationRepository.save(
-                new Nomination(null, playlist, song, contributor, null));
+                new Nomination(null, null, playlist, song, contributor, null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getStatus()).isEqualTo(NominationStatus.PENDING);
@@ -81,7 +81,7 @@ class NominationRepositoryIT {
 
     @Test
     void findByPlaylist_Id_returnsNominations() {
-        nominationRepository.save(new Nomination(null, playlist, song, contributor, null));
+        nominationRepository.save(new Nomination(null, null, playlist, song, contributor, null));
 
         var page = nominationRepository.findByPlaylist_Id(playlist.getId(), PageRequest.of(0, 10));
 
@@ -91,7 +91,7 @@ class NominationRepositoryIT {
 
     @Test
     void existsByPlaylist_IdAndSong_Id_returnsTrue_whenNominated() {
-        nominationRepository.save(new Nomination(null, playlist, song, contributor, null));
+        nominationRepository.save(new Nomination(null, null, playlist, song, contributor, null));
         nominationRepository.flush();
 
         assertThat(nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), song.getId())).isTrue();

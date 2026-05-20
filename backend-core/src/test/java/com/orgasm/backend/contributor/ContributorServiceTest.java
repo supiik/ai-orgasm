@@ -39,8 +39,8 @@ class ContributorServiceTest {
     @Test
     void create_savesAndReturnsResponse() {
         var request = new CreateContributorRequest("Alice", null, null);
-        var entity = new Contributor(null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(null, null, "Alice", null, null);
+        var saved = new Contributor(DB_ID, null, "Alice", null, null);
         var expected = response(USER_ID, "Alice");
 
         when(mapper.toEntity(request)).thenReturn(entity);
@@ -52,8 +52,8 @@ class ContributorServiceTest {
 
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
-        var entity = new Contributor(null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(null, null, "Alice", null, null);
+        var saved = new Contributor(DB_ID, null, "Alice", null, null);
         var expected = response(USER_ID, "Alice");
 
         when(mapper.toEntity(any(CreateContributorRequest.class))).thenReturn(entity);
@@ -65,7 +65,7 @@ class ContributorServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null);
         var expected = response(USER_ID, "Alice");
         when(repository.findById(DB_ID)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
@@ -82,7 +82,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null);
         var mapped = response(USER_ID, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -94,7 +94,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null);
         var mapped = response(USER_ID, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -106,7 +106,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null);
         var mapped = response(USER_ID, "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -119,7 +119,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Contributor(DB_ID, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null);
         var mapped = response(USER_ID, "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -133,8 +133,8 @@ class ContributorServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdateContributorRequest("Bob", null, null);
-        var existing = new Contributor(DB_ID, "Alice", null, null);
-        var saved = new Contributor(DB_ID, "Bob", null, null);
+        var existing = new Contributor(DB_ID, null, "Alice", null, null);
+        var saved = new Contributor(DB_ID, null, "Bob", null, null);
         var expected = response(USER_ID, "Bob");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
@@ -147,8 +147,8 @@ class ContributorServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Contributor(DB_ID, "Alice", null, null);
-        var saved = new Contributor(DB_ID, "Bob", null, null);
+        var existing = new Contributor(DB_ID, null, "Alice", null, null);
+        var saved = new Contributor(DB_ID, null, "Bob", null, null);
         var expected = response(USER_ID, "Bob");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));

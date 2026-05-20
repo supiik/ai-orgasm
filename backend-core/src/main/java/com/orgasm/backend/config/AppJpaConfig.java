@@ -1,5 +1,6 @@
 package com.orgasm.backend.config;
 
+import com.orgasm.backend.tenant.CurrentTenantResolver;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
+import java.util.Map;
 
 @Configuration
 @EnableJpaRepositories(
@@ -28,11 +30,13 @@ public class AppJpaConfig {
     LocalContainerEntityManagerFactoryBean appEntityManagerFactory(
             @Qualifier("appDataSource") DataSource dataSource,
             EntityManagerFactoryBuilder builder,
-            @Autowired(required = false) @Qualifier("appFlyway") Flyway appFlyway) {
+            @Autowired(required = false) @Qualifier("appFlyway") Flyway appFlyway,
+            CurrentTenantResolver currentTenantResolver) {
         return builder
                 .dataSource(dataSource)
                 .packages("com.orgasm.backend")
                 .persistenceUnit("app")
+                .properties(Map.of("hibernate.tenant_identifier_resolver", currentTenantResolver))
                 .build();
     }
 

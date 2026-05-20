@@ -8,6 +8,7 @@ import java.time.Instant;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.TenantId;
 
 @Entity
 @Table(name = "playlists")
@@ -26,6 +27,10 @@ public class Playlist extends AuditableEntity {
     void assignId() {
         if (id == null) id = IdGenerator.generate();
     }
+
+    @TenantId
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private Long tenantId;
 
     @Column(name = "name", nullable = false)
     private String name;

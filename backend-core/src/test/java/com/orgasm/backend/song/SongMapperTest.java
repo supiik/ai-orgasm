@@ -17,7 +17,7 @@ class SongMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Song song = new Song(3L, "Radiohead", "Creep", "Pablo Honey", 1993);
+        Song song = new Song(3L, null, "Radiohead", "Creep", "Pablo Honey", 1993);
 
         SongResponse response = mapper.toResponse(song);
 
@@ -60,7 +60,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Song song = new Song(1L, "Original Artist", "Original Name", "Original Album", 2000);
+        Song song = new Song(1L, null, "Original Artist", "Original Name", "Original Album", 2000);
 
         mapper.updateEntity(null, song);
 
@@ -72,7 +72,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Song song = new Song(1L, "Old Artist", "Old Name", "Old Album", 1990);
+        Song song = new Song(1L, null, "Old Artist", "Old Name", "Old Album", 1990);
         UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", "New Album", 2020);
 
         mapper.updateEntity(request, song);
@@ -86,7 +86,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_preservesOptionalFields_whenNullInRequest() {
-        Song song = new Song(1L, "Artist", "Name", "Album", 2000);
+        Song song = new Song(1L, null, "Artist", "Name", "Album", 2000);
         UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", null, null);
 
         mapper.updateEntity(request, song);

@@ -86,7 +86,7 @@ public class OrgasmService {
         Song song = songRepository.getReferenceById(songDbId);
         Contributor contributor = contributorRepository.getReferenceById(contributorDbId);
         return nominationMapper.toResponse(
-                nominationRepository.save(new Nomination(null, playlist, song, contributor, null)));
+                nominationRepository.save(new Nomination(null, null, playlist, song, contributor, null)));
     }
 
     @CircuitBreaker(name = "db")

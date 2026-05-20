@@ -40,7 +40,7 @@ class NominationMapperTest {
 
     @Test
     void toResponse_formatsAllPrefixedIds() {
-        var nomination = new Nomination(10L, playlist(1L), song(2L), contributor(3L), NominationStatus.PENDING);
+        var nomination = new Nomination(10L, null, playlist(1L), song(2L), contributor(3L), NominationStatus.PENDING);
 
         NominationResponse response = mapper.toResponse(nomination);
 
@@ -58,14 +58,14 @@ class NominationMapperTest {
 
     @Test
     void toResponse_mapsApprovedStatus() {
-        var nomination = new Nomination(1L, playlist(2L), song(3L), contributor(4L), NominationStatus.APPROVED);
+        var nomination = new Nomination(1L, null, playlist(2L), song(3L), contributor(4L), NominationStatus.APPROVED);
 
         assertThat(mapper.toResponse(nomination).status()).isEqualTo(NominationStatus.APPROVED);
     }
 
     @Test
     void toResponse_mapsDeclinedStatus() {
-        var nomination = new Nomination(1L, playlist(2L), song(3L), contributor(4L), NominationStatus.DECLINED);
+        var nomination = new Nomination(1L, null, playlist(2L), song(3L), contributor(4L), NominationStatus.DECLINED);
 
         assertThat(mapper.toResponse(nomination).status()).isEqualTo(NominationStatus.DECLINED);
     }

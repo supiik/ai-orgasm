@@ -26,7 +26,7 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Playlist playlist = new Playlist(7L, "Workout", "Pump up", PlaylistStatus.OPEN, contributor(2L), Instant.EPOCH);
+        Playlist playlist = new Playlist(7L, null, "Workout", "Pump up", PlaylistStatus.OPEN, contributor(2L), Instant.EPOCH);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 
@@ -43,7 +43,7 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_handlesNullLeadContributor() {
-        Playlist playlist = new Playlist(1L, "Mix", null, PlaylistStatus.NEW, null, null);
+        Playlist playlist = new Playlist(1L, null, "Mix", null, PlaylistStatus.NEW, null, null);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 
@@ -79,7 +79,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Playlist playlist = new Playlist(1L, "Original", "Original desc", PlaylistStatus.NEW, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null);
 
         mapper.updateEntity(null, playlist);
 
@@ -90,7 +90,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Playlist playlist = new Playlist(1L, "Original", "Original desc", PlaylistStatus.NEW, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null);
         UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED);
 
         mapper.updateEntity(request, playlist);
@@ -103,7 +103,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_preservesStatus_whenNullInRequest() {
-        Playlist playlist = new Playlist(1L, "Original", "desc", PlaylistStatus.OPEN, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, null);
         UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null);
 
         mapper.updateEntity(request, playlist);
