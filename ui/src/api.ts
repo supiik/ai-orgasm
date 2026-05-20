@@ -6,7 +6,7 @@ import {
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest,
   type NominateSongRequest, type ReviewNominationRequest,
-} from '@orgasm/backend-client'
+} from '@etactics/proxima-service-client'
 
 async function getAccessToken(): Promise<string> {
   if (import.meta.env.VITE_MOCK === 'true') return ''

@@ -1,11 +1,11 @@
 datasource:
   app:
-    url: jdbc:h2:mem:orgasm_app;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    url: jdbc:h2:mem:proxima_service_app;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
     username: sa
     password:
     driver-class-name: org.h2.Driver
   billing:
-    url: jdbc:h2:mem:orgasm_billing;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    url: jdbc:h2:mem:proxima_service_billing;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
     username: sa
     password:
     driver-class-name: org.h2.Driver
@@ -29,7 +29,7 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ""
-          jwk-set-uri: http://localhost:8180/realms/orgasm/protocol/openid-connect/certs
+          jwk-set-uri: http://localhost:8180/realms/proxima-service/protocol/openid-connect/certs
 
 app:
   mail:

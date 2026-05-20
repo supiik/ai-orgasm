@@ -1,11 +1,11 @@
 spring:
   application:
-    name: orgasm-backend
+    name: proxima-service-backend
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: ${KC_ISSUER_URI:http://localhost:8180/realms/orgasm}
+          issuer-uri: ${KC_ISSUER_URI:http://localhost:8180/realms/proxima-service}
   autoconfigure:
     exclude:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
@@ -40,20 +40,20 @@ spring:
 
 app:
   mail:
-    from: ${MAIL_FROM:noreply@orgasm.local}
+    from: ${MAIL_FROM:noreply@proxima-service.local}
   id:
     secret: ${ID_SECRET:0000000000000000}
 
 datasource:
   app:
-    url: jdbc:mariadb://localhost:3306/orgasm
-    username: orgasm
-    password: orgasm
+    url: jdbc:mariadb://localhost:3306/proxima_service
+    username: proxima_service
+    password: proxima_service
     driver-class-name: org.mariadb.jdbc.Driver
   billing:
-    url: jdbc:mariadb://localhost:3307/orgasm_billing
-    username: orgasm_billing
-    password: orgasm_billing
+    url: jdbc:mariadb://localhost:3307/proxima_service_billing
+    username: proxima_service_billing
+    password: proxima_service_billing
     driver-class-name: org.mariadb.jdbc.Driver
 
 server:
@@ -85,5 +85,5 @@ resilience4j:
 
 logging:
   level:
-    com.orgasm: DEBUG
+    com.etactics.proxima.service: DEBUG
     org.springframework.web: INFO

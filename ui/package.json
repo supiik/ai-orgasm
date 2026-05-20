@@ -1,5 +1,5 @@
 {
-  "name": "orgasm-ui",
+  "name": "proxima-service-ui",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -18,7 +18,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@orgasm/backend-client": "file:../sdk-typescript/target/typescript-client",
+    "@etactics/proxima-service-client": "file:../sdk-typescript/target/typescript-client",
     "@tailwindcss/vite": "^4.3.0",
     "axios": "^1.8.4",
     "class-variance-authority": "^0.7.1",

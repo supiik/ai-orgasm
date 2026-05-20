@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.etactics</groupId>
+        <artifactId>proxima-service-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-ui</artifactId>
+    <artifactId>proxima-service-ui</artifactId>
     <packaging>pom</packaging>
-    <name>orgasm-ui</name>
+    <name>proxima-service-ui</name>
 
     <properties>
         <!-- No hand-written Java — exempt from JaCoCo gate and PiTest -->

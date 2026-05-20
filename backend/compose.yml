@@ -65,7 +65,7 @@ services:
     ports:
       - "8180:8080"
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/orgasm/.well-known/openid-configuration >/dev/null"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/realms/proxima-service/.well-known/openid-configuration >/dev/null"]
       interval: 15s
       timeout: 5s
       retries: 20

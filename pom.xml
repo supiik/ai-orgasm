@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.orgasm</groupId>
-    <artifactId>orgasm-parent</artifactId>
+    <groupId>com.etactics</groupId>
+    <artifactId>proxima-service-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>orgasm-parent</name>
-    <description>Parent POM for the Orgasm project</description>
+    <name>proxima-service-parent</name>
+    <description>Parent POM for the Proxima Service project</description>
 
     <modules>
         <module>sdk-models</module>
@@ -80,18 +80,18 @@
 
             <!-- Internal modules -->
             <dependency>
-                <groupId>com.orgasm</groupId>
-                <artifactId>orgasm-sdk-models</artifactId>
+                <groupId>com.etactics</groupId>
+                <artifactId>proxima-service-sdk-models</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.orgasm</groupId>
-                <artifactId>orgasm-sdk</artifactId>
+                <groupId>com.etactics</groupId>
+                <artifactId>proxima-service-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.orgasm</groupId>
-                <artifactId>orgasm-backend-core</artifactId>
+                <groupId>com.etactics</groupId>
+                <artifactId>proxima-service-backend-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -192,10 +192,10 @@
                     </dependencies>
                     <configuration>
                         <targetClasses>
-                            <param>com.orgasm.*</param>
+                            <param>com.etactics.*</param>
                         </targetClasses>
                         <targetTests>
-                            <param>com.orgasm.*</param>
+                            <param>com.etactics.*</param>
                         </targetTests>
                         <outputFormats>
                             <outputFormat>HTML</outputFormat>

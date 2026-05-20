@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.etactics</groupId>
+        <artifactId>proxima-service-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-lambda</artifactId>
+    <artifactId>proxima-service-lambda</artifactId>
     <packaging>jar</packaging>
-    <name>orgasm-lambda</name>
+    <name>proxima-service-lambda</name>
     <description>AWS Serverless Lambda functions</description>
 
     <properties>
@@ -26,8 +26,8 @@
     <dependencies>
         <!-- Backend core: service layer, JPA entities, Flyway, datasource config -->
         <dependency>
-            <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-backend-core</artifactId>
+            <groupId>com.etactics</groupId>
+            <artifactId>proxima-service-backend-core</artifactId>
         </dependency>
 
         <!-- Spring Boot core (no web) – provides ApplicationContext bootstrap -->
@@ -128,7 +128,7 @@
                         <groupId>org.springframework.boot</groupId>
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
-                            <mainClass>com.orgasm.lambda.LambdaApplication</mainClass>
+                            <mainClass>com.etactics.proxima.service.lambda.LambdaApplication</mainClass>
                             <profiles>
                                 <profile>aot</profile>
                             </profiles>

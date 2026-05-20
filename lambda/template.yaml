@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Description: Orgasm Lambda functions (SAM) — container image deployment
+Description: Proxima Service Lambda functions (SAM) — container image deployment
 
 Globals:
   Function:
@@ -12,12 +12,12 @@ Globals:
     PackageType: Image
     Environment:
       Variables:
-        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/url}}"
-        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/username}}"
-        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/password}}"
-        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/url}}"
-        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/username}}"
-        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/password}}"
+        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/url}}"
+        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/username}}"
+        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/app/password}}"
+        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/url}}"
+        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/username}}"
+        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/proxima-service/${Env}/datasource/billing/password}}"
 
 Parameters:
   Env:
@@ -28,18 +28,18 @@ Parameters:
     Type: String
     Description: >
       ECR image URI built from lambda/Dockerfile.
-      Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/orgasm-lambda:latest
+      Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/proxima-service-lambda:latest
 
 Resources:
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "orgasm-hello-${Env}"
+      FunctionName: !Sub "proxima-service-hello-${Env}"
       Description: Health-check / hello endpoint
       ImageUri: !Ref ImageUri
       ImageConfig:
         Command:
-          - com.orgasm.lambda.HelloHandler::handleRequest
+          - com.etactics.proxima.service.lambda.HelloHandler::handleRequest
       FunctionUrlConfig:
         AuthType: NONE
         Cors:
@@ -51,12 +51,12 @@ Resources:
   CreatePlaylistFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "orgasm-create-playlist-${Env}"
+      FunctionName: !Sub "proxima-service-create-playlist-${Env}"
       Description: Create a playlist
       ImageUri: !Ref ImageUri
       ImageConfig:
         Command:
-          - com.orgasm.lambda.CreatePlaylistHandler::handleRequest
+          - com.etactics.proxima.service.lambda.CreatePlaylistHandler::handleRequest
       FunctionUrlConfig:
         AuthType: NONE
         Cors:

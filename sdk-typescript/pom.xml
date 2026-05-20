@@ -5,15 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.etactics</groupId>
+        <artifactId>proxima-service-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-sdk-typescript</artifactId>
+    <artifactId>proxima-service-sdk-typescript</artifactId>
     <packaging>pom</packaging>
-    <name>orgasm-sdk-typescript</name>
-    <description>TypeScript/JavaScript client for the Orgasm Backend API (Axios)</description>
+    <name>proxima-service-sdk-typescript</name>
+    <description>TypeScript/JavaScript client for the Proxima Service Backend API (Axios)</description>
 
     <build>
         <plugins>
@@ -65,7 +65,7 @@
                             <generateApiDocumentation>false</generateApiDocumentation>
                             <generateModelDocumentation>false</generateModelDocumentation>
                             <configOptions>
-                                <npmName>@orgasm/backend-client</npmName>
+                                <npmName>@etactics/proxima-service-client</npmName>
                                 <npmVersion>${project.version}</npmVersion>
                                 <supportsES6>true</supportsES6>
                                 <withSeparateModelsAndApi>true</withSeparateModelsAndApi>

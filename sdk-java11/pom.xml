@@ -5,15 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.etactics</groupId>
+        <artifactId>proxima-service-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-sdk-java11</artifactId>
+    <artifactId>proxima-service-sdk-java11</artifactId>
     <packaging>jar</packaging>
-    <name>orgasm-sdk-java11</name>
-    <description>Java 11 compatible HTTP client for the Orgasm Backend API (java.net.http.HttpClient + Jackson)</description>
+    <name>proxima-service-sdk-java11</name>
+    <description>Java 11 compatible HTTP client for the Proxima Service Backend API (java.net.http.HttpClient + Jackson)</description>
 
     <properties>
         <!-- Generated code only — exempt from line-coverage gate -->
@@ -43,8 +43,8 @@
 
         <!-- Shared model classes -->
         <dependency>
-            <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-sdk-models</artifactId>
+            <groupId>com.etactics</groupId>
+            <artifactId>proxima-service-sdk-models</artifactId>
         </dependency>
 
         <!-- Test -->
@@ -96,9 +96,9 @@
                             <inputSpec>${project.basedir}/../api-spec/backend-api.yaml</inputSpec>
                             <generatorName>java</generatorName>
                             <library>native</library>
-                            <apiPackage>com.orgasm.sdk.java11.api</apiPackage>
-                            <modelPackage>com.orgasm.sdk.model</modelPackage>
-                            <invokerPackage>com.orgasm.sdk.java11</invokerPackage>
+                            <apiPackage>com.etactics.proxima.service.sdk.java11.api</apiPackage>
+                            <modelPackage>com.etactics.proxima.service.sdk.model</modelPackage>
+                            <invokerPackage>com.etactics.proxima.service.sdk.java11</invokerPackage>
                             <generateApis>true</generateApis>
                             <generateModels>false</generateModels>
                             <generateApiTests>false</generateApiTests>

@@ -8,8 +8,8 @@ Five independent sub-projects sharing a root directory:
 
 | Directory | Type | Artifact |
 |-----------|------|----------|
-| `sdk/` | Java 25 library | `orgasm-sdk` JAR – consumed by `backend` and `lambda` |
-| `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
+| `sdk/` | Java 25 library | `proxima-service-sdk` JAR – consumed by `backend` and `lambda` |
+| `backend-core/` | Spring Boot 4 library | `proxima-service-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
 | `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080`; thin web layer only |
 | `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml` |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
@@ -112,13 +112,13 @@ Five modules are built from a single canonical spec at `api-spec/backend-api.yam
 
 | Module | Artifact | Target | HTTP library | Package prefix |
 |--------|----------|--------|--------------|----------------|
-| `sdk-models/` | `orgasm-sdk-models` | Java 11+ | — (models only, shared) | `com.orgasm.sdk.model` |
-| `sdk/` | `orgasm-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.client` |
-| `sdk-java11/` | `orgasm-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.java11` |
-| `sdk-java8/` | `orgasm-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.orgasm.sdk.java8` |
-| `sdk-typescript/` | npm `@orgasm/backend-client` | TypeScript/ESM | Axios | `api/`, `model/` |
+| `sdk-models/` | `proxima-service-sdk-models` | Java 11+ | — (models only, shared) | `com.etactics.proxima.service.sdk.model` |
+| `sdk/` | `proxima-service-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.etactics.proxima.service.sdk.client` |
+| `sdk-java11/` | `proxima-service-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.etactics.proxima.service.sdk.java11` |
+| `sdk-java8/` | `proxima-service-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.etactics.proxima.service.sdk.java8` |
+| `sdk-typescript/` | npm `@etactics/proxima-service-client` | TypeScript/ESM | Axios | `api/`, `model/` |
 
-**Model consolidation:** `sdk-models` generates one set of Jackson-annotated model classes (`com.orgasm.sdk.model.*`) shared by `sdk/` and `sdk-java11/`. Both modules set `generateModels=false` and point `modelPackage=com.orgasm.sdk.model`; the generator emits API and supporting files only, importing models from `sdk-models.jar`. `sdk-java8` stays independent: its Gson-annotated models (`@SerializedName`) and the `URLEncoder.encode(String, Charset)` Java 10+ API in generated `toUrlQueryString()` helpers make sharing with a `--release 8` target impossible without custom templates.
+**Model consolidation:** `sdk-models` generates one set of Jackson-annotated model classes (`com.etactics.proxima.service.sdk.model.*`) shared by `sdk/` and `sdk-java11/`. Both modules set `generateModels=false` and point `modelPackage=com.etactics.proxima.service.sdk.model`; the generator emits API and supporting files only, importing models from `sdk-models.jar`. `sdk-java8` stays independent: its Gson-annotated models (`@SerializedName`) and the `URLEncoder.encode(String, Charset)` Java 10+ API in generated `toUrlQueryString()` helpers make sharing with a `--release 8` target impossible without custom templates.
 
 **Usage (Java 25 / Java 11):**
 ```java
@@ -187,7 +187,7 @@ cp backend/.env.example backend/.env
 
 | Name | What it starts |
 |------|---------------|
-| `Spring Boot-BackendApplication<orgasm-backend>` | Spring Boot with `dev` profile, loads `backend/.env` |
+| `Spring Boot-BackendApplication<proxima-service-backend>` | Spring Boot with `dev` profile, loads `backend/.env` |
 | `UI (mock)` | `npm run dev:mock` — Vite on `:5173` with MSW mocks, no backend needed |
 
 The Spring Boot config sets `cwd` to `backend/` (so Docker Compose finds `compose.yml`) and loads `backend/.env`. The `dev` profile (`application-dev.yml`) sets `lifecycle-management: start-only` so Docker Compose containers keep running between app restarts — data in named volumes is preserved across restarts.
@@ -252,7 +252,7 @@ Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker o
 ### Backend
 
 ```bash
-# Build native executable to backend/target/orgasm-backend
+# Build native executable to backend/target/proxima-service-backend
 ./mvnw package -pl backend -am -DskipTests -Pnative
 
 # Or let Spring Boot build an OCI image (requires Docker)
@@ -266,27 +266,27 @@ Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker o
 ./mvnw package -pl lambda -am -DskipTests -Pnative
 
 # Build Docker image for ECR (build context = repo root)
-docker build -f lambda/Dockerfile -t orgasm-lambda:latest .
+docker build -f lambda/Dockerfile -t proxima-service-lambda:latest .
 
 # For Graviton arm64 (matches template.yaml Architectures: [arm64]):
 docker buildx build --platform linux/arm64 \
-    -f lambda/Dockerfile -t orgasm-lambda:latest .
+    -f lambda/Dockerfile -t proxima-service-lambda:latest .
 
 # Push to ECR
 aws ecr get-login-password --region <region> \
   | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
-docker tag orgasm-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
-docker push <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
+docker tag proxima-service-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/proxima-service-lambda:latest
+docker push <account>.dkr.ecr.<region>.amazonaws.com/proxima-service-lambda:latest
 
 # Deploy via SAM (pass the image URI)
 sam deploy --parameter-overrides \
-  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest \
+  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/proxima-service-lambda:latest \
   Env=dev
 ```
 
 **AOT / database during native build:** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. It uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
 
-**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.orgasm.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
+**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.etactics.proxima.service.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
 
 ## Lambda local testing
 
@@ -331,7 +331,7 @@ public HelloHandler() {
 The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependencyManagement>`. This lets `lambda` avoid pulling Spring Boot transitive dependencies while still benefiting from version alignment for Jackson/SLF4J etc.
 
 ### Lambda packaging
-`lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.orgasm.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
+`lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.etactics.proxima.service.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
 
 ### API versioning
 
@@ -365,19 +365,19 @@ The backend uses two physically separate MariaDB databases, each with its own `D
 
 | Bean qualifier | Database | Port | Purpose |
 |----------------|----------|------|---------|
-| `appDataSource` / `appEntityManagerFactory` | `orgasm` | 3306 | Application data |
-| `billingDataSource` / `billingEntityManagerFactory` | `orgasm_billing` | 3307 | Billing data |
+| `appDataSource` / `appEntityManagerFactory` | `proxima_service` | 3306 | Application data |
+| `billingDataSource` / `billingEntityManagerFactory` | `proxima_service_billing` | 3307 | Billing data |
 
 **Package layout for entities and repositories:**
-- `com.orgasm.backend.domain.billing` — `@Entity` classes for the **billing** database
-- `com.orgasm.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
-- Everything else under `com.orgasm.backend` — entities and repositories for the **app** database
+- `com.etactics.proxima.service.backend.domain.billing` — `@Entity` classes for the **billing** database
+- `com.etactics.proxima.service.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
+- Everything else under `com.etactics.proxima.service.backend` — entities and repositories for the **app** database
 
-`AppJpaConfig` scans `com.orgasm.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.orgasm.backend.domain.billing` / `com.orgasm.backend.repository.billing`). This means **new feature packages (e.g. `com.orgasm.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
+`AppJpaConfig` scans `com.etactics.proxima.service.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.etactics.proxima.service.backend.domain.billing` / `com.etactics.proxima.service.backend.repository.billing`). This means **new feature packages (e.g. `com.etactics.proxima.service.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
 
 `BackendApplicationTests.contextLoads()` serves as the safety net: a new entity whose repository is not visible to the app `EntityManagerFactory` will cause the context load test to fail immediately.
 
-**Base entity:** All entities should extend `com.orgasm.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
+**Base entity:** All entities should extend `com.etactics.proxima.service.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
 - `version` — optimistic locking via `@Version`
 - `createdAt` — set once on insert via `@CreatedDate`
 - `updatedAt` — updated on every save via `@LastModifiedDate`
@@ -449,7 +449,7 @@ Backend integration tests (`*IT.java`) start real `mariadb:12.2.2` containers vi
 class SomeRepositoryIT {
     @Container
     static MariaDBContainer<?> appDb = new MariaDBContainer<>("mariadb:12.2.2")
-            .withDatabaseName("orgasm").withUsername("orgasm").withPassword("orgasm");
+            .withDatabaseName("proxima_service").withUsername("proxima_service").withPassword("proxima_service");
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
