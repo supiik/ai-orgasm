@@ -30,6 +30,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -290,6 +291,22 @@ class OrgasmServiceTest {
 
         assertThat(service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID)).isEqualTo(expected);
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.PUBLISHED);
+        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
+    }
+
+    @Test
+    void publishPlaylist_declinesPendingNominations() {
+        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
+
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(saved);
+        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+
+        service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID);
+
+        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
     }
 
     @Test

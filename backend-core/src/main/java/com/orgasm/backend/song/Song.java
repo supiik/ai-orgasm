@@ -42,4 +42,7 @@ public class Song extends AuditableEntity {
 
     @Column(name = "release_year")
     private Integer releaseYear;
+
+    @Column(name = "url", length = 2048)
+    private String url;
 }

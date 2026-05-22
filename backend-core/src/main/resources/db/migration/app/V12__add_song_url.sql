@@ -1,0 +1,2 @@
+ALTER TABLE songs
+    ADD COLUMN url VARCHAR(2048);

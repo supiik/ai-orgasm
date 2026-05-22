@@ -3,14 +3,14 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api } from '@/api'
-import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Check } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
-import { SelectItem, SelectItemText, SelectItemIndicator } from 'radix-vue'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
+import ContributorSelect from '@/components/ContributorSelect.vue'
+import SongUrlBadge from '@/components/SongUrlBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -18,7 +18,7 @@ const router = useRouter()
 const id = route.params.id as string
 const playlist = ref<PlaylistResponse | null>(null)
 const nominations = ref<NominationResponse[]>([])
-const songMap = ref<Record<string, { name: string; artist: string }>>({})
+const songMap = ref<Record<string, { name: string; artist: string; url: string | null }>>({})
 const contributorMap = ref<Record<string, { name: string; avatarUrl: string | null }>>({})
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -63,7 +63,7 @@ async function resolveNominationDetails() {
     ...songIds.map(async sid => {
       try {
         const { data } = await api.songs().get(sid)
-        songMap.value[sid] = { name: data.name!, artist: data.artist! }
+        songMap.value[sid] = { name: data.name!, artist: data.artist!, url: data.url ?? null }
       } catch {}
     }),
     ...contributorIds.map(async cid => {
@@ -126,9 +126,12 @@ const openError = ref<string | null>(null)
 const opening = ref(false)
 
 function showOpen() {
-  openForm.value = { contributorId: '', deadline: '' }
+  const d = new Date(); d.setDate(d.getDate() + 14)
+  const defaultDeadline = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  openForm.value = { contributorId: '', deadline: defaultDeadline }
   openError.value = null
   openOpen.value = true
+  if (!allContributors.value.length) loadAllContributors()
 }
 
 async function submitOpen() {
@@ -139,7 +142,7 @@ async function submitOpen() {
   try {
     const { data } = await api.playlists().open(id, {
       contributorId: openForm.value.contributorId.trim(),
-      deadline: new Date(openForm.value.deadline).toISOString(),
+      deadline: new Date(`${openForm.value.deadline}T00:00:00`).toISOString(),
     })
     playlist.value = data
     openOpen.value = false
@@ -154,18 +157,29 @@ async function submitOpen() {
 // ── Nominate song dialog ──────────────────────────────────────────────────────
 
 const nominateOpen = ref(false)
-const nominateForm = ref({ contributorId: '', artist: '', name: '', album: '', releaseYear: '' })
+const nominateForm = ref({ contributorId: '', artist: '', name: '', album: '', releaseYear: '', url: '' })
 const nominateError = ref<string | null>(null)
 const nominating = ref(false)
 const allContributors = ref<Array<{ id: string; name: string; avatarUrl: string | null }>>([])
 
+const visibleNominations = computed(() =>
+  playlist.value?.status === PlaylistStatus.Published
+    ? nominations.value.filter(n => n.status === NominationStatus.Approved)
+    : nominations.value,
+)
+
 const eligibleContributors = computed(() => {
-  const nominated = new Set(nominations.value.map(n => n.nominatedById).filter(Boolean))
+  const nominated = new Set(
+    nominations.value
+      .filter(n => n.status !== NominationStatus.Declined)
+      .map(n => n.nominatedById)
+      .filter(Boolean),
+  )
   return allContributors.value.filter(c => !nominated.has(c.id))
 })
 
 function showNominate(contributorId = '') {
-  nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '' }
+  nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '', url: '' }
   nominateError.value = null
   nominateOpen.value = true
 }
@@ -184,6 +198,7 @@ async function submitNominate() {
       name: nominateForm.value.name.trim(),
       album: nominateForm.value.album.trim() || undefined,
       releaseYear: year,
+      url: nominateForm.value.url.trim() || undefined,
     })
     await api.nominations().create(id, {
       contributorId: nominateForm.value.contributorId,
@@ -351,16 +366,17 @@ function statusClass(s: NominationStatus | undefined) {
           </Button>
         </div>
 
-        <div v-if="nominations.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
+        <div v-if="visibleNominations.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
           No nominations yet.
         </div>
 
         <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
-          <div v-for="nom in nominations" :key="nom.id" class="grid grid-cols-3 items-center px-4 py-3 gap-4 text-sm">
+          <div v-for="nom in visibleNominations" :key="nom.id" class="grid grid-cols-3 items-center px-4 py-3 gap-4 text-sm">
             <!-- Song -->
             <div class="min-w-0">
               <div class="font-medium truncate">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
               <div class="text-muted-foreground text-xs truncate">{{ songMap[nom.songId!]?.artist }}</div>
+              <SongUrlBadge v-if="songMap[nom.songId!]?.url" :url="songMap[nom.songId!].url!" class="mt-1" />
             </div>
             <!-- Contributor -->
             <div class="flex items-center gap-2 min-w-0 text-xs text-muted-foreground">
@@ -430,12 +446,12 @@ function statusClass(s: NominationStatus | undefined) {
       <DialogHeader><DialogTitle>Open playlist for nominations</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitOpen">
         <div class="space-y-1.5">
-          <Label for="open-contributor">Lead contributor ID <span class="text-destructive">*</span></Label>
-          <Input id="open-contributor" v-model="openForm.contributorId" placeholder="cont-…" />
+          <Label>Lead contributor <span class="text-destructive">*</span></Label>
+          <ContributorSelect v-model="openForm.contributorId" :contributors="allContributors" placeholder="Select lead contributor…" />
         </div>
         <div class="space-y-1.5">
           <Label for="open-deadline">Nomination deadline <span class="text-destructive">*</span></Label>
-          <Input id="open-deadline" v-model="openForm.deadline" type="datetime-local" />
+          <Input id="open-deadline" v-model="openForm.deadline" type="date" />
         </div>
         <p v-if="openError" class="text-sm text-destructive">{{ openError }}</p>
       </form>
@@ -453,19 +469,7 @@ function statusClass(s: NominationStatus | undefined) {
       <form class="space-y-4" @submit.prevent="submitNominate">
         <div class="space-y-1.5">
           <Label>Contributor <span class="text-destructive">*</span></Label>
-          <Select v-model="nominateForm.contributorId" placeholder="Select contributor…">
-            <SelectItem
-              v-for="c in eligibleContributors" :key="c.id" :value="c.id"
-              class="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-            >
-              <span class="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                <SelectItemIndicator><Check class="h-4 w-4" /></SelectItemIndicator>
-              </span>
-              <img v-if="c.avatarUrl" :src="c.avatarUrl" :alt="c.name" class="w-6 h-6 rounded-full object-cover shrink-0" />
-              <div v-else class="w-6 h-6 rounded-full bg-muted shrink-0" />
-              <SelectItemText>{{ c.name }}</SelectItemText>
-            </SelectItem>
-          </Select>
+          <ContributorSelect v-model="nominateForm.contributorId" :contributors="eligibleContributors" placeholder="Select contributor…" />
         </div>
         <div class="border-t border-border pt-4 space-y-3">
           <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Song</p>
@@ -487,6 +491,10 @@ function statusClass(s: NominationStatus | undefined) {
               <Input id="nom-year" v-model="nominateForm.releaseYear" type="number" placeholder="1993" />
             </div>
           </div>
+          <div class="space-y-1.5">
+            <Label for="nom-url">Link</Label>
+            <Input id="nom-url" v-model="nominateForm.url" type="url" placeholder="https://…" />
+          </div>
         </div>
         <p v-if="nominateError" class="text-sm text-destructive">{{ nominateError }}</p>
       </form>
@@ -504,8 +512,8 @@ function statusClass(s: NominationStatus | undefined) {
       <form class="space-y-4" @submit.prevent="submitPublish">
         <p class="text-sm text-muted-foreground">Confirm you are the lead contributor. This action cannot be undone.</p>
         <div class="space-y-1.5">
-          <Label for="pub-id">Your contributor ID <span class="text-destructive">*</span></Label>
-          <Input id="pub-id" v-model="publishContributorId" placeholder="cont-…" autofocus />
+          <Label>Your contributor <span class="text-destructive">*</span></Label>
+          <ContributorSelect v-model="publishContributorId" :contributors="allContributors" placeholder="Select your contributor…" />
         </div>
         <p v-if="publishError" class="text-sm text-destructive">{{ publishError }}</p>
       </form>

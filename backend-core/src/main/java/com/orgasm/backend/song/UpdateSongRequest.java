@@ -8,5 +8,6 @@ public record UpdateSongRequest(
         @NotBlank String artist,
         @NotBlank String name,
         String album,
-        Integer releaseYear
+        Integer releaseYear,
+        String url
 ) {}

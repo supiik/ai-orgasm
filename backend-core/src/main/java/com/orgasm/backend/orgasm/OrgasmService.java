@@ -112,6 +112,7 @@ public class OrgasmService {
             throw new IllegalStateException("Playlist deadline has not yet passed");
         }
         playlist.setStatus(PlaylistStatus.PUBLISHED);
+        nominationRepository.declinePendingByPlaylistId(playlist.getId());
         return playlistMapper.toResponse(playlistRepository.save(playlist));
     }
 

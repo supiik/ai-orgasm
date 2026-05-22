@@ -50,7 +50,7 @@ class SongControllerTest {
     }
 
     static SongResponse response(String id, String artist, String name) {
-        return new SongResponse(id, artist, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new SongResponse(id, artist, name, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
@@ -98,7 +98,7 @@ class SongControllerTest {
 
         mvc.perform(post("/api/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "Creep", "Pablo Honey", 1993))))
+                        .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "Creep", "Pablo Honey", 1993, null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/songs/song-0001")))
                 .andExpect(jsonPath("$.id").value("song-0001"));
@@ -108,7 +108,7 @@ class SongControllerTest {
     void create_returns400_whenArtistBlank() throws Exception {
         mvc.perform(post("/api/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateSongRequest("", "Creep", null, null))))
+                        .content(objectMapper.writeValueAsString(new CreateSongRequest("", "Creep", null, null, null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -116,7 +116,7 @@ class SongControllerTest {
     void create_returns400_whenNameBlank() throws Exception {
         mvc.perform(post("/api/v1/songs")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "", null, null))))
+                        .content(objectMapper.writeValueAsString(new CreateSongRequest("Radiohead", "", null, null, null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -126,7 +126,7 @@ class SongControllerTest {
 
         mvc.perform(put("/api/v1/songs/song-0001")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateSongRequest("Radiohead", "Karma Police", "OK Computer", 1997))))
+                        .content(objectMapper.writeValueAsString(new UpdateSongRequest("Radiohead", "Karma Police", "OK Computer", 1997, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Karma Police"));
     }
@@ -138,7 +138,7 @@ class SongControllerTest {
 
         mvc.perform(put("/api/v1/songs/song-9999")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdateSongRequest("X", "Y", null, null))))
+                        .content(objectMapper.writeValueAsString(new UpdateSongRequest("X", "Y", null, null, null))))
                 .andExpect(status().isNotFound());
     }
 

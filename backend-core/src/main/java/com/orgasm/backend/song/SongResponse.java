@@ -11,6 +11,7 @@ public record SongResponse(
         String name,
         String album,
         Integer releaseYear,
+        String url,
         Long version,
         Instant createdAt,
         Instant updatedAt

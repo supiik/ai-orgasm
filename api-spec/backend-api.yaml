@@ -812,6 +812,8 @@ components:
           type: string
         releaseYear:
           type: integer
+        url:
+          type: string
 
     UpdateSongRequest:
       type: object
@@ -827,6 +829,8 @@ components:
           type: string
         releaseYear:
           type: integer
+        url:
+          type: string
 
     SongResponse:
       type: object
@@ -841,6 +845,8 @@ components:
           type: string
         releaseYear:
           type: integer
+        url:
+          type: string
         version:
           type: integer
           format: int64

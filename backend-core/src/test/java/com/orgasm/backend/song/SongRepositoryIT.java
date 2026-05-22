@@ -53,7 +53,7 @@ class SongRepositoryIT {
 
     @Test
     void save_persistsSong() {
-        Song saved = repository.save(new Song(null, null, "Radiohead", "Creep", "Pablo Honey", 1993));
+        Song saved = repository.save(new Song(null, null, "Radiohead", "Creep", "Pablo Honey", 1993, null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -61,16 +61,16 @@ class SongRepositoryIT {
 
     @Test
     void findById_returnsSong_afterSave() {
-        Song saved = repository.save(new Song(null, null, "Nirvana", "Smells Like Teen Spirit", null, null));
+        Song saved = repository.save(new Song(null, null, "Nirvana", "Smells Like Teen Spirit", null, null, null));
 
         assertThat(repository.findById(saved.getId())).contains(saved);
     }
 
     @Test
     void findAll_returnsPaginatedResults() {
-        repository.save(new Song(null, null, "Artist A", "Track 1", null, null));
-        repository.save(new Song(null, null, "Artist B", "Track 2", null, null));
-        repository.save(new Song(null, null, "Artist C", "Track 3", null, null));
+        repository.save(new Song(null, null, "Artist A", "Track 1", null, null, null));
+        repository.save(new Song(null, null, "Artist B", "Track 2", null, null, null));
+        repository.save(new Song(null, null, "Artist C", "Track 3", null, null, null));
 
         Page<Song> page = repository.findAll(PageRequest.of(0, 2));
 
@@ -80,7 +80,7 @@ class SongRepositoryIT {
 
     @Test
     void softDelete_hidesRowFromSubsequentFinds() {
-        Song saved = repository.save(new Song(null, null, "Oasis", "Wonderwall", "What's the Story Morning Glory?", 1995));
+        Song saved = repository.save(new Song(null, null, "Oasis", "Wonderwall", "What's the Story Morning Glory?", 1995, null));
         repository.flush();
 
         int affected = repository.softDeleteById(saved.getId(), Instant.now());
@@ -99,9 +99,9 @@ class SongRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_returnsMatches() {
-        repository.save(new Song(null, null, "Radiohead", "Creep", null, null));
-        repository.save(new Song(null, null, "Radiohead", "Karma Police", null, null));
-        repository.save(new Song(null, null, "Nirvana", "Come as You Are", null, null));
+        repository.save(new Song(null, null, "Radiohead", "Creep", null, null, null));
+        repository.save(new Song(null, null, "Radiohead", "Karma Police", null, null, null));
+        repository.save(new Song(null, null, "Nirvana", "Come as You Are", null, null, null));
 
         Page<Song> result = repository.findByNameContainingIgnoreCase("cree", PageRequest.of(0, 10));
 
@@ -110,7 +110,7 @@ class SongRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_isCaseInsensitive() {
-        repository.save(new Song(null, null, "Radiohead", "Paranoid Android", null, null));
+        repository.save(new Song(null, null, "Radiohead", "Paranoid Android", null, null, null));
 
         Page<Song> result = repository.findByNameContainingIgnoreCase("PARANOID", PageRequest.of(0, 10));
 

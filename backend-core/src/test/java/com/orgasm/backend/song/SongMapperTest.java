@@ -17,7 +17,7 @@ class SongMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Song song = new Song(3L, null, "Radiohead", "Creep", "Pablo Honey", 1993);
+        Song song = new Song(3L, null, "Radiohead", "Creep", "Pablo Honey", 1993, null);
 
         SongResponse response = mapper.toResponse(song);
 
@@ -37,7 +37,7 @@ class SongMapperTest {
 
     @Test
     void toEntity_copiesAllFields() {
-        CreateSongRequest request = new CreateSongRequest("Nirvana", "Smells Like Teen Spirit", "Nevermind", 1991);
+        CreateSongRequest request = new CreateSongRequest("Nirvana", "Smells Like Teen Spirit", "Nevermind", 1991, null);
 
         Song entity = mapper.toEntity(request);
 
@@ -50,7 +50,7 @@ class SongMapperTest {
 
     @Test
     void toEntity_handlesNullOptionalFields() {
-        CreateSongRequest request = new CreateSongRequest("Artist", "Track", null, null);
+        CreateSongRequest request = new CreateSongRequest("Artist", "Track", null, null, null);
 
         Song entity = mapper.toEntity(request);
 
@@ -60,7 +60,7 @@ class SongMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Song song = new Song(1L, null, "Original Artist", "Original Name", "Original Album", 2000);
+        Song song = new Song(1L, null, "Original Artist", "Original Name", "Original Album", 2000, null);
 
         mapper.updateEntity(null, song);
 
@@ -72,8 +72,8 @@ class SongMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Song song = new Song(1L, null, "Old Artist", "Old Name", "Old Album", 1990);
-        UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", "New Album", 2020);
+        Song song = new Song(1L, null, "Old Artist", "Old Name", "Old Album", 1990, null);
+        UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", "New Album", 2020, null);
 
         mapper.updateEntity(request, song);
 
@@ -86,8 +86,8 @@ class SongMapperTest {
 
     @Test
     void updateEntity_preservesOptionalFields_whenNullInRequest() {
-        Song song = new Song(1L, null, "Artist", "Name", "Album", 2000);
-        UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", null, null);
+        Song song = new Song(1L, null, "Artist", "Name", "Album", 2000, null);
+        UpdateSongRequest request = new UpdateSongRequest("New Artist", "New Name", null, null, null);
 
         mapper.updateEntity(request, song);
 
