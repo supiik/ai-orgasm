@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor } from 'lucide-vue-next'
+import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 
 const { theme, cycle } = useTheme()
@@ -46,6 +46,14 @@ const { theme, cycle } = useTheme()
         >
           <Users class="h-4 w-4 shrink-0" />
           Contributors
+        </RouterLink>
+        <RouterLink
+          to="/guessing"
+          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          active-class="bg-accent text-accent-foreground font-medium"
+        >
+          <Gamepad2 class="h-4 w-4 shrink-0" />
+          Guessing
         </RouterLink>
         <div class="mt-auto pt-2 border-t border-border">
           <button
