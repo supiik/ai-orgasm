@@ -7,6 +7,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -19,6 +21,17 @@ import java.net.URI;
 public class ContributorController {
 
     private final ContributorService service;
+
+    @GetMapping("/me")
+    public ResponseEntity<ContributorResponse> me(
+            @AuthenticationPrincipal JwtAuthenticationToken authentication) {
+        String email = authentication.getTokenAttributes()
+                .getOrDefault("email", "").toString();
+        if (email.isBlank()) return ResponseEntity.unprocessableEntity().build();
+        return service.findByEmail(email)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
 
     @GetMapping
     public ResponseEntity<Page<ContributorResponse>> findAll(

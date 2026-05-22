@@ -21,6 +21,9 @@ export const db: ContributorResponse[] = [
 const now = () => new Date().toISOString()
 
 export const contributorHandlers = [
+  http.get('/api/v1/contributors/me', () =>
+    HttpResponse.json({ message: 'Not found' }, { status: 404 })),
+
   http.get('/api/v1/contributors', ({ request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? 0)

@@ -32,6 +32,7 @@ const _nominations = new NominationsApi(config)
 const contributorClient = {
   list:          (page?: number, size?: number, sort?: string, name?: string) => _contributors.findAllContributors(page, size, sort, name),
   get:           (id: string) => _contributors.findContributorById(id),
+  me:            () => _contributors.findCurrentContributor(),
   create:        (body: CreateContributorRequest) => _contributors.createContributor(body),
   update:        (id: string, body: UpdateContributorRequest) => _contributors.updateContributor(id, body),
   delete:        (id: string) => _contributors.deleteContributor(id),

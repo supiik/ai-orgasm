@@ -73,6 +73,42 @@
       "attributes": {
         "tenant_id": ["1"]
       }
+    },
+    {
+      "username": "thom",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "thom@example.com",
+      "firstName": "Thom",
+      "lastName": "Yorke",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "tenant_id": ["1"]
+      }
+    },
+    {
+      "username": "jonny",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "jonny@example.com",
+      "firstName": "Jonny",
+      "lastName": "Greenwood",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "attributes": {
+        "tenant_id": ["1"]
+      }
     }
   ]
 }

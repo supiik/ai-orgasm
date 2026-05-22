@@ -41,6 +41,12 @@ public class ContributorService {
 
     @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
+    public Optional<ContributorResponse> findByEmail(String email) {
+        return repository.findByEmail(email).map(mapper::toResponse);
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
     public Page<ContributorResponse> findAll(FindContributorsRequest request, Pageable pageable) {
         if (request.name() == null || request.name().isBlank()) {
             return repository.findAll(pageable).map(mapper::toResponse);

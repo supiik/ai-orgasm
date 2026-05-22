@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { api } from '@/api'
+import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -36,6 +37,9 @@ interface Playlist {
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
+
+const authStore = useAuthStore()
+const isMock = import.meta.env.VITE_MOCK === 'true'
 
 const playlists = ref<Playlist[]>([])
 const allContributors = ref<Contributor[]>([])
@@ -124,6 +128,10 @@ async function selectPlaylist(playlist: Playlist) {
           }
         })
     )
+    const myId = authStore.currentContributor?.id
+    if (myId && eligibleContributors.value.some(c => c.id === myId)) {
+      me.value = myId
+    }
   } catch {
     error.value = 'Failed to load nominations.'
   } finally {
@@ -213,10 +221,16 @@ function reset() {
       </template>
 
       <template v-else>
-        <!-- Identity picker -->
-        <div v-if="!me || submitted" class="flex items-center gap-3">
+        <!-- Identity section -->
+        <div class="flex items-center gap-3">
           <label class="text-sm font-medium whitespace-nowrap">I am</label>
-          <Select v-model="me" :disabled="submitted" class="w-56">
+          <!-- Auto-resolved in real mode -->
+          <template v-if="me && !isMock && !submitted">
+            <span class="text-sm font-medium">{{ contributorName(me) }}</span>
+            <button class="text-xs text-muted-foreground underline" @click="me = ''">Change</button>
+          </template>
+          <!-- Manual picker in mock mode or when identity is not resolved -->
+          <Select v-else v-model="me" :disabled="submitted" class="w-56">
             <SelectTrigger>
               <SelectValue placeholder="Select your name…" />
             </SelectTrigger>

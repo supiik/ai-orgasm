@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2 } from 'lucide-vue-next'
+import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, LogOut } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 
 const { theme, cycle } = useTheme()
+
+const isMock = import.meta.env.VITE_MOCK === 'true'
+
+async function logout() {
+  const keycloak = (await import('./keycloak')).default
+  await keycloak.logout({ redirectUri: window.location.origin })
+}
 </script>
 
 <template>
@@ -64,6 +71,14 @@ const { theme, cycle } = useTheme()
             <Moon v-else-if="theme === 'dark'" class="h-4 w-4 shrink-0" />
             <Monitor v-else class="h-4 w-4 shrink-0" />
             <span>{{ theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System' }}</span>
+          </button>
+          <button
+            v-if="!isMock"
+            class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            @click="logout"
+          >
+            <LogOut class="h-4 w-4 shrink-0" />
+            <span>Logout</span>
           </button>
         </div>
       </nav>

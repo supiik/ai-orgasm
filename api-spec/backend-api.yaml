@@ -69,6 +69,21 @@ paths:
         '400':
           description: Validation error
 
+  /api/v1/contributors/me:
+    get:
+      tags: [contributors]
+      operationId: findCurrentContributor
+      summary: Get the contributor matching the authenticated user's email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributorResponse'
+        '404':
+          description: No contributor matches the current user's email
+
   /api/v1/contributors/{id}:
     get:
       tags: [contributors]
