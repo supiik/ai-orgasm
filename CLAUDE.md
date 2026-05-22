@@ -8,8 +8,8 @@ Five independent sub-projects sharing a root directory:
 
 | Directory | Type | Artifact |
 |-----------|------|----------|
-| `sdk/` | Java 25 library | `orgasm-sdk` JAR – consumed by `backend` and `lambda` |
-| `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
+| `sdk/` | Java 25 library | `anchor-sdk` JAR – consumed by `backend` and `lambda` |
+| `backend-core/` | Spring Boot 4 library | `anchor-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
 | `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080`; thin web layer only |
 | `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml` |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
@@ -112,31 +112,31 @@ Five modules are built from a single canonical spec at `api-spec/backend-api.yam
 
 | Module | Artifact | Target | HTTP library | Package prefix |
 |--------|----------|--------|--------------|----------------|
-| `sdk-models/` | `orgasm-sdk-models` | Java 11+ | — (models only, shared) | `com.orgasm.sdk.model` |
-| `sdk/` | `orgasm-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.client` |
-| `sdk-java11/` | `orgasm-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.orgasm.sdk.java11` |
-| `sdk-java8/` | `orgasm-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.orgasm.sdk.java8` |
-| `sdk-typescript/` | npm `@orgasm/backend-client` | TypeScript/ESM | Axios | `api/`, `model/` |
+| `sdk-models/` | `anchor-sdk-models` | Java 11+ | — (models only, shared) | `com.pi2.anchor.sdk.model` |
+| `sdk/` | `anchor-sdk` | Java 25 | `java.net.http.HttpClient` (native) | `com.pi2.anchor.sdk.client` |
+| `sdk-java11/` | `anchor-sdk-java11` | Java 11+ | `java.net.http.HttpClient` (native) | `com.pi2.anchor.sdk.java11` |
+| `sdk-java8/` | `anchor-sdk-java8` | Java 8+ | OkHttp 4 + Gson | `com.pi2.anchor.sdk.java8` |
+| `sdk-typescript/` | npm `@pi2/anchor-client` | TypeScript/ESM | Axios | `api/`, `model/` |
 
-**Model consolidation:** `sdk-models` generates one set of Jackson-annotated model classes (`com.orgasm.sdk.model.*`) shared by `sdk/` and `sdk-java11/`. Both modules set `generateModels=false` and point `modelPackage=com.orgasm.sdk.model`; the generator emits API and supporting files only, importing models from `sdk-models.jar`. `sdk-java8` stays independent: its Gson-annotated models (`@SerializedName`) and the `URLEncoder.encode(String, Charset)` Java 10+ API in generated `toUrlQueryString()` helpers make sharing with a `--release 8` target impossible without custom templates.
+**Model consolidation:** `sdk-models` generates one set of Jackson-annotated model classes (`com.pi2.anchor.sdk.model.*`) shared by `sdk/` and `sdk-java11/`. Both modules set `generateModels=false` and point `modelPackage=com.pi2.anchor.sdk.model`; the generator emits API and supporting files only, importing models from `sdk-models.jar`. `sdk-java8` stays independent: its Gson-annotated models (`@SerializedName`) and the `URLEncoder.encode(String, Charset)` Java 10+ API in generated `toUrlQueryString()` helpers make sharing with a `--release 8` target impossible without custom templates.
 
 **Usage (Java 25 / Java 11):**
 ```java
 ApiClient client = new ApiClient();
 client.updateBaseUri("http://localhost:8080");
 
-PlaylistsApi playlists = new PlaylistsApi(client);
-PlaylistPage page = playlists.findAllPlaylists(0, 20, "id");
-PlaylistResponse created = playlists.createPlaylist(
-        CreatePlaylistRequest.builder().name("My list").build());
+SamplesApi samples = new SamplesApi(client);
+SamplePage page = samples.findAllSamples(0, 20, null, null);
+SampleResponse created = samples.createSample(
+        CreateSampleRequest.builder().name("My Widget").status(SampleStatus.DRAFT).build());
 ```
 
 **Usage (Java 8):**
 ```java
 ApiClient client = new ApiClient().setBasePath("http://localhost:8080");
 
-PlaylistsApi playlists = new PlaylistsApi(client);
-PlaylistPage page = playlists.findAllPlaylists(0, 20, "id");
+SamplesApi samples = new SamplesApi(client);
+SamplePage page = samples.findAllSamples(0, 20, null, null);
 ```
 
 **Usage (TypeScript):**
@@ -163,10 +163,10 @@ mvn install -pl sdk,sdk-java8,sdk-java11,sdk-typescript -am -DskipTests
 
 ```java
 // fluent setters (existing generated API)
-new PlaylistResponse().id(1L).name("My Mix")
+new SampleResponse().id("smpl-0001").name("My Widget")
 
 // builder (added via Lombok)
-PlaylistResponse.builder().id(1L).name("My Mix").build()
+SampleResponse.builder().id("smpl-0001").name("My Widget").build()
 ```
 
 **Compiler targets for client modules:** `sdk-java8` compiles with `--release 8` (OkHttp, no preview features); `sdk-java11` compiles with `--release 11` (native HttpClient, no preview features); `sdk/` (Java 25) and `sdk-typescript/` use the parent defaults. PiTest is skipped for all three generated-code modules.
@@ -187,7 +187,7 @@ cp backend/.env.example backend/.env
 
 | Name | What it starts |
 |------|---------------|
-| `Spring Boot-BackendApplication<orgasm-backend>` | Spring Boot with `dev` profile, loads `backend/.env` |
+| `Spring Boot-BackendApplication<anchor-backend>` | Spring Boot with `dev` profile, loads `backend/.env` |
 | `UI (mock)` | `npm run dev:mock` — Vite on `:5173` with MSW mocks, no backend needed |
 
 The Spring Boot config sets `cwd` to `backend/` (so Docker Compose finds `compose.yml`) and loads `backend/.env`. The `dev` profile (`application-dev.yml`) sets `lifecycle-management: start-only` so Docker Compose containers keep running between app restarts — data in named volumes is preserved across restarts.
@@ -220,7 +220,7 @@ Node 22 is required (enforced via `engines` in `package.json`). Use [fnm](https:
 
 ### MSW mock layer
 
-`src/mocks/handlers/` contains request handlers for every API endpoint. The in-memory store is seeded with 3 playlists on startup. Adding a new endpoint:
+`src/mocks/handlers/` contains request handlers for every API endpoint. The in-memory store is seeded with 3 samples on startup. Adding a new endpoint:
 1. Add a handler in `src/mocks/handlers/<domain>.ts`
 2. Export it from `src/mocks/handlers/index.ts`
 
@@ -228,7 +228,7 @@ Node 22 is required (enforced via `engines` in `package.json`). Use [fnm](https:
 
 Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in mock mode (`VITE_MOCK=true`) as the web server before running tests — no manual setup needed.
 
-**Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. The `beforeEach` waits for `navigator.serviceWorker.controller` to be set before making any fetch calls.
+**Important:** Sample API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. The `beforeEach` waits for the `/api/health` response before making any fetch calls.
 
 ### shadcn-vue components
 
@@ -252,7 +252,7 @@ Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker o
 ### Backend
 
 ```bash
-# Build native executable to backend/target/orgasm-backend
+# Build native executable to backend/target/anchor-backend
 ./mvnw package -pl backend -am -DskipTests -Pnative
 
 # Or let Spring Boot build an OCI image (requires Docker)
@@ -266,27 +266,27 @@ Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker o
 ./mvnw package -pl lambda -am -DskipTests -Pnative
 
 # Build Docker image for ECR (build context = repo root)
-docker build -f lambda/Dockerfile -t orgasm-lambda:latest .
+docker build -f lambda/Dockerfile -t anchor-lambda:latest .
 
 # For Graviton arm64 (matches template.yaml Architectures: [arm64]):
 docker buildx build --platform linux/arm64 \
-    -f lambda/Dockerfile -t orgasm-lambda:latest .
+    -f lambda/Dockerfile -t anchor-lambda:latest .
 
 # Push to ECR
 aws ecr get-login-password --region <region> \
   | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
-docker tag orgasm-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
-docker push <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
+docker tag anchor-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/anchor-lambda:latest
+docker push <account>.dkr.ecr.<region>.amazonaws.com/anchor-lambda:latest
 
 # Deploy via SAM (pass the image URI)
 sam deploy --parameter-overrides \
-  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest \
+  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/anchor-lambda:latest \
   Env=dev
 ```
 
 **AOT / database during native build:** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. It uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
 
-**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.orgasm.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
+**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.pi2.anchor.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
 
 ## Lambda local testing
 
@@ -298,6 +298,7 @@ Requires [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/
 
 # Invoke a single function directly (JVM mode, uses events/ directory)
 sam local invoke HelloFunction --event events/hello.json
+sam local invoke CreateSampleFunction --event events/create-sample.json
 ```
 
 ## Architecture decisions
@@ -320,7 +321,7 @@ Both `backend` (thin REST layer) and `lambda` depend on `backend-core`. Lambda b
 // Package-private constructor takes mocks for unit tests (never triggers context)
 public HelloHandler() {
     var ctx = SpringContextHolder.get();
-    this.playlistService = ctx.getBean(PlaylistService.class);
+    this.sampleService = ctx.getBean(SampleService.class);
     this.mapper = ctx.getBean(ObjectMapper.class);
 }
 ```
@@ -331,24 +332,24 @@ public HelloHandler() {
 The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependencyManagement>`. This lets `lambda` avoid pulling Spring Boot transitive dependencies while still benefiting from version alignment for Jackson/SLF4J etc.
 
 ### Lambda packaging
-`lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.orgasm.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
+`lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.pi2.anchor.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
 
 ### API versioning
 
 The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:
 
-- **Strategy**: path-based — version is the second URL segment (e.g., `/api/v1/playlists`)
+- **Strategy**: path-based — version is the second URL segment (e.g., `/api/v1/samples`)
 - **Parser**: `SemanticApiVersionParser` — strips leading `v`, so `v1` → version `1.0.0`
 - **Unversioned paths** (health, actuator, Swagger) pass through because `setVersionRequired(false)` is set and the resolver predicate skips paths whose second segment doesn't match `v\d+`
 - **Supported versions** are detected automatically from controller annotations
 
 **Controller pattern:**
 ```java
-@RequestMapping(value = "/api/v1/playlists", version = "1")
+@RequestMapping(value = "/api/v1/samples", version = "1")
 ```
 The path includes the full `/api/v1/` prefix; the `version` attribute tells Spring MVC which version this controller serves and is used for supported-version validation.
 
-**Adding v2:** Add a new controller with `value = "/api/v2/playlists", version = "2"`. Both controllers coexist; requests to `/api/v1/` and `/api/v2/` route independently.
+**Adding v2:** Add a new controller with `value = "/api/v2/samples", version = "2"`. Both controllers coexist; requests to `/api/v1/` and `/api/v2/` route independently.
 
 **Tests:** Standalone MockMvc tests must configure a version strategy to match production. Use `VersionTestSupport.pathVersionStrategy()` (in `backend/src/test/java`) and pass it to `.setApiVersionStrategy(...)` on the builder.
 
@@ -365,25 +366,25 @@ The backend uses two physically separate MariaDB databases, each with its own `D
 
 | Bean qualifier | Database | Port | Purpose |
 |----------------|----------|------|---------|
-| `appDataSource` / `appEntityManagerFactory` | `orgasm` | 3306 | Application data |
-| `billingDataSource` / `billingEntityManagerFactory` | `orgasm_billing` | 3307 | Billing data |
+| `appDataSource` / `appEntityManagerFactory` | `anchor` | 3306 | Application data |
+| `billingDataSource` / `billingEntityManagerFactory` | `anchor_billing` | 3307 | Billing data |
 
 **Package layout for entities and repositories:**
-- `com.orgasm.backend.domain.billing` — `@Entity` classes for the **billing** database
-- `com.orgasm.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
-- Everything else under `com.orgasm.backend` — entities and repositories for the **app** database
+- `com.pi2.anchor.backend.domain.billing` — `@Entity` classes for the **billing** database
+- `com.pi2.anchor.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
+- Everything else under `com.pi2.anchor.backend` — entities and repositories for the **app** database
 
-`AppJpaConfig` scans `com.orgasm.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.orgasm.backend.domain.billing` / `com.orgasm.backend.repository.billing`). This means **new feature packages (e.g. `com.orgasm.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
+`AppJpaConfig` scans `com.pi2.anchor.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.pi2.anchor.backend.domain.billing` / `com.pi2.anchor.backend.repository.billing`). This means **new feature packages (e.g. `com.pi2.anchor.backend.invoice`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
 
 `BackendApplicationTests.contextLoads()` serves as the safety net: a new entity whose repository is not visible to the app `EntityManagerFactory` will cause the context load test to fail immediately.
 
-**Base entity:** All entities should extend `com.orgasm.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
+**Base entity:** All entities should extend `com.pi2.anchor.backend.domain.AuditableEntity` (`@MappedSuperclass`), which provides:
 - `version` — optimistic locking via `@Version`
 - `createdAt` — set once on insert via `@CreatedDate`
 - `updatedAt` — updated on every save via `@LastModifiedDate`
 
 **Flyway:** Schema migrations are managed per-database:
-- `classpath:db/migration/app/` — app database migrations
+- `classpath:db/migration/app/` — app database migrations (V1: tenants, V2: samples)
 - `classpath:db/migration/billing/` — billing database migrations
 
 `DataSourceAutoConfiguration` and `FlywayAutoConfiguration` are excluded from Spring Boot auto-config — all datasource and migration setup is manual. `HibernateJpaAutoConfiguration` is intentionally kept active so it provides the shared `EntityManagerFactoryBuilder`.
@@ -412,19 +413,21 @@ The API layer uses dedicated DTOs — never domain entities directly:
 
 | Class | Role |
 |-------|------|
-| `CreatePlaylistRequest` | POST body — no `id`, no audit fields |
-| `UpdatePlaylistRequest` | PUT body — no `id`, no audit fields |
-| `PlaylistResponse` | All GET/POST/PUT responses — includes `id` and audit fields |
+| `CreateSampleRequest` | POST body — no `id`, no audit fields |
+| `UpdateSampleRequest` | PUT body — no `id`, no audit fields; boxed types for null-ignore partial update |
+| `SampleResponse` | All GET/POST/PUT responses — includes `id` and audit fields |
 
-Mapping between entity and DTOs is handled by `PlaylistMapper` (MapStruct, `componentModel = "spring"`). The mapper is injected into `PlaylistService`; controllers never touch entities.
+Mapping between entity and DTOs is handled by `SampleMapper` (MapStruct, `componentModel = "spring"`). The mapper is injected into `SampleService`; controllers never touch entities.
+
+`SampleMapper` uses `IdGenerator.format("smpl", id)` to convert the internal `Long` id to the string form `smpl-0001`. `UpdateSampleRequest` uses boxed types (`Integer`, `Long`, `Double`, `Boolean`) with `NullValuePropertyMappingStrategy.IGNORE` so only supplied fields are updated.
 
 **Builder pattern:** All three DTO records carry `@Builder` so callers can use either style:
 ```java
 // canonical constructor
-new CreatePlaylistRequest("My Mix", "desc")
+new CreateSampleRequest("My Widget", ...)
 
 // builder
-CreatePlaylistRequest.builder().name("My Mix").description("desc").build()
+CreateSampleRequest.builder().name("My Widget").status(SampleStatus.DRAFT).build()
 ```
 
 **Annotation processor order** (critical with Lombok + MapStruct): Lombok must run before MapStruct so it generates the getters/setters that MapStruct reads. The root POM's `<pluginManagement>` puts Lombok first; `backend/pom.xml` appends the binding artifact + MapStruct processor with `combine.children="append"`:
@@ -438,6 +441,27 @@ CreatePlaylistRequest.builder().name("My Mix").description("desc").build()
 
 `unmappedTargetPolicy = ReportingPolicy.IGNORE` on the mapper suppresses warnings for JPA-managed audit fields (`version`, `createdAt`, `updatedAt`, `deletedAt`) which have no setters and are intentionally skipped.
 
+### Sample entity — canonical data-type reference
+
+`Sample` is the reference entity and covers every data type category:
+
+| Field | Java type | Column type | Notes |
+|-------|-----------|-------------|-------|
+| `name` | `String` | `VARCHAR(255)` | `@NotBlank` |
+| `description` | `String` | `TEXT` | nullable |
+| `email` | `String` | `VARCHAR(255)` | nullable, `@Email` |
+| `quantity` | `int` | `INT` | `@Min(0) @Max(10_000)` |
+| `largeNumber` | `long` | `BIGINT` | |
+| `rating` | `double` | `DOUBLE` | `@Min(0) @Max(10)` |
+| `price` | `BigDecimal` | `DECIMAL(19,4)` | nullable |
+| `active` | `boolean` | `BOOLEAN` | |
+| `birthDate` | `LocalDate` | `DATE` | nullable |
+| `scheduledAt` | `LocalDateTime` | `DATETIME(6)` | nullable |
+| `status` | `SampleStatus` enum | `VARCHAR(20)` | `DRAFT / ACTIVE / ARCHIVED` |
+| `notes` | `String` | `TEXT` | nullable |
+
+ID prefix: `smpl` — `IdGenerator.format("smpl", id)` → `"smpl-0001"`.
+
 ### Integration tests (Testcontainers)
 
 Backend integration tests (`*IT.java`) start real `mariadb:12.2.2` containers via Testcontainers and run Flyway migrations against them. Use `@DynamicPropertySource` to override datasource URLs, credentials, driver class, and enable Flyway:
@@ -449,7 +473,7 @@ Backend integration tests (`*IT.java`) start real `mariadb:12.2.2` containers vi
 class SomeRepositoryIT {
     @Container
     static MariaDBContainer<?> appDb = new MariaDBContainer<>("mariadb:12.2.2")
-            .withDatabaseName("orgasm").withUsername("orgasm").withPassword("orgasm");
+            .withDatabaseName("anchor").withUsername("anchor").withPassword("anchor");
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {

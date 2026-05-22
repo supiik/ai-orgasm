@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.pi2</groupId>
+        <artifactId>anchor-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-backend-core</artifactId>
+    <artifactId>anchor-backend-core</artifactId>
     <packaging>jar</packaging>
-    <name>orgasm-backend-core</name>
+    <name>anchor-backend-core</name>
     <description>Service layer, JPA entities, repositories, and datasource config — shared by backend and lambda</description>
 
     <dependencies>
@@ -123,10 +123,10 @@
                 <artifactId>pitest-maven</artifactId>
                 <configuration>
                     <excludedClasses>
-                        <param>com.orgasm.backend.config.*</param>
+                        <param>com.pi2.anchor.backend.config.*</param>
                     </excludedClasses>
                     <excludedTestClasses>
-                        <param>com.orgasm.backend.*IT</param>
+                        <param>com.pi2.anchor.backend.*IT</param>
                     </excludedTestClasses>
                 </configuration>
             </plugin>

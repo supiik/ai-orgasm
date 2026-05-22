@@ -11,11 +11,11 @@
         },
         {
             "type": "java",
-            "name": "Spring Boot-BackendApplication<orgasm-backend>",
+            "name": "Spring Boot-BackendApplication<anchor-backend>",
             "request": "launch",
             "cwd": "${workspaceFolder}/backend",
-            "mainClass": "com.orgasm.backend.BackendApplication",
-            "projectName": "orgasm-backend",
+            "mainClass": "com.pi2.anchor.backend.BackendApplication",
+            "projectName": "anchor-backend",
             "args": "",
             "vmArgs": "-Dspring.profiles.active=dev",
             "envFile": "${workspaceFolder}/backend/.env"

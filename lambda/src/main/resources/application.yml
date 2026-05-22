@@ -1,6 +1,6 @@
 spring:
   application:
-    name: orgasm-lambda
+    name: anchor-lambda
   autoconfigure:
     exclude:
       - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
@@ -12,14 +12,14 @@ spring:
 
 datasource:
   app:
-    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/orgasm}
-    username: ${DATASOURCE_APP_USERNAME:orgasm}
-    password: ${DATASOURCE_APP_PASSWORD:orgasm}
+    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/anchor}
+    username: ${DATASOURCE_APP_USERNAME:anchor}
+    password: ${DATASOURCE_APP_PASSWORD:anchor}
     driver-class-name: org.mariadb.jdbc.Driver
   billing:
-    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/orgasm_billing}
-    username: ${DATASOURCE_BILLING_USERNAME:orgasm_billing}
-    password: ${DATASOURCE_BILLING_PASSWORD:orgasm_billing}
+    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/anchor_billing}
+    username: ${DATASOURCE_BILLING_USERNAME:anchor_billing}
+    password: ${DATASOURCE_BILLING_PASSWORD:anchor_billing}
     driver-class-name: org.mariadb.jdbc.Driver
   flyway:
     enabled: false
@@ -39,4 +39,4 @@ resilience4j:
 
 logging:
   level:
-    com.orgasm: INFO
+    com.pi2.anchor: INFO

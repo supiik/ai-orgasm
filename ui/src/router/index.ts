@@ -10,34 +10,14 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/contributors',
-      name: 'contributors',
-      component: () => import('../views/ContributorsView.vue'),
+      path: '/samples',
+      name: 'samples',
+      component: () => import('../views/SamplesView.vue'),
     },
     {
-      path: '/contributors/:id',
-      name: 'contributor-detail',
-      component: () => import('../views/ContributorDetailView.vue'),
-    },
-    {
-      path: '/playlists',
-      name: 'playlists',
-      component: () => import('../views/PlaylistsView.vue'),
-    },
-    {
-      path: '/playlists/:id',
-      name: 'playlist-detail',
-      component: () => import('../views/PlaylistDetailView.vue'),
-    },
-    {
-      path: '/songs',
-      name: 'songs',
-      component: () => import('../views/SongsView.vue'),
-    },
-    {
-      path: '/songs/:id',
-      name: 'song-detail',
-      component: () => import('../views/SongDetailView.vue'),
+      path: '/samples/:id',
+      name: 'sample-detail',
+      component: () => import('../views/SampleDetailView.vue'),
     },
   ],
 })

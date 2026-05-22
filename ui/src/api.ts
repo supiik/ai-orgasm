@@ -1,12 +1,10 @@
 import {
   Configuration,
-  ContributorsApi, PlaylistsApi, SongsApi, NominationsApi,
-  type CreateContributorRequest, type UpdateContributorRequest,
-  type CreatePlaylistRequest, type UpdatePlaylistRequest,
-  type CreateSongRequest, type UpdateSongRequest,
-  type OpenPlaylistRequest, type PublishPlaylistRequest,
-  type NominateSongRequest, type ReviewNominationRequest,
-} from '@orgasm/backend-client'
+  SamplesApi,
+  type CreateSampleRequest,
+  type UpdateSampleRequest,
+  type SampleStatus,
+} from '@pi2/anchor-client'
 
 async function getAccessToken(): Promise<string> {
   if (import.meta.env.VITE_MOCK === 'true') return ''
@@ -24,48 +22,18 @@ const config = new Configuration({
   basePath: '',
   accessToken: getAccessToken,
 })
-const _contributors = new ContributorsApi(config)
-const _playlists = new PlaylistsApi(config)
-const _songs = new SongsApi(config)
-const _nominations = new NominationsApi(config)
 
-const contributorClient = {
-  list:          (page?: number, size?: number, sort?: string, name?: string) => _contributors.findAllContributors(page, size, sort, name),
-  get:           (id: string) => _contributors.findContributorById(id),
-  create:        (body: CreateContributorRequest) => _contributors.createContributor(body),
-  update:        (id: string, body: UpdateContributorRequest) => _contributors.updateContributor(id, body),
-  delete:        (id: string) => _contributors.deleteContributor(id),
-  playlists:     (id: string, page?: number, size?: number) => _contributors.findPlaylistsByContributor(id, page, size),
-}
+const _samples = new SamplesApi(config)
 
-const playlistClient = {
-  list:    (page?: number, size?: number, sort?: string, name?: string) => _playlists.findAllPlaylists(page, size, sort, name),
-  get:     (id: string) => _playlists.findPlaylistById(id),
-  create:  (body: CreatePlaylistRequest) => _playlists.createPlaylist(body),
-  update:  (id: string, body: UpdatePlaylistRequest) => _playlists.updatePlaylist(id, body),
-  delete:  (id: string) => _playlists.deletePlaylist(id),
-  open:    (id: string, body: OpenPlaylistRequest) => _playlists.openPlaylist(id, body),
-  publish: (id: string, body: PublishPlaylistRequest) => _playlists.publishPlaylist(id, body),
-}
-
-const nominationClient = {
-  list:    (playlistId: string, page?: number, size?: number) => _nominations.findNominations(playlistId, page, size),
-  create:  (playlistId: string, body: NominateSongRequest) => _nominations.nominateSong(playlistId, body),
-  approve: (id: string, body: ReviewNominationRequest) => _nominations.approveNomination(id, body),
-  decline: (id: string, body: ReviewNominationRequest) => _nominations.declineNomination(id, body),
-}
-
-const songClient = {
-  list:   (page?: number, size?: number, sort?: string, name?: string) => _songs.findAllSongs(page, size, sort, name),
-  get:    (id: string) => _songs.findSongById(id),
-  create: (body: CreateSongRequest) => _songs.createSong(body),
-  update: (id: string, body: UpdateSongRequest) => _songs.updateSong(id, body),
-  delete: (id: string) => _songs.deleteSong(id),
+const sampleClient = {
+  list:   (page?: number, size?: number, sort?: string, name?: string, status?: SampleStatus) =>
+    _samples.findAllSamples(name, status, page, size, sort),
+  get:    (id: string) => _samples.getSample(id),
+  create: (body: CreateSampleRequest) => _samples.createSample(body),
+  update: (id: string, body: UpdateSampleRequest) => _samples.updateSample(id, body),
+  delete: (id: string) => _samples.deleteSample(id),
 }
 
 export const api = {
-  contributors: () => contributorClient,
-  playlists:    () => playlistClient,
-  nominations:  () => nominationClient,
-  songs:        () => songClient,
+  samples: () => sampleClient,
 }

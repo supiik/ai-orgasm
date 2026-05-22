@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.pi2</groupId>
+        <artifactId>anchor-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-backend</artifactId>
+    <artifactId>anchor-backend</artifactId>
     <packaging>jar</packaging>
-    <name>orgasm-backend</name>
+    <name>anchor-backend</name>
     <description>Spring Boot 4 REST backend</description>
 
     <dependencyManagement>
@@ -30,14 +30,14 @@
     <dependencies>
         <!-- Backend core: service layer, JPA, Flyway, datasource config -->
         <dependency>
-            <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-backend-core</artifactId>
+            <groupId>com.pi2</groupId>
+            <artifactId>anchor-backend-core</artifactId>
         </dependency>
 
         <!-- SDK -->
         <dependency>
-            <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-sdk</artifactId>
+            <groupId>com.pi2</groupId>
+            <artifactId>anchor-sdk</artifactId>
         </dependency>
 
         <!-- Spring Boot starters -->
@@ -144,10 +144,10 @@
                 <artifactId>pitest-maven</artifactId>
                 <configuration>
                     <excludedClasses>
-                        <param>com.orgasm.backend.config.*</param>
+                        <param>com.pi2.anchor.backend.config.*</param>
                     </excludedClasses>
                     <excludedTestClasses>
-                        <param>com.orgasm.backend.*IT</param>
+                        <param>com.pi2.anchor.backend.*IT</param>
                     </excludedTestClasses>
                 </configuration>
             </plugin>

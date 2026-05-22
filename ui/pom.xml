@@ -5,14 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.pi2</groupId>
+        <artifactId>anchor-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-ui</artifactId>
+    <artifactId>anchor-ui</artifactId>
     <packaging>pom</packaging>
-    <name>orgasm-ui</name>
+    <name>anchor-ui</name>
 
     <properties>
         <!-- No hand-written Java — exempt from JaCoCo gate and PiTest -->

@@ -5,15 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.orgasm</groupId>
-        <artifactId>orgasm-parent</artifactId>
+        <groupId>com.pi2</groupId>
+        <artifactId>anchor-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>orgasm-sdk-typescript</artifactId>
+    <artifactId>anchor-sdk-typescript</artifactId>
     <packaging>pom</packaging>
-    <name>orgasm-sdk-typescript</name>
-    <description>TypeScript/JavaScript client for the Orgasm Backend API (Axios)</description>
+    <name>anchor-sdk-typescript</name>
+    <description>TypeScript/JavaScript client for the Anchor Backend API (Axios)</description>
 
     <build>
         <plugins>
@@ -65,7 +65,7 @@
                             <generateApiDocumentation>false</generateApiDocumentation>
                             <generateModelDocumentation>false</generateModelDocumentation>
                             <configOptions>
-                                <npmName>@orgasm/backend-client</npmName>
+                                <npmName>@pi2/anchor-client</npmName>
                                 <npmVersion>${project.version}</npmVersion>
                                 <supportsES6>true</supportsES6>
                                 <withSeparateModelsAndApi>true</withSeparateModelsAndApi>

@@ -16,7 +16,7 @@ onMounted(async () => {
 
 <template>
   <section>
-    <h1>Orgasm</h1>
-    <p>Backend status: <strong>{{ status }}</strong></p>
+    <h1 class="text-2xl font-semibold mb-2">Anchor</h1>
+    <p class="text-muted-foreground">Backend status: <strong class="text-foreground">{{ status }}</strong></p>
   </section>
 </template>

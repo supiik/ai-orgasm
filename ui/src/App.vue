@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor } from 'lucide-vue-next'
+import { Home, FlaskConical, Sun, Moon, Monitor } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 
 const { theme, cycle } = useTheme()
@@ -12,7 +12,7 @@ const { theme, cycle } = useTheme()
     <!-- Sidebar -->
     <aside class="w-56 shrink-0 border-r border-border flex flex-col">
       <div class="h-14 flex items-center px-4 border-b border-border font-semibold text-sm tracking-wide">
-        Orgasm
+        Anchor
       </div>
       <nav class="flex-1 px-2 py-3 space-y-0.5 flex flex-col">
         <RouterLink
@@ -24,28 +24,12 @@ const { theme, cycle } = useTheme()
           Home
         </RouterLink>
         <RouterLink
-          to="/playlists"
+          to="/samples"
           class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           active-class="bg-accent text-accent-foreground font-medium"
         >
-          <ListMusic class="h-4 w-4 shrink-0" />
-          Playlists
-        </RouterLink>
-        <RouterLink
-          to="/songs"
-          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          active-class="bg-accent text-accent-foreground font-medium"
-        >
-          <Music class="h-4 w-4 shrink-0" />
-          Songs
-        </RouterLink>
-        <RouterLink
-          to="/contributors"
-          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          active-class="bg-accent text-accent-foreground font-medium"
-        >
-          <Users class="h-4 w-4 shrink-0" />
-          Contributors
+          <FlaskConical class="h-4 w-4 shrink-0" />
+          Samples
         </RouterLink>
         <div class="mt-auto pt-2 border-t border-border">
           <button
@@ -68,7 +52,7 @@ const { theme, cycle } = useTheme()
       </main>
 
       <footer class="shrink-0 border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Orgasm</span>
+        <span>Anchor</span>
         <span>v1.0.0-SNAPSHOT</span>
       </footer>
     </div>
