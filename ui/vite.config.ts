@@ -23,6 +23,9 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    optimizeDeps: {
+      include: ['@orgasm/backend-client'],
+    },
     build: {
       outDir: 'dist',
       sourcemap: true,
