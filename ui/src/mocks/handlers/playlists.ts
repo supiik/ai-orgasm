@@ -1,29 +1,10 @@
 import { http, HttpResponse } from 'msw'
 import { db as contributorDb } from './contributors'
-
-type PlaylistStatus = 'NEW' | 'OPEN' | 'UNDER_EVALUATION' | 'CLOSED' | 'PUBLISHED'
-
-interface PlaylistResponse {
-  id: string
-  name: string
-  description: string | null
-  status: PlaylistStatus
-  leadContributorId: string | null
-  leadContributorName: string | null
-  leadContributorAvatarUrl: string | null
-  deadline: string | null
-  version: number
-  createdAt: string
-  updatedAt: string
-}
+import { playlistsDb, nominationsDb } from './db'
 
 const nextId = () => `play-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
-export const db: PlaylistResponse[] = [
-  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, leadContributorName: null, leadContributorAvatarUrl: null, deadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() + 86400000).toISOString(), version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 3600000).toISOString(), version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
-]
+export { playlistsDb as db }
 
 const now = () => new Date().toISOString()
 
@@ -33,7 +14,7 @@ export const playlistHandlers = [
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
     const name = url.searchParams.get('name')?.toLowerCase()
-    const filtered = name ? db.filter(p => p.name.toLowerCase().includes(name)) : db
+    const filtered = name ? playlistsDb.filter(p => p.name.toLowerCase().includes(name)) : playlistsDb
     const content = filtered.slice(page * size, page * size + size)
     return HttpResponse.json({
       content,
@@ -49,11 +30,11 @@ export const playlistHandlers = [
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
-    const created: PlaylistResponse = {
+    const created = {
       id: nextId(),
       name: body.name,
       description: body.description ?? null,
-      status: 'NEW',
+      status: 'NEW' as const,
       leadContributorId: null,
       leadContributorName: null,
       leadContributorAvatarUrl: null,
@@ -62,74 +43,94 @@ export const playlistHandlers = [
       createdAt: now(),
       updatedAt: now(),
     }
-    db.push(created)
+    playlistsDb.push(created)
     return HttpResponse.json(created, { status: 201 })
   }),
 
   http.get('/api/v1/playlists/:id', ({ params }) => {
-    const playlist = db.find(p => p.id === params.id)
+    const playlist = playlistsDb.find(p => p.id === params.id)
     if (!playlist) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     return HttpResponse.json(playlist)
   }),
 
   http.put('/api/v1/playlists/:id', async ({ params, request }) => {
-    const index = db.findIndex(p => p.id === params.id)
+    const index = playlistsDb.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     const body = await request.json() as { name: string; description?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
-    db[index] = {
-      ...db[index],
+    playlistsDb[index] = {
+      ...playlistsDb[index],
       name: body.name,
       description: body.description ?? null,
-      version: db[index].version + 1,
+      version: playlistsDb[index].version + 1,
       updatedAt: now(),
     }
-    return HttpResponse.json(db[index])
+    return HttpResponse.json(playlistsDb[index])
   }),
 
   http.delete('/api/v1/playlists/:id', ({ params }) => {
-    const index = db.findIndex(p => p.id === params.id)
+    const index = playlistsDb.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    db.splice(index, 1)
+    playlistsDb.splice(index, 1)
     return new HttpResponse(null, { status: 204 })
   }),
 
   http.post('/api/v1/playlists/:id/open', async ({ params, request }) => {
-    const index = db.findIndex(p => p.id === params.id)
+    const index = playlistsDb.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    if (db[index].status !== 'NEW') {
+    if (playlistsDb[index].status !== 'NEW') {
       return HttpResponse.json({ title: 'Conflict', detail: 'Only NEW playlists can be opened' }, { status: 409 })
     }
     const body = await request.json() as { contributorId: string; deadline: string }
     const contributor = contributorDb.find(c => c.id === body.contributorId)
-    db[index] = { ...db[index], status: 'OPEN', leadContributorId: body.contributorId, leadContributorName: contributor?.name ?? null, leadContributorAvatarUrl: contributor?.avatarUrl ?? null, deadline: body.deadline, updatedAt: now() }
-    return HttpResponse.json(db[index])
+    playlistsDb[index] = { ...playlistsDb[index], status: 'OPEN', leadContributorId: body.contributorId, leadContributorName: contributor?.name ?? null, leadContributorAvatarUrl: contributor?.avatarUrl ?? null, deadline: body.deadline, updatedAt: now() }
+    return HttpResponse.json(playlistsDb[index])
+  }),
+
+  http.post('/api/v1/playlists/:id/start-guessing', async ({ params, request }) => {
+    const index = playlistsDb.findIndex(p => p.id === params.id)
+    if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    if (playlistsDb[index].status !== 'OPEN') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only open playlists can start guessing' }, { status: 409 })
+    }
+    const body = await request.json() as { contributorId: string }
+    if (playlistsDb[index].leadContributorId !== body.contributorId) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only the lead contributor can start guessing' }, { status: 409 })
+    }
+    const deadlinePassed = playlistsDb[index].deadline ? new Date(playlistsDb[index].deadline!) < new Date() : true
+    const pending = nominationsDb.filter(n => n.playlistId === params.id && n.status === 'PENDING')
+    if (!deadlinePassed && pending.length > 0) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Deadline has not passed and there are still pending nominations' }, { status: 409 })
+    }
+    pending.forEach(n => {
+      const idx = nominationsDb.findIndex(nom => nom.id === n.id)
+      if (idx !== -1) nominationsDb[idx] = { ...nominationsDb[idx], status: 'DECLINED', version: nominationsDb[idx].version + 1, updatedAt: now() }
+    })
+    playlistsDb[index] = { ...playlistsDb[index], status: 'GUESSING', updatedAt: now() }
+    return HttpResponse.json(playlistsDb[index])
   }),
 
   http.post('/api/v1/playlists/:id/publish', async ({ params, request }) => {
-    const index = db.findIndex(p => p.id === params.id)
+    const index = playlistsDb.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    if (db[index].status !== 'OPEN') {
-      return HttpResponse.json({ title: 'Conflict', detail: 'Only open playlists can be published' }, { status: 409 })
+    if (playlistsDb[index].status !== 'GUESSING') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Only playlists in the guessing phase can be published' }, { status: 409 })
     }
     const body = await request.json() as { contributorId: string }
-    if (db[index].leadContributorId !== body.contributorId) {
+    if (playlistsDb[index].leadContributorId !== body.contributorId) {
       return HttpResponse.json({ title: 'Conflict', detail: 'Only the lead contributor can publish' }, { status: 409 })
     }
-    if (db[index].deadline && new Date(db[index].deadline!) > new Date()) {
-      return HttpResponse.json({ title: 'Conflict', detail: 'Deadline has not yet passed' }, { status: 409 })
-    }
-    db[index] = { ...db[index], status: 'PUBLISHED', updatedAt: now() }
-    return HttpResponse.json(db[index])
+    playlistsDb[index] = { ...playlistsDb[index], status: 'PUBLISHED', updatedAt: now() }
+    return HttpResponse.json(playlistsDb[index])
   }),
 
   http.get('/api/v1/contributors/:id/playlists', ({ params, request }) => {
     const url = new URL(request.url)
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
-    const filtered = db.filter(p => p.leadContributorId === params.id)
+    const filtered = playlistsDb.filter(p => p.leadContributorId === params.id)
     const content = filtered.slice(page * size, page * size + size)
     return HttpResponse.json({
       content,

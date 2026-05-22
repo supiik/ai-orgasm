@@ -57,6 +57,13 @@ public class OrgasmController {
         return orgasmService.declineNomination(id, request.reviewerId());
     }
 
+    @PostMapping("/playlists/{id}/start-guessing")
+    public PlaylistResponse startGuessing(
+            @PathVariable String id,
+            @RequestBody @Valid StartGuessingRequest request) {
+        return orgasmService.startGuessing(id, request.contributorId());
+    }
+
     @PostMapping("/playlists/{id}/publish")
     public PlaylistResponse publishPlaylist(
             @PathVariable String id,

@@ -71,6 +71,14 @@ class OrgasmServiceTest {
         return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE);
     }
 
+    Playlist openPlaylistPastDeadline() {
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+    }
+
+    Playlist guessingPlaylist() {
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST);
+    }
+
     PlaylistResponse playlistResponse() {
         return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_ID, null, null, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
     }
@@ -277,11 +285,73 @@ class OrgasmServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
+    // ── startGuessing ─────────────────────────────────────────────────────────
+
+    @Test
+    void startGuessing_setsStatusToGuessing_whenDeadlinePassed() {
+        var playlist = openPlaylistPastDeadline();
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
+
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(saved);
+        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+
+        assertThat(service.startGuessing(PLAYLIST_ID, CONTRIBUTOR_ID)).isEqualTo(expected);
+        assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.GUESSING);
+        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
+    }
+
+    @Test
+    void startGuessing_setsStatusToGuessing_whenNoPendingNominations() {
+        var playlist = openPlaylist();
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), FUTURE);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
+
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.PENDING)).thenReturn(List.of());
+        when(playlistRepository.save(playlist)).thenReturn(saved);
+        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+
+        assertThat(service.startGuessing(PLAYLIST_ID, CONTRIBUTOR_ID)).isEqualTo(expected);
+        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
+    }
+
+    @Test
+    void startGuessing_throwsConflict_whenNotOpen() {
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(newPlaylist()));
+
+        assertThatThrownBy(() -> service.startGuessing(PLAYLIST_ID, CONTRIBUTOR_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("open");
+    }
+
+    @Test
+    void startGuessing_throwsConflict_whenNotLeadContributor() {
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylistPastDeadline()));
+
+        String otherId = IdGenerator.format("cont", 99L);
+        assertThatThrownBy(() -> service.startGuessing(PLAYLIST_ID, otherId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("lead contributor");
+    }
+
+    @Test
+    void startGuessing_throwsConflict_whenDeadlineNotPassedAndHasPending() {
+        var nomination = pendingNomination();
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
+        when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.PENDING)).thenReturn(List.of(nomination));
+
+        assertThatThrownBy(() -> service.startGuessing(PLAYLIST_ID, CONTRIBUTOR_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("pending");
+    }
+
     // ── publishPlaylist ───────────────────────────────────────────────────────
 
     @Test
     void publishPlaylist_setsStatusToPublished() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var playlist = guessingPlaylist();
         var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
         var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
 
@@ -291,50 +361,25 @@ class OrgasmServiceTest {
 
         assertThat(service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID)).isEqualTo(expected);
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.PUBLISHED);
-        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
     }
 
     @Test
-    void publishPlaylist_declinesPendingNominations() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
-        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
-        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
-
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
-        when(playlistRepository.save(playlist)).thenReturn(saved);
-        when(playlistMapper.toResponse(saved)).thenReturn(expected);
-
-        service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID);
-
-        verify(nominationRepository).declinePendingByPlaylistId(PLAYLIST_DB_ID);
-    }
-
-    @Test
-    void publishPlaylist_throwsConflict_whenNotOpen() {
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(newPlaylist()));
+    void publishPlaylist_throwsConflict_whenNotGuessing() {
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
 
         assertThatThrownBy(() -> service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("open");
+                .hasMessageContaining("guessing");
     }
 
     @Test
     void publishPlaylist_throwsConflict_whenNotLeadContributor() {
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(guessingPlaylist()));
 
         String otherId = IdGenerator.format("cont", 99L);
         assertThatThrownBy(() -> service.publishPlaylist(PLAYLIST_ID, otherId))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("lead contributor");
-    }
-
-    @Test
-    void publishPlaylist_throwsConflict_whenDeadlineNotPassed() {
-        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(openPlaylist()));
-
-        assertThatThrownBy(() -> service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("deadline");
     }
 
     // ── findNominations ───────────────────────────────────────────────────────

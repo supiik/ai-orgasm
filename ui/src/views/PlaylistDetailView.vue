@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api } from '@/api'
-import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -29,7 +29,7 @@ async function load() {
   try {
     const { data } = await api.playlists().get(id)
     playlist.value = data
-    if (data.status === PlaylistStatus.Open || data.status === PlaylistStatus.Published) {
+    if (data.status === PlaylistStatus.Open || data.status === PlaylistStatus.Guessing || data.status === PlaylistStatus.Published) {
       await loadNominations()
     }
   } catch {
@@ -168,6 +168,10 @@ const visibleNominations = computed(() =>
     : nominations.value,
 )
 
+const allNominationsReviewed = computed(() =>
+  nominations.value.length > 0 && nominations.value.every(n => n.status !== NominationStatus.Pending),
+)
+
 const eligibleContributors = computed(() => {
   const nominated = new Set(
     nominations.value
@@ -228,6 +232,20 @@ async function reviewNomination(nomId: string, action: 'approve' | 'decline') {
   } catch {}
 }
 
+// ── Start guessing ────────────────────────────────────────────────────────────
+
+async function startGuessing() {
+  const contributorId = playlist.value?.leadContributorId
+  if (!contributorId) return
+  try {
+    const { data } = await api.playlists().startGuessing(id, { contributorId })
+    playlist.value = data
+    await loadNominations()
+  } catch (e: unknown) {
+    error.value = extractDetail(e) ?? 'Failed to start guessing phase.'
+  }
+}
+
 // ── Publish dialog ────────────────────────────────────────────────────────────
 
 const publishOpen = ref(false)
@@ -260,9 +278,10 @@ async function submitPublish() {
 
 function extractDetail(e: unknown): string | null {
   if (e && typeof e === 'object' && 'response' in e) {
-    const r = (e as { response?: { data?: { detail?: string } } }).response
-    return r?.data?.detail ?? null
+    const r = (e as { response?: { data?: { detail?: string; message?: string; title?: string } } }).response
+    return r?.data?.detail ?? r?.data?.message ?? r?.data?.title ?? null
   }
+  if (e instanceof Error) return e.message
   return null
 }
 
@@ -296,11 +315,15 @@ function statusClass(s: NominationStatus | undefined) {
           <Play class="h-4 w-4" />
           Open for nominations
         </Button>
-        <Button v-if="playlist?.status === PlaylistStatus.Open && deadlinePassed" variant="outline" size="sm" @click="showPublish">
+        <Button v-if="playlist?.status === PlaylistStatus.Open && (deadlinePassed || allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
+          <Headphones class="h-4 w-4" />
+          Start guessing
+        </Button>
+        <Button v-if="playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" @click="showPublish">
           <BookOpen class="h-4 w-4" />
           Publish
         </Button>
-        <Button v-if="playlist" variant="outline" size="sm" @click="openEdit">
+        <Button v-if="playlist?.status === PlaylistStatus.New || playlist?.status === PlaylistStatus.Open" variant="outline" size="sm" @click="openEdit">
           <Pencil class="h-4 w-4" />
           Edit
         </Button>
@@ -357,7 +380,7 @@ function statusClass(s: NominationStatus | undefined) {
       </dl>
 
       <!-- Nominations section -->
-      <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Published">
+      <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Guessing || playlist.status === PlaylistStatus.Published">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-semibold">Nominations</h2>
           <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed" size="sm" @click="showNominate">

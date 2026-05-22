@@ -100,19 +100,34 @@ public class OrgasmService {
     }
 
     @CircuitBreaker(name = "db")
-    public PlaylistResponse publishPlaylist(String playlistId, String contributorId) {
+    public PlaylistResponse startGuessing(String playlistId, String contributorId) {
         Playlist playlist = requirePlaylist(playlistId);
         if (playlist.getStatus() != PlaylistStatus.OPEN) {
-            throw new IllegalStateException("Only open playlists can be published");
+            throw new IllegalStateException("Only open playlists can start guessing");
+        }
+        if (!Objects.equals(IdGenerator.parse(contributorId), playlist.getLeadContributor().getId())) {
+            throw new IllegalStateException("Only the lead contributor can start guessing");
+        }
+        boolean deadlinePassed = playlist.getDeadline() == null || Instant.now().isAfter(playlist.getDeadline());
+        boolean noPending = nominationRepository.findByPlaylist_IdAndStatus(playlist.getId(), NominationStatus.PENDING).isEmpty();
+        if (!deadlinePassed && !noPending) {
+            throw new IllegalStateException("Deadline has not passed and there are still pending nominations");
+        }
+        nominationRepository.declinePendingByPlaylistId(playlist.getId());
+        playlist.setStatus(PlaylistStatus.GUESSING);
+        return playlistMapper.toResponse(playlistRepository.save(playlist));
+    }
+
+    @CircuitBreaker(name = "db")
+    public PlaylistResponse publishPlaylist(String playlistId, String contributorId) {
+        Playlist playlist = requirePlaylist(playlistId);
+        if (playlist.getStatus() != PlaylistStatus.GUESSING) {
+            throw new IllegalStateException("Only playlists in the guessing phase can be published");
         }
         if (!Objects.equals(IdGenerator.parse(contributorId), playlist.getLeadContributor().getId())) {
             throw new IllegalStateException("Only the lead contributor can publish the playlist");
         }
-        if (playlist.getDeadline() != null && Instant.now().isBefore(playlist.getDeadline())) {
-            throw new IllegalStateException("Playlist deadline has not yet passed");
-        }
         playlist.setStatus(PlaylistStatus.PUBLISHED);
-        nominationRepository.declinePendingByPlaylistId(playlist.getId());
         return playlistMapper.toResponse(playlistRepository.save(playlist));
     }
 

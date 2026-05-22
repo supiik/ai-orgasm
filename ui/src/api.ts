@@ -4,7 +4,7 @@ import {
   type CreateContributorRequest, type UpdateContributorRequest,
   type CreatePlaylistRequest, type UpdatePlaylistRequest,
   type CreateSongRequest, type UpdateSongRequest,
-  type OpenPlaylistRequest, type PublishPlaylistRequest,
+  type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
   type NominateSongRequest, type ReviewNominationRequest,
 } from '@orgasm/backend-client'
 
@@ -44,8 +44,9 @@ const playlistClient = {
   create:  (body: CreatePlaylistRequest) => _playlists.createPlaylist(body),
   update:  (id: string, body: UpdatePlaylistRequest) => _playlists.updatePlaylist(id, body),
   delete:  (id: string) => _playlists.deletePlaylist(id),
-  open:    (id: string, body: OpenPlaylistRequest) => _playlists.openPlaylist(id, body),
-  publish: (id: string, body: PublishPlaylistRequest) => _playlists.publishPlaylist(id, body),
+  open:          (id: string, body: OpenPlaylistRequest) => _playlists.openPlaylist(id, body),
+  startGuessing: (id: string, body: StartGuessingRequest) => _playlists.startGuessing(id, body),
+  publish:       (id: string, body: PublishPlaylistRequest) => _playlists.publishPlaylist(id, body),
 }
 
 const nominationClient = {

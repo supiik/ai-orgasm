@@ -345,6 +345,35 @@ paths:
         '409':
           description: Conflict
 
+  /api/v1/playlists/{id}/start-guessing:
+    post:
+      tags: [playlists]
+      operationId: startGuessing
+      summary: Close nominations and move playlist to guessing phase
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartGuessingRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
   /api/v1/playlists/{id}/publish:
     post:
       tags: [playlists]
@@ -648,7 +677,7 @@ components:
 
     PlaylistStatus:
       type: string
-      enum: [NEW, OPEN, UNDER_EVALUATION, CLOSED, PUBLISHED]
+      enum: [NEW, OPEN, GUESSING, UNDER_EVALUATION, CLOSED, PUBLISHED]
 
     NominationStatus:
       type: string
@@ -663,6 +692,13 @@ components:
         deadline:
           type: string
           format: date-time
+
+    StartGuessingRequest:
+      type: object
+      required: [contributorId]
+      properties:
+        contributorId:
+          type: string
 
     PublishPlaylistRequest:
       type: object
