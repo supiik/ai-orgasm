@@ -12,7 +12,7 @@ const { theme, cycle } = useTheme()
     <!-- Sidebar -->
     <aside class="w-56 shrink-0 border-r border-border flex flex-col">
       <div class="h-14 flex items-center px-4 border-b border-border font-semibold text-sm tracking-wide">
-        Orgasm
+        ORGAnized Spotify Media building
       </div>
       <nav class="flex-1 px-2 py-3 space-y-0.5 flex flex-col">
         <RouterLink
