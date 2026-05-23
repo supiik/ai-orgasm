@@ -4,7 +4,7 @@ import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 interface Contributor {
@@ -284,15 +284,10 @@ function reset() {
             <button class="text-xs text-muted-foreground underline" @click="me = ''">Change</button>
           </template>
           <!-- Manual picker in mock mode or when identity is not resolved -->
-          <Select v-else v-model="me" :disabled="submitted" class="w-56">
-            <SelectTrigger>
-              <SelectValue placeholder="Select your name…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="c in eligibleContributors" :key="c.id" :value="c.id">
-                {{ c.name }}
-              </SelectItem>
-            </SelectContent>
+          <Select v-else v-model="me" :disabled="submitted" class="w-56" placeholder="Select your name…">
+            <SelectItem v-for="c in eligibleContributors" :key="c.id" :value="c.id">
+              {{ c.name }}
+            </SelectItem>
           </Select>
           <span v-if="me && !submitted" class="text-sm text-muted-foreground">
             You nominated <strong>{{ songs[myNomination?.songId ?? '']?.name ?? '…' }}</strong> —
@@ -323,15 +318,10 @@ function reset() {
                 </TableCell>
                 <TableCell class="text-muted-foreground">{{ songs[nomination.songId]?.album ?? '—' }}</TableCell>
                 <TableCell>
-                  <Select v-model="guesses[nomination.id]" :disabled="submitted">
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Pick a contributor…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="c in guessOptions" :key="c.id" :value="c.id">
-                        {{ c.name }}
-                      </SelectItem>
-                    </SelectContent>
+                  <Select v-model="guesses[nomination.id]" :disabled="submitted" placeholder="Pick a contributor…" class="w-full">
+                    <SelectItem v-for="c in guessOptions" :key="c.id" :value="c.id">
+                      {{ c.name }}
+                    </SelectItem>
                   </Select>
                 </TableCell>
                 <TableCell v-if="submitted">
