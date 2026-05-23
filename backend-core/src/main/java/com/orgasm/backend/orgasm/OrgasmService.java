@@ -259,6 +259,9 @@ public class OrgasmService {
             long nomDbId = IdGenerator.parse(item.nominationId());
             Nomination nomination = nominationRepository.findById(nomDbId)
                     .orElseThrow(() -> new EntityNotFoundException("Nomination not found: " + item.nominationId()));
+            if (nomination.getNominatedBy().getId().equals(contributorDbId)) {
+                throw new IllegalStateException("Cannot rate your own nomination");
+            }
             songRatingRepository.save(new SongRating(null, null, playlist, contributor, nomination, item.points()));
         }
     }

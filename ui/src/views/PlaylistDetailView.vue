@@ -47,7 +47,6 @@ async function load() {
     }
     if (data.status === PlaylistStatus.Published && (data as any).ratingType) {
       await loadSongRatings()
-      if (myId.value) ratingContributorId.value = myId.value
     }
   } catch {
     error.value = 'Playlist not found.'
@@ -288,7 +287,6 @@ const STAR_TO_POINTS: Record<string, number[]> = {
 
 const maxStars = computed(() => ratingType.value === 'BEST_SONG' ? 1 : 3)
 
-const ratingContributorId = ref('')
 const myStars = ref<Record<string, number>>({})
 const ratingError = ref<string | null>(null)
 const submittingRating = ref(false)
@@ -321,7 +319,7 @@ const ratingComplete = computed(() => {
 })
 
 async function autoSubmitRatings() {
-  if (!ratingContributorId.value || !ratingComplete.value) return
+  if (!myId.value || !ratingComplete.value) return
   submittingRating.value = true
   ratingError.value = null
   try {
@@ -330,7 +328,7 @@ async function autoSubmitRatings() {
       nominationId,
       points: points[stars] ?? stars,
     }))
-    await api.songRatings().submit(id, { contributorId: ratingContributorId.value, ratings })
+    await api.songRatings().submit(id, { contributorId: myId.value, ratings })
     await loadSongRatings()
   } catch (e: unknown) {
     ratingError.value = extractDetail(e) ?? 'Failed to submit ratings.'
@@ -418,30 +416,18 @@ async function startGuessing() {
   }
 }
 
-// ── Publish dialog ────────────────────────────────────────────────────────────
+// ── Publish ──────────────────────────────────────────────────────────────────
 
-const publishOpen = ref(false)
-const publishContributorId = ref('')
-const publishError = ref<string | null>(null)
 const publishing = ref(false)
 
-function showPublish() {
-  publishContributorId.value = myId.value
-  publishError.value = null
-  publishOpen.value = true
-}
-
-async function submitPublish() {
-  if (!publishContributorId.value.trim()) { publishError.value = 'Contributor ID is required.'; return }
+async function publish() {
   publishing.value = true
-  publishError.value = null
   try {
-    const { data } = await api.playlists().publish(id, { contributorId: publishContributorId.value.trim() })
+    const { data } = await api.playlists().publish(id, { contributorId: myId.value })
     playlist.value = data
-    publishOpen.value = false
     await loadGuesses()
   } catch (e: unknown) {
-    publishError.value = extractDetail(e) ?? 'Failed to publish playlist.'
+    console.error('Failed to publish playlist', e)
   } finally {
     publishing.value = false
   }
@@ -492,9 +478,9 @@ function statusClass(s: NominationStatus | undefined) {
           <Headphones class="h-4 w-4" />
           Start guessing
         </Button>
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" @click="showPublish">
+        <Button v-if="isLead && playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" :disabled="publishing" @click="publish">
           <BookOpen class="h-4 w-4" />
-          Publish
+          {{ publishing ? 'Publishing…' : 'Publish' }}
         </Button>
         <Button v-if="playlist?.status === PlaylistStatus.New || playlist?.status === PlaylistStatus.Open" variant="outline" size="sm" @click="openEdit">
           <Pencil class="h-4 w-4" />
@@ -633,11 +619,11 @@ function statusClass(s: NominationStatus | undefined) {
               <tr class="bg-muted/60 divide-x divide-border">
                 <th class="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Song</th>
                 <th v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 font-medium whitespace-nowrap text-center">
-                  <div class="flex flex-col items-center gap-1">
+                  <RouterLink :to="`/contributors/${guesser.id}`" class="flex flex-col items-center gap-1 hover:underline underline-offset-2">
                     <img v-if="guesser.avatarUrl" :src="guesser.avatarUrl" :alt="guesser.name" class="w-6 h-6 rounded-full object-cover" />
                     <div v-else class="w-6 h-6 rounded-full bg-muted" />
                     <span class="text-xs">{{ guesser.name }}</span>
-                  </div>
+                  </RouterLink>
                 </th>
                 <th class="px-3 py-2 font-medium whitespace-nowrap text-center text-muted-foreground">Total</th>
               </tr>
@@ -645,8 +631,10 @@ function statusClass(s: NominationStatus | undefined) {
             <tbody class="divide-y divide-border">
               <tr v-for="nom in approvedNoms" :key="nom.id" class="divide-x divide-border even:bg-muted/40">
                 <td class="px-4 py-2 whitespace-nowrap">
-                  <div class="font-medium">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
-                  <div class="text-xs text-muted-foreground">{{ songMap[nom.songId!]?.artist }}</div>
+                  <RouterLink :to="`/songs/${nom.songId}`" class="hover:underline underline-offset-2">
+                    <div class="font-medium">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
+                    <div class="text-xs text-muted-foreground">{{ songMap[nom.songId!]?.artist }}</div>
+                  </RouterLink>
                 </td>
                 <td v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 text-center whitespace-nowrap">
                   <span v-if="guesser.id === nom.nominatedById" class="text-muted-foreground">—</span>
@@ -681,18 +669,7 @@ function statusClass(s: NominationStatus | undefined) {
 
       <!-- Song ratings section -->
       <section v-if="playlist.status === PlaylistStatus.Published && ratingType">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Song Ratings</h2>
-          <div class="flex items-center gap-2 text-sm">
-            <span class="text-muted-foreground">Rate as:</span>
-            <ContributorSelect
-              v-model="ratingContributorId"
-              :contributors="allContributors"
-              placeholder="Select contributor…"
-              class="w-48"
-            />
-          </div>
-        </div>
+        <h2 class="text-lg font-semibold mb-3">Song Ratings</h2>
         <p class="text-xs text-muted-foreground mb-3">{{ ratingTypeLabel }}</p>
         <p v-if="ratingError" class="text-sm text-destructive mb-3">{{ ratingError }}</p>
 
@@ -703,20 +680,25 @@ function statusClass(s: NominationStatus | undefined) {
               <div class="text-xs text-muted-foreground truncate">{{ songMap[nom.songId!]?.artist }}</div>
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
-              <button
-                v-for="star in maxStars"
-                :key="star"
-                :disabled="!ratingContributorId"
-                class="p-0.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                @click="clickStar(nom.id!, star)"
-              >
-                <Star
-                  class="h-5 w-5"
-                  :class="starsForNom(nom.id!) >= star
-                    ? 'text-yellow-500 fill-yellow-500'
-                    : 'text-muted-foreground/40 hover:text-yellow-400'"
-                />
-              </button>
+              <template v-if="nom.nominatedById === myId">
+                <span class="text-xs text-muted-foreground italic">Your nomination</span>
+              </template>
+              <template v-else>
+                <button
+                  v-for="star in maxStars"
+                  :key="star"
+                  :disabled="!myId"
+                  class="p-0.5 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  @click="clickStar(nom.id!, star)"
+                >
+                  <Star
+                    class="h-5 w-5"
+                    :class="starsForNom(nom.id!) >= star
+                      ? 'text-yellow-500 fill-yellow-500'
+                      : 'text-muted-foreground/40 hover:text-yellow-400'"
+                  />
+                </button>
+              </template>
             </div>
             <div class="w-16 text-right tabular-nums shrink-0">
               <span class="font-semibold">{{ songTotalPoints[nom.id!] ?? 0 }}</span>
@@ -826,22 +808,4 @@ function statusClass(s: NominationStatus | undefined) {
     </DialogContent>
   </Dialog>
 
-  <!-- Publish dialog -->
-  <Dialog v-model:open="publishOpen">
-    <DialogContent>
-      <DialogHeader><DialogTitle>Publish playlist</DialogTitle></DialogHeader>
-      <form class="space-y-4" @submit.prevent="submitPublish">
-        <p class="text-sm text-muted-foreground">Confirm you are the lead contributor. This action cannot be undone.</p>
-        <div class="space-y-1.5">
-          <Label>Your contributor <span class="text-destructive">*</span></Label>
-          <ContributorSelect v-model="publishContributorId" :contributors="allContributors" placeholder="Select your contributor…" />
-        </div>
-        <p v-if="publishError" class="text-sm text-destructive">{{ publishError }}</p>
-      </form>
-      <DialogFooter>
-        <Button variant="outline" :disabled="publishing" @click="publishOpen = false">Cancel</Button>
-        <Button :disabled="publishing" @click="submitPublish">{{ publishing ? 'Publishing…' : 'Publish' }}</Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
 </template>
