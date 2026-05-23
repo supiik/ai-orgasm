@@ -19,6 +19,7 @@ interface Song {
   artist: string
   name: string
   album?: string | null
+  url?: string | null
 }
 
 interface Nomination {
@@ -188,9 +189,9 @@ function downloadPlaylist() {
   const rows = approvedNominations.value.map((n, i) => {
     const s = songs.value[n.songId]
     const cell = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
-    return [i + 1, cell(s?.name ?? ''), cell(s?.artist ?? ''), cell(s?.album ?? '')].join(',')
+    return [i + 1, cell(s?.name ?? ''), cell(s?.artist ?? ''), cell(s?.album ?? ''), cell(s?.url ?? '')].join(',')
   })
-  const csv = ['#,Song,Artist,Album', ...rows].join('\n')
+  const csv = ['#,Song,Artist,Album,Link', ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -202,11 +203,7 @@ function downloadPlaylist() {
   URL.revokeObjectURL(url)
 }
 
-function reset() {
-  submitted.value = false
-  guesses.value = {}
-  me.value = ''
-}
+
 </script>
 
 <template>
@@ -364,7 +361,7 @@ function reset() {
             <span class="text-foreground font-semibold">{{ guessList.length }}</span>
             correct.
           </p>
-          <Button variant="outline" size="sm" @click="reset">Play again</Button>
+
         </div>
       </template>
     </div>
