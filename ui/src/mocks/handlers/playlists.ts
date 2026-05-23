@@ -108,7 +108,8 @@ export const playlistHandlers = [
       const idx = nominationsDb.findIndex(nom => nom.id === n.id)
       if (idx !== -1) nominationsDb[idx] = { ...nominationsDb[idx], status: 'DECLINED', version: nominationsDb[idx].version + 1, updatedAt: now() }
     })
-    playlistsDb[index] = { ...playlistsDb[index], status: 'GUESSING', updatedAt: now() }
+    const guessingDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    playlistsDb[index] = { ...playlistsDb[index], status: 'GUESSING', guessingDeadline, updatedAt: now() }
     return HttpResponse.json(playlistsDb[index])
   }),
 

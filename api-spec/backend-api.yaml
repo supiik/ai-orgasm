@@ -820,6 +820,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        guessingDeadline:
+          type: string
+          format: date-time
+          nullable: true
         version:
           type: integer
           format: int64

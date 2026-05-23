@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 @Service
@@ -114,6 +115,7 @@ public class OrgasmService {
             throw new IllegalStateException("Deadline has not passed and there are still pending nominations");
         }
         nominationRepository.declinePendingByPlaylistId(playlist.getId());
+        playlist.setGuessingDeadline(Instant.now().plus(7, ChronoUnit.DAYS));
         playlist.setStatus(PlaylistStatus.GUESSING);
         return playlistMapper.toResponse(playlistRepository.save(playlist));
     }

@@ -94,6 +94,11 @@ const deadlinePassed = computed(() => {
   return new Date(playlist.value.deadline) < new Date()
 })
 
+const guessingDeadlinePassed = computed(() => {
+  if (!(playlist.value as any)?.guessingDeadline) return false
+  return new Date((playlist.value as any).guessingDeadline) < new Date()
+})
+
 // ── Edit dialog ───────────────────────────────────────────────────────────────
 
 const editOpen = ref(false)
@@ -374,6 +379,13 @@ function statusClass(s: NominationStatus | undefined) {
           <dd :class="deadlinePassed ? 'text-destructive' : ''">
             {{ formatDate(playlist.deadline) }}
             <span v-if="deadlinePassed" class="ml-1 text-xs">(passed)</span>
+          </dd>
+        </div>
+        <div v-if="(playlist as any).guessingDeadline" class="flex px-4 py-3 gap-4">
+          <dt class="w-36 shrink-0 text-muted-foreground">Guessing deadline</dt>
+          <dd :class="guessingDeadlinePassed ? 'text-destructive' : ''">
+            {{ formatDate((playlist as any).guessingDeadline) }}
+            <span v-if="guessingDeadlinePassed" class="ml-1 text-xs">(passed)</span>
           </dd>
         </div>
         <div class="flex px-4 py-3 gap-4">

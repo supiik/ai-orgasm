@@ -32,6 +32,7 @@ interface Playlist {
   name: string
   description?: string | null
   status: string
+  guessingDeadline?: string | null
   leadContributorName?: string | null
   leadContributorAvatarUrl?: string | null
 }
@@ -139,6 +140,16 @@ async function selectPlaylist(playlist: Playlist) {
   }
 }
 
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+}
+
+const guessingDeadlinePassed = computed(() => {
+  if (!selectedPlaylist.value?.guessingDeadline) return false
+  return new Date(selectedPlaylist.value.guessingDeadline) < new Date()
+})
+
 function contributorName(id: string) {
   return allContributors.value.find(c => c.id === id)?.name ?? id
 }
@@ -176,6 +187,7 @@ function reset() {
               <TableHead>Description</TableHead>
               <TableHead class="w-36">Status</TableHead>
               <TableHead class="w-44">Lead</TableHead>
+              <TableHead class="w-36">Guessing deadline</TableHead>
               <TableHead class="w-24" />
             </TableRow>
           </TableHeader>
@@ -197,6 +209,7 @@ function reset() {
                 </div>
                 <span v-else class="text-muted-foreground">—</span>
               </TableCell>
+              <TableCell class="text-muted-foreground text-sm">{{ formatDate(playlist.guessingDeadline) }}</TableCell>
               <TableCell>
                 <Button size="sm" variant="outline" @click.stop="selectPlaylist(playlist)">Play</Button>
               </TableCell>
@@ -213,6 +226,14 @@ function reset() {
         <h2 class="text-lg font-medium">{{ selectedPlaylist.name }}</h2>
         <PlaylistStatusBadge :status="selectedPlaylist.status" />
       </div>
+
+      <p v-if="selectedPlaylist.guessingDeadline" class="text-sm text-muted-foreground">
+        Guessing closes
+        <span :class="guessingDeadlinePassed ? 'text-destructive font-medium' : 'text-foreground'">
+          {{ formatDate(selectedPlaylist.guessingDeadline) }}
+        </span>
+        <span v-if="guessingDeadlinePassed"> (passed)</span>
+      </p>
 
       <div v-if="loadingNominations" class="text-sm text-muted-foreground">Loading…</div>
 
