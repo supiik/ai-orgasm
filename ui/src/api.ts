@@ -101,6 +101,36 @@ const rankingsClient = {
   },
 }
 
+export type SongRatingEntry = {
+  nominationId: string
+  contributorId: string
+  contributorName: string
+  points: number
+}
+
+const songRatingsClient = {
+  list: async (playlistId: string): Promise<{ data: SongRatingEntry[] }> => {
+    const token = await getAccessToken()
+    const res = await fetch(`/api/v1/playlists/${playlistId}/ratings`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return { data: await res.json() }
+  },
+  submit: async (playlistId: string, body: { contributorId: string; ratings: Array<{ nominationId: string; points: number }> }): Promise<void> => {
+    const token = await getAccessToken()
+    const res = await fetch(`/api/v1/playlists/${playlistId}/ratings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  },
+}
+
 export const api = {
   contributors: () => contributorClient,
   playlists:    () => playlistClient,
@@ -108,4 +138,5 @@ export const api = {
   songs:        () => songClient,
   guesses:      () => guessesClient,
   rankings:     () => rankingsClient,
+  songRatings:  () => songRatingsClient,
 }

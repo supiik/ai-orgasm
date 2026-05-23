@@ -3,6 +3,8 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.ranking.RankingResponse;
+import com.orgasm.backend.rating.SongRatingResponse;
+import com.orgasm.backend.rating.SubmitRatingsRequest;
 import com.orgasm.backend.result.GuessingResultNotifier;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +87,19 @@ public class OrgasmController {
     @GetMapping("/rankings")
     public List<RankingResponse> getRankings() {
         return orgasmService.getRankings();
+    }
+
+    @PostMapping("/playlists/{id}/ratings")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void submitRatings(
+            @PathVariable String id,
+            @RequestBody @Valid SubmitRatingsRequest request) {
+        orgasmService.submitRatings(id, request);
+    }
+
+    @GetMapping("/playlists/{id}/ratings")
+    public List<SongRatingResponse> getSongRatings(@PathVariable String id) {
+        return orgasmService.getSongRatings(id);
     }
 
     @PostMapping("/playlists/{id}/publish")

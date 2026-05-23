@@ -17,9 +17,14 @@ import com.orgasm.backend.playlist.PlaylistMapper;
 import com.orgasm.backend.playlist.PlaylistRepository;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.playlist.RatingType;
 import com.orgasm.backend.ranking.PlaylistRanking;
 import com.orgasm.backend.ranking.PlaylistRankingRepository;
 import com.orgasm.backend.ranking.RankingResponse;
+import com.orgasm.backend.rating.SongRating;
+import com.orgasm.backend.rating.SongRatingRepository;
+import com.orgasm.backend.rating.SongRatingResponse;
+import com.orgasm.backend.rating.SubmitRatingsRequest;
 import com.orgasm.backend.song.Song;
 import com.orgasm.backend.song.SongRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -50,6 +55,7 @@ public class OrgasmService {
     private final GuessSubmissionRepository guessSubmissionRepository;
     private final GuessRepository guessRepository;
     private final PlaylistRankingRepository playlistRankingRepository;
+    private final SongRatingRepository songRatingRepository;
     private final PlaylistMapper playlistMapper;
     private final NominationMapper nominationMapper;
 
@@ -230,6 +236,54 @@ public class OrgasmService {
                         r.getRankPosition(),
                         r.getCorrectGuesses(),
                         r.getTotalGuesses()))
+                .toList();
+    }
+
+    @CircuitBreaker(name = "db")
+    public void submitRatings(String playlistId, SubmitRatingsRequest request) {
+        Playlist playlist = requirePlaylist(playlistId);
+        if (playlist.getStatus() != PlaylistStatus.PUBLISHED) {
+            throw new IllegalStateException("Ratings can only be submitted for published playlists");
+        }
+        if (playlist.getRatingType() == null) {
+            throw new IllegalStateException("This playlist has no rating type configured");
+        }
+        long contributorDbId = IdGenerator.parse(request.contributorId());
+        if (!contributorRepository.existsById(contributorDbId)) {
+            throw new EntityNotFoundException("Contributor not found: " + request.contributorId());
+        }
+        validateRatings(playlist.getRatingType(), request.ratings());
+        Contributor contributor = contributorRepository.getReferenceById(contributorDbId);
+        songRatingRepository.deleteByPlaylistAndContributor(playlist.getId(), contributorDbId);
+        for (var item : request.ratings()) {
+            long nomDbId = IdGenerator.parse(item.nominationId());
+            Nomination nomination = nominationRepository.findById(nomDbId)
+                    .orElseThrow(() -> new EntityNotFoundException("Nomination not found: " + item.nominationId()));
+            songRatingRepository.save(new SongRating(null, null, playlist, contributor, nomination, item.points()));
+        }
+    }
+
+    private void validateRatings(RatingType type, List<SubmitRatingsRequest.RatingItem> items) {
+        var pointsList = items.stream().map(SubmitRatingsRequest.RatingItem::points).sorted().toList();
+        var expected = switch (type) {
+            case LINEAR -> List.of(1, 2, 3);
+            case FIBONACCI -> List.of(5, 8, 13);
+            case BEST_SONG -> List.of(1);
+        };
+        if (!pointsList.equals(expected)) {
+            throw new IllegalStateException("Invalid rating points for " + type + ": expected " + expected);
+        }
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public List<SongRatingResponse> getSongRatings(String playlistId) {
+        return songRatingRepository.findByPlaylistWithDetails(IdGenerator.parse(playlistId)).stream()
+                .map(r -> new SongRatingResponse(
+                        IdGenerator.format("nom", r.getNomination().getId()),
+                        IdGenerator.format("cont", r.getContributor().getId()),
+                        r.getContributor().getName(),
+                        r.getPoints()))
                 .toList();
     }
 

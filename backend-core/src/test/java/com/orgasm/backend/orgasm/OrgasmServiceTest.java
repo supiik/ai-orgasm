@@ -19,6 +19,7 @@ import com.orgasm.backend.playlist.PlaylistStatus;
 import com.orgasm.backend.ranking.PlaylistRanking;
 import com.orgasm.backend.ranking.PlaylistRankingRepository;
 import com.orgasm.backend.ranking.RankingResponse;
+import com.orgasm.backend.rating.SongRatingRepository;
 import com.orgasm.backend.song.SongRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,7 @@ class OrgasmServiceTest {
     @Mock GuessSubmissionRepository guessSubmissionRepository;
     @Mock GuessRepository guessRepository;
     @Mock PlaylistRankingRepository playlistRankingRepository;
+    @Mock SongRatingRepository songRatingRepository;
     @Mock PlaylistMapper playlistMapper;
     @Mock NominationMapper nominationMapper;
     @InjectMocks OrgasmService service;

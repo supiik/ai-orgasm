@@ -2,13 +2,14 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
-import { api, type GuessEntry } from '@/api'
+import { api, type GuessEntry, type SongRatingEntry } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones } from 'lucide-vue-next'
+import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 import ContributorSelect from '@/components/ContributorSelect.vue'
 import SongUrlBadge from '@/components/SongUrlBadge.vue'
@@ -28,6 +29,7 @@ const nominations = ref<NominationResponse[]>([])
 const songMap = ref<Record<string, { name: string; artist: string; url: string | null }>>({})
 const contributorMap = ref<Record<string, { name: string; avatarUrl: string | null }>>({})
 const guesses = ref<GuessEntry[]>([])
+const songRatings = ref<SongRatingEntry[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -43,6 +45,9 @@ async function load() {
     if (data.status === PlaylistStatus.Guessing || data.status === PlaylistStatus.Published) {
       await loadGuesses()
     }
+    if (data.status === PlaylistStatus.Published && (data as any).ratingType) {
+      await loadSongRatings()
+    }
   } catch {
     error.value = 'Playlist not found.'
   } finally {
@@ -54,6 +59,13 @@ async function loadGuesses() {
   try {
     const { data } = await api.guesses().list(id)
     guesses.value = data
+  } catch {}
+}
+
+async function loadSongRatings() {
+  try {
+    const { data } = await api.songRatings().list(id)
+    songRatings.value = data
   } catch {}
 }
 
@@ -262,6 +274,81 @@ const showMatrix = computed(() =>
   playlist.value?.status === PlaylistStatus.Published ||
   (playlist.value?.status === PlaylistStatus.Guessing && allSubmitted.value)
 )
+
+// ── Song ratings ─────────────────────────────────────────────────────────────
+
+const ratingType = computed(() => (playlist.value as any)?.ratingType as string | null)
+
+const POINTS_MAP: Record<string, number[]> = {
+  LINEAR: [3, 2, 1],
+  FIBONACCI: [13, 8, 5],
+  BEST_SONG: [1],
+}
+
+const pointsOptions = computed(() => POINTS_MAP[ratingType.value ?? ''] ?? [])
+
+const ratingContributorId = ref('')
+const ratingSelections = ref<Record<string, string>>({})
+const ratingError = ref<string | null>(null)
+const submittingRating = ref(false)
+const ratingDialogOpen = ref(false)
+
+function showRateDialog() {
+  ratingContributorId.value = ''
+  ratingSelections.value = {}
+  ratingError.value = null
+  ratingDialogOpen.value = true
+}
+
+function setRating(nominationId: string, points: string) {
+  const existing = Object.entries(ratingSelections.value).find(([, v]) => v === points)
+  if (existing) delete ratingSelections.value[existing[0]]
+  if (points) {
+    ratingSelections.value[nominationId] = points
+  } else {
+    delete ratingSelections.value[nominationId]
+  }
+}
+
+const ratingComplete = computed(() => {
+  const expected = pointsOptions.value.length
+  return Object.keys(ratingSelections.value).length === expected
+})
+
+async function submitRating() {
+  if (!ratingContributorId.value) { ratingError.value = 'Select a contributor.'; return }
+  if (!ratingComplete.value) { ratingError.value = `Select ${pointsOptions.value.length} song(s).`; return }
+  submittingRating.value = true
+  ratingError.value = null
+  try {
+    const ratings = Object.entries(ratingSelections.value).map(([nominationId, pts]) => ({
+      nominationId,
+      points: parseInt(pts),
+    }))
+    await api.songRatings().submit(id, { contributorId: ratingContributorId.value, ratings })
+    ratingDialogOpen.value = false
+    await loadSongRatings()
+  } catch (e: unknown) {
+    ratingError.value = extractDetail(e) ?? 'Failed to submit ratings.'
+  } finally {
+    submittingRating.value = false
+  }
+}
+
+const songTotalPoints = computed(() => {
+  const result: Record<string, number> = {}
+  for (const r of songRatings.value) {
+    result[r.nominationId] = (result[r.nominationId] ?? 0) + r.points
+  }
+  return result
+})
+
+const ratingTypeLabel = computed(() => {
+  if (ratingType.value === 'LINEAR') return 'Linear (1, 2, 3 pts)'
+  if (ratingType.value === 'FIBONACCI') return 'Fibonacci (5, 8, 13 pts)'
+  if (ratingType.value === 'BEST_SONG') return 'Best Song (pick one)'
+  return ''
+})
 
 function showNominate(contributorId = '') {
   nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '', url: '' }
@@ -527,6 +614,12 @@ function statusClass(s: NominationStatus | undefined) {
         </div>
       </section>
 
+      <!-- Rating type info -->
+      <div v-if="ratingType" class="flex px-4 py-3 gap-4 border border-border rounded-md text-sm bg-muted/40">
+        <dt class="w-36 shrink-0 text-muted-foreground">Rating type</dt>
+        <dd class="font-medium">{{ ratingTypeLabel }}</dd>
+      </div>
+
       <!-- Guess matrix -->
       <section v-if="showMatrix">
         <h2 class="text-lg font-semibold mb-3">Guess matrix</h2>
@@ -581,9 +674,112 @@ function statusClass(s: NominationStatus | undefined) {
           </table>
         </div>
       </section>
+
+      <!-- Song ratings section -->
+      <section v-if="playlist.status === PlaylistStatus.Published && ratingType">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Song Ratings</h2>
+          <Button size="sm" @click="showRateDialog">
+            <Star class="h-4 w-4" />
+            Rate songs
+          </Button>
+        </div>
+
+        <div v-if="songRatings.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
+          No ratings submitted yet.
+        </div>
+
+        <div v-else class="overflow-x-auto rounded-md border border-border">
+          <table class="text-sm w-full">
+            <thead>
+              <tr class="bg-muted/60 divide-x divide-border">
+                <th class="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Song</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right text-muted-foreground">Total pts</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-left text-muted-foreground">Rated by</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr v-for="nom in approvedNoms" :key="nom.id" class="even:bg-muted/40">
+                <td class="px-4 py-2 whitespace-nowrap">
+                  <div class="font-medium">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
+                  <div class="text-xs text-muted-foreground">{{ songMap[nom.songId!]?.artist }}</div>
+                </td>
+                <td class="px-3 py-2 text-right tabular-nums font-semibold">
+                  {{ songTotalPoints[nom.id!] ?? 0 }}
+                </td>
+                <td class="px-3 py-2">
+                  <div class="flex flex-wrap gap-1">
+                    <span
+                      v-for="r in songRatings.filter(sr => sr.nominationId === nom.id)"
+                      :key="r.contributorId"
+                      class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs"
+                    >
+                      {{ r.contributorName }}
+                      <span class="font-medium">{{ r.points }}</span>
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </template>
 
   </div>
+
+  <!-- Rate songs dialog -->
+  <Dialog v-model:open="ratingDialogOpen">
+    <DialogContent>
+      <DialogHeader><DialogTitle>Rate songs</DialogTitle></DialogHeader>
+      <form class="space-y-4" @submit.prevent="submitRating">
+        <div class="space-y-1.5">
+          <Label>Your contributor <span class="text-destructive">*</span></Label>
+          <ContributorSelect v-model="ratingContributorId" :contributors="allContributors" placeholder="Select contributor…" />
+        </div>
+        <div class="border-t border-border pt-3 space-y-2">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            {{ ratingType === 'BEST_SONG' ? 'Pick your favourite song' : `Assign points to ${pointsOptions.length} songs` }}
+          </p>
+          <div v-for="nom in approvedNoms" :key="nom.id" class="flex items-center gap-3 py-1">
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium truncate">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
+              <div class="text-xs text-muted-foreground truncate">{{ songMap[nom.songId!]?.artist }}</div>
+            </div>
+            <div v-if="ratingType === 'BEST_SONG'">
+              <input
+                type="radio"
+                name="best-song"
+                :value="nom.id"
+                :checked="ratingSelections[nom.id!] === '1'"
+                class="h-4 w-4 accent-primary"
+                @change="ratingSelections = {}; setRating(nom.id!, '1')"
+              />
+            </div>
+            <Select
+              v-else
+              :model-value="ratingSelections[nom.id!] ?? ''"
+              placeholder="—"
+              class="w-24 shrink-0"
+              @update:model-value="(v: string) => setRating(nom.id!, v)"
+            >
+              <SelectItem value="">—</SelectItem>
+              <SelectItem v-for="pts in pointsOptions" :key="pts" :value="String(pts)">
+                {{ pts }} pts
+              </SelectItem>
+            </Select>
+          </div>
+        </div>
+        <p v-if="ratingError" class="text-sm text-destructive">{{ ratingError }}</p>
+      </form>
+      <DialogFooter>
+        <Button variant="outline" :disabled="submittingRating" @click="ratingDialogOpen = false">Cancel</Button>
+        <Button :disabled="submittingRating || !ratingComplete" @click="submitRating">
+          {{ submittingRating ? 'Submitting…' : 'Submit' }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 
   <!-- Edit dialog -->
   <Dialog v-model:open="editOpen">
