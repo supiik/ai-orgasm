@@ -230,6 +230,34 @@ const allSubmitted = computed(() => {
   return guesserPool.value.length > 0 && guesserPool.value.every(c => submitted.has(c.id))
 })
 
+const songCorrectCounts = computed(() => {
+  const result: Record<string, { correct: number; total: number }> = {}
+  for (const nom of approvedNoms.value) {
+    let correct = 0, total = 0
+    for (const guesser of guesserPool.value) {
+      if (guesser.id === nom.nominatedById) continue
+      total++
+      if (guessMatrix.value[nom.id!]?.[guesser.id] === nom.nominatedById) correct++
+    }
+    result[nom.id!] = { correct, total }
+  }
+  return result
+})
+
+const guesserCorrectCounts = computed(() => {
+  const result: Record<string, { correct: number; total: number }> = {}
+  for (const guesser of guesserPool.value) {
+    let correct = 0, total = 0
+    for (const nom of approvedNoms.value) {
+      if (nom.nominatedById === guesser.id) continue
+      total++
+      if (guessMatrix.value[nom.id!]?.[guesser.id] === nom.nominatedById) correct++
+    }
+    result[guesser.id] = { correct, total }
+  }
+  return result
+})
+
 const showMatrix = computed(() =>
   playlist.value?.status === PlaylistStatus.Published ||
   (playlist.value?.status === PlaylistStatus.Guessing && allSubmitted.value)
@@ -514,6 +542,7 @@ function statusClass(s: NominationStatus | undefined) {
                     <span class="text-xs">{{ guesser.name }}</span>
                   </div>
                 </th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-center text-muted-foreground">Total</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
@@ -531,8 +560,24 @@ function statusClass(s: NominationStatus | undefined) {
                   </template>
                   <span v-else class="text-muted-foreground">—</span>
                 </td>
+                <td class="px-3 py-2 text-center whitespace-nowrap font-medium tabular-nums">
+                  <span :class="songCorrectCounts[nom.id!]?.correct === songCorrectCounts[nom.id!]?.total ? 'text-green-600' : songCorrectCounts[nom.id!]?.correct === 0 ? 'text-muted-foreground' : ''">
+                    {{ songCorrectCounts[nom.id!]?.correct ?? 0 }}/{{ songCorrectCounts[nom.id!]?.total ?? 0 }}
+                  </span>
+                </td>
               </tr>
             </tbody>
+            <tfoot>
+              <tr class="bg-muted/60 divide-x divide-border border-t border-border">
+                <td class="px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Total</td>
+                <td v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 text-center whitespace-nowrap font-medium tabular-nums">
+                  <span :class="guesserCorrectCounts[guesser.id]?.correct === guesserCorrectCounts[guesser.id]?.total ? 'text-green-600' : guesserCorrectCounts[guesser.id]?.correct === 0 ? 'text-muted-foreground' : ''">
+                    {{ guesserCorrectCounts[guesser.id]?.correct ?? 0 }}/{{ guesserCorrectCounts[guesser.id]?.total ?? 0 }}
+                  </span>
+                </td>
+                <td class="px-3 py-2 text-center text-muted-foreground">—</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </section>
