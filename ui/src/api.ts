@@ -5,7 +5,7 @@ import {
   type CreatePlaylistRequest, type UpdatePlaylistRequest,
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
-  type NominateSongRequest, type ReviewNominationRequest,
+  type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest,
 } from '@orgasm/backend-client'
 
 async function getAccessToken(): Promise<string> {
@@ -47,6 +47,7 @@ const playlistClient = {
   delete:  (id: string) => _playlists.deletePlaylist(id),
   open:          (id: string, body: OpenPlaylistRequest) => _playlists.openPlaylist(id, body),
   startGuessing: (id: string, body: StartGuessingRequest) => _playlists.startGuessing(id, body),
+  submitGuesses: (id: string, body: SubmitGuessesRequest) => _playlists.submitGuesses(id, body),
   publish:       (id: string, body: PublishPlaylistRequest) => _playlists.publishPlaylist(id, body),
 }
 

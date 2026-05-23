@@ -64,6 +64,14 @@ public class OrgasmController {
         return orgasmService.startGuessing(id, request.contributorId());
     }
 
+    @PostMapping("/playlists/{id}/submit-guesses")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void submitGuesses(
+            @PathVariable String id,
+            @RequestBody @Valid SubmitGuessesRequest request) {
+        orgasmService.submitGuesses(id, request.contributorId());
+    }
+
     @PostMapping("/playlists/{id}/publish")
     public PlaylistResponse publishPlaylist(
             @PathVariable String id,

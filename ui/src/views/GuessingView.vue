@@ -154,7 +154,13 @@ function contributorName(id: string) {
   return allContributors.value.find(c => c.id === id)?.name ?? id
 }
 
-function submit() {
+async function submit() {
+  if (!selectedPlaylist.value || !me.value) return
+  try {
+    await api.playlists().submitGuesses(selectedPlaylist.value.id, { contributorId: me.value })
+  } catch {
+    // submission recording failed — still show results locally
+  }
   submitted.value = true
 }
 

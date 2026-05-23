@@ -389,6 +389,31 @@ paths:
         '409':
           description: Conflict
 
+  /api/v1/playlists/{id}/submit-guesses:
+    post:
+      tags: [playlists]
+      operationId: submitGuesses
+      summary: Record that a contributor has submitted their guesses for a playlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitGuessesRequest'
+      responses:
+        '204':
+          description: No content
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
   /api/v1/playlists/{id}/publish:
     post:
       tags: [playlists]
@@ -716,6 +741,13 @@ components:
           type: string
 
     PublishPlaylistRequest:
+      type: object
+      required: [contributorId]
+      properties:
+        contributorId:
+          type: string
+
+    SubmitGuessesRequest:
       type: object
       required: [contributorId]
       properties:

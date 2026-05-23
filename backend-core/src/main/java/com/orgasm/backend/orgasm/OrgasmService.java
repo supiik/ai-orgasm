@@ -3,6 +3,8 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.guessing.GuessSubmission;
+import com.orgasm.backend.guessing.GuessSubmissionRepository;
 import com.orgasm.backend.nomination.Nomination;
 import com.orgasm.backend.nomination.NominationMapper;
 import com.orgasm.backend.nomination.NominationRepository;
@@ -36,6 +38,7 @@ public class OrgasmService {
     private final ContributorRepository contributorRepository;
     private final SongRepository songRepository;
     private final NominationRepository nominationRepository;
+    private final GuessSubmissionRepository guessSubmissionRepository;
     private final PlaylistMapper playlistMapper;
     private final NominationMapper nominationMapper;
 
@@ -118,6 +121,23 @@ public class OrgasmService {
         playlist.setGuessingDeadline(Instant.now().plus(7, ChronoUnit.DAYS));
         playlist.setStatus(PlaylistStatus.GUESSING);
         return playlistMapper.toResponse(playlistRepository.save(playlist));
+    }
+
+    @CircuitBreaker(name = "db")
+    public void submitGuesses(String playlistId, String contributorId) {
+        Playlist playlist = requirePlaylist(playlistId);
+        if (playlist.getStatus() != PlaylistStatus.GUESSING) {
+            throw new IllegalStateException("Playlist is not in guessing phase");
+        }
+        long contributorDbId = IdGenerator.parse(contributorId);
+        if (!contributorRepository.existsById(contributorDbId)) {
+            throw new EntityNotFoundException("Contributor not found: " + contributorId);
+        }
+        if (!guessSubmissionRepository.existsByPlaylist_IdAndContributor_Id(playlist.getId(), contributorDbId)) {
+            guessSubmissionRepository.save(
+                    new GuessSubmission(null, null, playlist,
+                            contributorRepository.getReferenceById(contributorDbId), null));
+        }
     }
 
     @CircuitBreaker(name = "db")
