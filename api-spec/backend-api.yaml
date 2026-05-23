@@ -749,9 +749,22 @@ components:
 
     SubmitGuessesRequest:
       type: object
-      required: [contributorId]
+      required: [contributorId, guesses]
       properties:
         contributorId:
+          type: string
+        guesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuessItem'
+
+    GuessItem:
+      type: object
+      required: [nominationId, guessedContributorId]
+      properties:
+        nominationId:
+          type: string
+        guessedContributorId:
           type: string
 
     NominateSongRequest:

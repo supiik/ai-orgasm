@@ -2,6 +2,7 @@ package com.orgasm.backend.orgasm;
 
 import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.playlist.PlaylistResponse;
+import com.orgasm.backend.result.GuessingResultNotifier;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class OrgasmController {
 
     private final OrgasmService orgasmService;
+    private final GuessingResultNotifier guessingResultNotifier;
 
     @PostMapping("/playlists/{id}/open")
     public PlaylistResponse openPlaylist(
@@ -69,13 +71,15 @@ public class OrgasmController {
     public void submitGuesses(
             @PathVariable String id,
             @RequestBody @Valid SubmitGuessesRequest request) {
-        orgasmService.submitGuesses(id, request.contributorId());
+        orgasmService.submitGuesses(id, request.contributorId(), request.guesses());
     }
 
     @PostMapping("/playlists/{id}/publish")
     public PlaylistResponse publishPlaylist(
             @PathVariable String id,
             @RequestBody @Valid PublishPlaylistRequest request) {
-        return orgasmService.publishPlaylist(id, request.contributorId());
+        PlaylistResponse response = orgasmService.publishPlaylist(id, request.contributorId());
+        guessingResultNotifier.notifyPublish(id);
+        return response;
     }
 }

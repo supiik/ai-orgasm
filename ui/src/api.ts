@@ -5,7 +5,7 @@ import {
   type CreatePlaylistRequest, type UpdatePlaylistRequest,
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
-  type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest,
+  type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest, type GuessItem,
 } from '@orgasm/backend-client'
 
 async function getAccessToken(): Promise<string> {

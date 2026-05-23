@@ -3,6 +3,8 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.guessing.Guess;
+import com.orgasm.backend.guessing.GuessRepository;
 import com.orgasm.backend.guessing.GuessSubmission;
 import com.orgasm.backend.guessing.GuessSubmissionRepository;
 import com.orgasm.backend.nomination.Nomination;
@@ -39,6 +41,7 @@ public class OrgasmService {
     private final SongRepository songRepository;
     private final NominationRepository nominationRepository;
     private final GuessSubmissionRepository guessSubmissionRepository;
+    private final GuessRepository guessRepository;
     private final PlaylistMapper playlistMapper;
     private final NominationMapper nominationMapper;
 
@@ -124,7 +127,7 @@ public class OrgasmService {
     }
 
     @CircuitBreaker(name = "db")
-    public void submitGuesses(String playlistId, String contributorId) {
+    public void submitGuesses(String playlistId, String contributorId, java.util.List<SubmitGuessesRequest.GuessItem> guessItems) {
         Playlist playlist = requirePlaylist(playlistId);
         if (playlist.getStatus() != PlaylistStatus.GUESSING) {
             throw new IllegalStateException("Playlist is not in guessing phase");
@@ -133,10 +136,17 @@ public class OrgasmService {
         if (!contributorRepository.existsById(contributorDbId)) {
             throw new EntityNotFoundException("Contributor not found: " + contributorId);
         }
+        Contributor guesser = contributorRepository.getReferenceById(contributorDbId);
+        guessRepository.deleteByPlaylistAndGuesser(playlist.getId(), contributorDbId);
+        for (SubmitGuessesRequest.GuessItem item : guessItems) {
+            long nominationDbId = IdGenerator.parse(item.nominationId());
+            Nomination nomination = nominationRepository.findById(nominationDbId)
+                    .orElseThrow(() -> new EntityNotFoundException("Nomination not found: " + item.nominationId()));
+            Contributor guessedContributor = contributorRepository.getReferenceById(IdGenerator.parse(item.guessedContributorId()));
+            guessRepository.save(new Guess(null, null, playlist, nomination, guesser, guessedContributor));
+        }
         if (!guessSubmissionRepository.existsByPlaylist_IdAndContributor_Id(playlist.getId(), contributorDbId)) {
-            guessSubmissionRepository.save(
-                    new GuessSubmission(null, null, playlist,
-                            contributorRepository.getReferenceById(contributorDbId), null));
+            guessSubmissionRepository.save(new GuessSubmission(null, null, playlist, guesser, null));
         }
     }
 

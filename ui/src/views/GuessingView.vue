@@ -156,12 +156,38 @@ function contributorName(id: string) {
 
 async function submit() {
   if (!selectedPlaylist.value || !me.value) return
+  const guessItems = Object.entries(guesses.value).map(([nominationId, guessedContributorId]) => ({
+    nominationId,
+    guessedContributorId,
+  }))
   try {
-    await api.playlists().submitGuesses(selectedPlaylist.value.id, { contributorId: me.value })
+    await api.playlists().submitGuesses(selectedPlaylist.value.id, {
+      contributorId: me.value,
+      guesses: guessItems,
+    })
   } catch {
     // submission recording failed — still show results locally
   }
   submitted.value = true
+}
+
+function downloadPlaylist() {
+  if (!selectedPlaylist.value) return
+  const rows = approvedNominations.value.map((n, i) => {
+    const s = songs.value[n.songId]
+    const cell = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
+    return [i + 1, cell(s?.name ?? ''), cell(s?.artist ?? ''), cell(s?.album ?? '')].join(',')
+  })
+  const csv = ['#,Song,Artist,Album', ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${selectedPlaylist.value.name.replace(/[^a-z0-9]/gi, '_')}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 function reset() {
@@ -231,6 +257,7 @@ function reset() {
         <Button variant="ghost" size="sm" @click="selectedPlaylist = null">← Back</Button>
         <h2 class="text-lg font-medium">{{ selectedPlaylist.name }}</h2>
         <PlaylistStatusBadge :status="selectedPlaylist.status" />
+        <Button variant="outline" size="sm" class="ml-auto" @click="downloadPlaylist">Download playlist</Button>
       </div>
 
       <p v-if="selectedPlaylist.guessingDeadline" class="text-sm text-muted-foreground">
