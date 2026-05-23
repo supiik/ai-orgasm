@@ -236,6 +236,19 @@ class OrgasmControllerTest {
                 .andExpect(jsonPath("$.status").value("DECLINED"));
     }
 
+    // ── getGuesses ────────────────────────────────────────────────────────────
+
+    @Test
+    void getGuesses_returns200() throws Exception {
+        when(service.getGuesses(PLAYLIST_ID)).thenReturn(
+                List.of(new GuessResponse(NOMINATION_ID, CONTRIBUTOR_ID, CONTRIBUTOR_ID)));
+
+        mvc.perform(get("/api/v1/playlists/{id}/guesses", PLAYLIST_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nominationId").value(NOMINATION_ID))
+                .andExpect(jsonPath("$[0].guesserId").value(CONTRIBUTOR_ID));
+    }
+
     // ── publishPlaylist ───────────────────────────────────────────────────────
 
     @Test

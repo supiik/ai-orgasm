@@ -66,9 +66,23 @@ const songClient = {
   delete: (id: string) => _songs.deleteSong(id),
 }
 
+export type GuessEntry = { nominationId: string; guesserId: string; guessedContributorId: string }
+
+const guessesClient = {
+  list: async (playlistId: string): Promise<{ data: GuessEntry[] }> => {
+    const token = await getAccessToken()
+    const res = await fetch(`/api/v1/playlists/${playlistId}/guesses`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return { data: await res.json() }
+  },
+}
+
 export const api = {
   contributors: () => contributorClient,
   playlists:    () => playlistClient,
   nominations:  () => nominationClient,
   songs:        () => songClient,
+  guesses:      () => guessesClient,
 }

@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -169,6 +170,19 @@ public class OrgasmService {
         return nominationRepository
                 .findByPlaylist_Id(IdGenerator.parse(playlistId), pageable)
                 .map(nominationMapper::toResponse);
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public List<GuessResponse> getGuesses(String playlistId) {
+        return guessRepository.findByPlaylist_Id(IdGenerator.parse(playlistId))
+                .stream()
+                .map(g -> new GuessResponse(
+                        IdGenerator.format("nom", g.getNomination().getId()),
+                        IdGenerator.format("cont", g.getGuesser().getId()),
+                        IdGenerator.format("cont", g.getGuessedContributor().getId())
+                ))
+                .toList();
     }
 
     private NominationResponse reviewNomination(String nominationId, String reviewerId, NominationStatus newStatus) {

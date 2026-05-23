@@ -34,6 +34,26 @@ export const playlistsDb: PlaylistRow[] = [
   { id: 'play-b9c0d1e2f3a4b5c6', name: 'Road Trip Mix', description: 'Songs to guess!', status: 'GUESSING', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 7200000).toISOString(), guessingDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), version: 2, createdAt: '2024-01-04T08:00:00Z', updatedAt: '2024-01-12T10:00:00Z' },
 ]
 
+export interface GuessRow {
+  playlistId: string
+  nominationId: string
+  guesserId: string
+  guessedContributorId: string
+}
+
+// Pre-seeded guesses for "Road Trip Mix" (all 3 contributors have submitted)
+export const guessesDb: GuessRow[] = [
+  // Thom Yorke guesses (nominates nom-c, so guesses nom-a and nom-b)
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-a1b2c3d4e5f6a7b8', guesserId: 'cont-1a2b3c4d5e6f7089', guessedContributorId: 'cont-0c1d2e3f4a5b6c7d' },
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-b2c3d4e5f6a7b8c9', guesserId: 'cont-1a2b3c4d5e6f7089', guessedContributorId: 'cont-8f7e6d5c4b3a2019' },
+  // Nigel Godrich guesses (nominates nom-a, so guesses nom-b and nom-c)
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-b2c3d4e5f6a7b8c9', guesserId: 'cont-8f7e6d5c4b3a2019', guessedContributorId: 'cont-0c1d2e3f4a5b6c7d' },
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-c3d4e5f6a7b8c9d0', guesserId: 'cont-8f7e6d5c4b3a2019', guessedContributorId: 'cont-1a2b3c4d5e6f7089' },
+  // Jonny Greenwood guesses (nominates nom-b, so guesses nom-a and nom-c)
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-a1b2c3d4e5f6a7b8', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-8f7e6d5c4b3a2019' },
+  { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-c3d4e5f6a7b8c9d0', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-1a2b3c4d5e6f7089' },
+]
+
 export const nominationsDb: NominationRow[] = [
   { id: 'nom-f1e2d3c4b5a69708', playlistId: 'play-2d3e4f5a6b7c8d90', songId: 'song-0af3b7c2d1e8f905', nominatedById: 'cont-1a2b3c4d5e6f7089', status: 'PENDING', version: 0, createdAt: '2024-01-10T10:00:00Z', updatedAt: '2024-01-10T10:00:00Z' },
   { id: 'nom-3c4d5e6f7a8b9c0d', playlistId: 'play-2d3e4f5a6b7c8d90', songId: 'song-9b2c5e3a7f1d4680', nominatedById: 'cont-0c1d2e3f4a5b6c7d', status: 'APPROVED', version: 1, createdAt: '2024-01-10T11:00:00Z', updatedAt: '2024-01-10T12:00:00Z' },

@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import { db as contributorDb } from './contributors'
-import { playlistsDb, nominationsDb } from './db'
+import { playlistsDb, nominationsDb, guessesDb } from './db'
 
 const nextId = () => `play-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
@@ -119,7 +119,22 @@ export const playlistHandlers = [
     if (playlistsDb[index].status !== 'GUESSING') {
       return HttpResponse.json({ title: 'Conflict', detail: 'Playlist is not in guessing phase' }, { status: 409 })
     }
+    const body = await request.json() as { contributorId: string; guesses: Array<{ nominationId: string; guessedContributorId: string }> }
+    const playlistId = params.id as string
+    for (let i = guessesDb.length - 1; i >= 0; i--) {
+      if (guessesDb[i].playlistId === playlistId && guessesDb[i].guesserId === body.contributorId) {
+        guessesDb.splice(i, 1)
+      }
+    }
+    for (const item of body.guesses) {
+      guessesDb.push({ playlistId, nominationId: item.nominationId, guesserId: body.contributorId, guessedContributorId: item.guessedContributorId })
+    }
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('/api/v1/playlists/:id/guesses', ({ params }) => {
+    const playlistId = params.id as string
+    return HttpResponse.json(guessesDb.filter(g => g.playlistId === playlistId))
   }),
 
   http.post('/api/v1/playlists/:id/publish', async ({ params, request }) => {

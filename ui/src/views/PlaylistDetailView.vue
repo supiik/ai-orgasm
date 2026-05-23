@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
-import { api } from '@/api'
+import { api, type GuessEntry } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,7 @@ const playlist = ref<PlaylistResponse | null>(null)
 const nominations = ref<NominationResponse[]>([])
 const songMap = ref<Record<string, { name: string; artist: string; url: string | null }>>({})
 const contributorMap = ref<Record<string, { name: string; avatarUrl: string | null }>>({})
+const guesses = ref<GuessEntry[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -39,11 +40,21 @@ async function load() {
     if (data.status === PlaylistStatus.Open || data.status === PlaylistStatus.Guessing || data.status === PlaylistStatus.Published) {
       await loadNominations()
     }
+    if (data.status === PlaylistStatus.Guessing || data.status === PlaylistStatus.Published) {
+      await loadGuesses()
+    }
   } catch {
     error.value = 'Playlist not found.'
   } finally {
     loading.value = false
   }
+}
+
+async function loadGuesses() {
+  try {
+    const { data } = await api.guesses().list(id)
+    guesses.value = data
+  } catch {}
 }
 
 async function loadNominations() {
@@ -194,6 +205,36 @@ const eligibleContributors = computed(() => {
   return allContributors.value.filter(c => !nominated.has(c.id))
 })
 
+const approvedNoms = computed(() =>
+  nominations.value.filter(n => n.status === NominationStatus.Approved)
+)
+
+const guesserPool = computed(() => {
+  const ids = new Set(approvedNoms.value.map(n => n.nominatedById).filter(Boolean))
+  return allContributors.value
+    .filter(c => ids.has(c.id))
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const guessMatrix = computed(() => {
+  const m: Record<string, Record<string, string>> = {}
+  for (const g of guesses.value) {
+    if (!m[g.nominationId]) m[g.nominationId] = {}
+    m[g.nominationId][g.guesserId] = g.guessedContributorId
+  }
+  return m
+})
+
+const allSubmitted = computed(() => {
+  const submitted = new Set(guesses.value.map(g => g.guesserId))
+  return guesserPool.value.length > 0 && guesserPool.value.every(c => submitted.has(c.id))
+})
+
+const showMatrix = computed(() =>
+  playlist.value?.status === PlaylistStatus.Published ||
+  (playlist.value?.status === PlaylistStatus.Guessing && allSubmitted.value)
+)
+
 function showNominate(contributorId = '') {
   nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '', url: '' }
   nominateError.value = null
@@ -279,6 +320,7 @@ async function submitPublish() {
     const { data } = await api.playlists().publish(id, { contributorId: publishContributorId.value.trim() })
     playlist.value = data
     publishOpen.value = false
+    await loadGuesses()
   } catch (e: unknown) {
     publishError.value = extractDetail(e) ?? 'Failed to publish playlist.'
   } finally {
@@ -454,6 +496,44 @@ function statusClass(s: NominationStatus | undefined) {
               Nominate
             </Button>
           </div>
+        </div>
+      </section>
+
+      <!-- Guess matrix -->
+      <section v-if="showMatrix">
+        <h2 class="text-lg font-semibold mb-3">Guess matrix</h2>
+        <div class="overflow-x-auto rounded-md border border-border">
+          <table class="text-sm w-full">
+            <thead>
+              <tr class="bg-muted/60 divide-x divide-border">
+                <th class="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Song</th>
+                <th v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 font-medium whitespace-nowrap text-center">
+                  <div class="flex flex-col items-center gap-1">
+                    <img v-if="guesser.avatarUrl" :src="guesser.avatarUrl" :alt="guesser.name" class="w-6 h-6 rounded-full object-cover" />
+                    <div v-else class="w-6 h-6 rounded-full bg-muted" />
+                    <span class="text-xs">{{ guesser.name }}</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr v-for="nom in approvedNoms" :key="nom.id" class="divide-x divide-border even:bg-muted/40">
+                <td class="px-4 py-2 whitespace-nowrap">
+                  <div class="font-medium">{{ songMap[nom.songId!]?.name ?? nom.songId }}</div>
+                  <div class="text-xs text-muted-foreground">{{ songMap[nom.songId!]?.artist }}</div>
+                </td>
+                <td v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 text-center whitespace-nowrap">
+                  <span v-if="guesser.id === nom.nominatedById" class="text-muted-foreground">—</span>
+                  <template v-else-if="guessMatrix[nom.id!]?.[guesser.id]">
+                    <span :class="guessMatrix[nom.id!][guesser.id] === nom.nominatedById ? 'text-green-600 font-medium' : 'text-destructive'">
+                      {{ contributorMap[guessMatrix[nom.id!][guesser.id]]?.name ?? guessMatrix[nom.id!][guesser.id] }}
+                    </span>
+                  </template>
+                  <span v-else class="text-muted-foreground">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
     </template>

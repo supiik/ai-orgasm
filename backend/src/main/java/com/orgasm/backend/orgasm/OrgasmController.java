@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping(value = "/api/v1", version = "1")
 @RequiredArgsConstructor
@@ -72,6 +74,11 @@ public class OrgasmController {
             @PathVariable String id,
             @RequestBody @Valid SubmitGuessesRequest request) {
         orgasmService.submitGuesses(id, request.contributorId(), request.guesses());
+    }
+
+    @GetMapping("/playlists/{id}/guesses")
+    public List<GuessResponse> getGuesses(@PathVariable String id) {
+        return orgasmService.getGuesses(id);
     }
 
     @PostMapping("/playlists/{id}/publish")

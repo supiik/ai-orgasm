@@ -3,6 +3,7 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.guessing.Guess;
 import com.orgasm.backend.guessing.GuessRepository;
 import com.orgasm.backend.guessing.GuessSubmissionRepository;
 import com.orgasm.backend.nomination.Nomination;
@@ -384,6 +385,26 @@ class OrgasmServiceTest {
         assertThatThrownBy(() -> service.publishPlaylist(PLAYLIST_ID, otherId))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("lead contributor");
+    }
+
+    // ── getGuesses ────────────────────────────────────────────────────────────
+
+    @Test
+    void getGuesses_returnsMappedList() {
+        var guess = new Guess();
+        guess.setNomination(pendingNomination());
+        var guesser = leadContributor();
+        guess.setGuesser(guesser);
+        var guessed = new Contributor(); guessed.setId(99L);
+        guess.setGuessedContributor(guessed);
+        when(guessRepository.findByPlaylist_Id(PLAYLIST_DB_ID)).thenReturn(List.of(guess));
+
+        var result = service.getGuesses(PLAYLIST_ID);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).nominationId()).isEqualTo(NOMINATION_ID);
+        assertThat(result.get(0).guesserId()).isEqualTo(CONTRIBUTOR_ID);
+        assertThat(result.get(0).guessedContributorId()).isEqualTo(IdGenerator.format("cont", 99L));
     }
 
     // ── findNominations ───────────────────────────────────────────────────────
