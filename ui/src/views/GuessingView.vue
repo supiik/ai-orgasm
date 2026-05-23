@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Select, SelectItem } from '@/components/ui/select'
+import ContributorSelect from '@/components/ContributorSelect.vue'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 interface Contributor {
@@ -152,6 +153,17 @@ const guessingDeadlinePassed = computed(() => {
 
 function contributorName(id: string) {
   return allContributors.value.find(c => c.id === id)?.name ?? id
+}
+
+function availableOptions(nominationId: string) {
+  const usedElsewhere = new Set(
+    Object.entries(guesses.value)
+      .filter(([nid]) => nid !== nominationId)
+      .map(([, cid]) => cid)
+  )
+  return guessOptions.value
+    .filter(c => !usedElsewhere.has(c.id))
+    .map(c => ({ id: c.id, name: c.name, avatarUrl: c.avatarUrl ?? null }))
 }
 
 async function submit() {
@@ -318,11 +330,13 @@ function reset() {
                 </TableCell>
                 <TableCell class="text-muted-foreground">{{ songs[nomination.songId]?.album ?? '—' }}</TableCell>
                 <TableCell>
-                  <Select v-model="guesses[nomination.id]" :disabled="submitted" placeholder="Pick a contributor…" class="w-full">
-                    <SelectItem v-for="c in guessOptions" :key="c.id" :value="c.id">
-                      {{ c.name }}
-                    </SelectItem>
-                  </Select>
+                  <ContributorSelect
+                    v-model="guesses[nomination.id]"
+                    :contributors="availableOptions(nomination.id)"
+                    :disabled="submitted"
+                    placeholder="Pick a contributor…"
+                    class="w-full"
+                  />
                 </TableCell>
                 <TableCell v-if="submitted">
                   <span :class="guesses[nomination.id] === nomination.nominatedById ? 'text-green-600 font-medium' : 'text-destructive'">
