@@ -68,10 +68,32 @@ const songClient = {
 
 export type GuessEntry = { nominationId: string; guesserId: string; guessedContributorId: string }
 
+export type RankingEntry = {
+  playlistId: string
+  playlistName: string
+  contributorId: string
+  contributorName: string
+  contributorAvatarUrl: string | null
+  rankPosition: number
+  correctGuesses: number
+  totalGuesses: number
+}
+
 const guessesClient = {
   list: async (playlistId: string): Promise<{ data: GuessEntry[] }> => {
     const token = await getAccessToken()
     const res = await fetch(`/api/v1/playlists/${playlistId}/guesses`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return { data: await res.json() }
+  },
+}
+
+const rankingsClient = {
+  list: async (): Promise<{ data: RankingEntry[] }> => {
+    const token = await getAccessToken()
+    const res = await fetch('/api/v1/rankings', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -85,4 +107,5 @@ export const api = {
   nominations:  () => nominationClient,
   songs:        () => songClient,
   guesses:      () => guessesClient,
+  rankings:     () => rankingsClient,
 }

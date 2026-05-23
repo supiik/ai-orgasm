@@ -17,6 +17,9 @@ import com.orgasm.backend.playlist.PlaylistMapper;
 import com.orgasm.backend.playlist.PlaylistRepository;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.ranking.PlaylistRanking;
+import com.orgasm.backend.ranking.PlaylistRankingRepository;
+import com.orgasm.backend.ranking.RankingResponse;
 import com.orgasm.backend.song.Song;
 import com.orgasm.backend.song.SongRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -29,8 +32,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional("appTransactionManager")
@@ -43,6 +49,7 @@ public class OrgasmService {
     private final NominationRepository nominationRepository;
     private final GuessSubmissionRepository guessSubmissionRepository;
     private final GuessRepository guessRepository;
+    private final PlaylistRankingRepository playlistRankingRepository;
     private final PlaylistMapper playlistMapper;
     private final NominationMapper nominationMapper;
 
@@ -161,7 +168,69 @@ public class OrgasmService {
             throw new IllegalStateException("Only the lead contributor can publish the playlist");
         }
         playlist.setStatus(PlaylistStatus.PUBLISHED);
-        return playlistMapper.toResponse(playlistRepository.save(playlist));
+        PlaylistResponse response = playlistMapper.toResponse(playlistRepository.save(playlist));
+        saveRankings(playlist);
+        return response;
+    }
+
+    private void saveRankings(Playlist playlist) {
+        List<Nomination> approved = nominationRepository.findByPlaylist_IdAndStatus(
+                playlist.getId(), NominationStatus.APPROVED);
+        List<Guess> allGuesses = guessRepository.findByPlaylist_Id(playlist.getId());
+
+        Map<Long, Contributor> guessersById = allGuesses.stream()
+                .collect(Collectors.toMap(
+                        g -> g.getGuesser().getId(),
+                        Guess::getGuesser,
+                        (a, b) -> a));
+
+        record Stats(Contributor contributor, int correct, int total) {}
+
+        Map<Long, Long> approvedNominators = approved.stream()
+                .collect(Collectors.toMap(Nomination::getId, n -> n.getNominatedBy().getId()));
+
+        List<Stats> stats = allGuesses.stream()
+                .collect(Collectors.groupingBy(g -> g.getGuesser().getId()))
+                .entrySet().stream()
+                .map(e -> {
+                    List<Guess> guesses = e.getValue();
+                    int correct = (int) guesses.stream()
+                            .filter(g -> {
+                                Long nominatorId = approvedNominators.get(g.getNomination().getId());
+                                return nominatorId != null
+                                        && nominatorId.equals(g.getGuessedContributor().getId());
+                            })
+                            .count();
+                    return new Stats(guessersById.get(e.getKey()), correct, guesses.size());
+                })
+                .sorted(Comparator.comparingInt(Stats::correct).reversed())
+                .toList();
+
+        int rank = 1;
+        for (int i = 0; i < stats.size(); i++) {
+            if (i > 0 && stats.get(i).correct() < stats.get(i - 1).correct()) {
+                rank = i + 1;
+            }
+            playlistRankingRepository.save(new PlaylistRanking(
+                    null, null, playlist, stats.get(i).contributor(),
+                    rank, stats.get(i).correct(), stats.get(i).total()));
+        }
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public List<RankingResponse> getRankings() {
+        return playlistRankingRepository.findAllWithDetails().stream()
+                .map(r -> new RankingResponse(
+                        IdGenerator.format("play", r.getPlaylist().getId()),
+                        r.getPlaylist().getName(),
+                        IdGenerator.format("cont", r.getContributor().getId()),
+                        r.getContributor().getName(),
+                        r.getContributor().getAvatarUrl(),
+                        r.getRankPosition(),
+                        r.getCorrectGuesses(),
+                        r.getTotalGuesses()))
+                .toList();
     }
 
     @CircuitBreaker(name = "db")

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 // MSW seed data (see src/mocks/handlers/playlists.ts)
-const SEED_NAMES = ['Chill Vibes', 'Workout Hits', 'Late Night']
+const SEED_NAMES = ['Chill Vibes', 'Workout Hits', 'Late Night', 'Road Trip Mix', 'Summer Classics']
 
 // Helper: run a fetch inside the browser (where MSW intercepts it)
 function browserFetch(page: import('@playwright/test').Page, input: string, init?: RequestInit) {

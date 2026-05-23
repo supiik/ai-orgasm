@@ -16,10 +16,14 @@ import com.orgasm.backend.playlist.PlaylistMapper;
 import com.orgasm.backend.playlist.PlaylistRepository;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.ranking.PlaylistRanking;
+import com.orgasm.backend.ranking.PlaylistRankingRepository;
+import com.orgasm.backend.ranking.RankingResponse;
 import com.orgasm.backend.song.SongRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,6 +37,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +50,7 @@ class OrgasmServiceTest {
     @Mock NominationRepository nominationRepository;
     @Mock GuessSubmissionRepository guessSubmissionRepository;
     @Mock GuessRepository guessRepository;
+    @Mock PlaylistRankingRepository playlistRankingRepository;
     @Mock PlaylistMapper playlistMapper;
     @Mock NominationMapper nominationMapper;
     @InjectMocks OrgasmService service;
@@ -363,9 +369,90 @@ class OrgasmServiceTest {
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
         when(playlistRepository.save(playlist)).thenReturn(saved);
         when(playlistMapper.toResponse(saved)).thenReturn(expected);
+        when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.APPROVED)).thenReturn(List.of());
+        when(guessRepository.findByPlaylist_Id(PLAYLIST_DB_ID)).thenReturn(List.of());
 
         assertThat(service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID)).isEqualTo(expected);
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.PUBLISHED);
+    }
+
+    @Test
+    void publishPlaylist_savesRankings() {
+        var playlist = guessingPlaylist();
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST, null);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, null, 0L, Instant.EPOCH, Instant.EPOCH);
+
+        var nominator1 = new Contributor(); nominator1.setId(10L);
+        var nominator2 = new Contributor(); nominator2.setId(11L);
+
+        var nom1 = new Nomination(); nom1.setId(100L); nom1.setNominatedBy(nominator1);
+        var nom2 = new Nomination(); nom2.setId(101L); nom2.setNominatedBy(nominator2);
+
+        var guesserA = new Contributor(); guesserA.setId(20L);
+        var guesserB = new Contributor(); guesserB.setId(21L);
+
+        // guesserA: 2 correct out of 2
+        var g1 = new Guess(null, null, playlist, nom1, guesserA, nominator1);
+        var g2 = new Guess(null, null, playlist, nom2, guesserA, nominator2);
+        // guesserB: 1 correct out of 2
+        var g3 = new Guess(null, null, playlist, nom1, guesserB, nominator1);
+        var g4 = new Guess(null, null, playlist, nom2, guesserB, nominator1); // wrong
+
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(saved);
+        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+        when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.APPROVED))
+                .thenReturn(List.of(nom1, nom2));
+        when(guessRepository.findByPlaylist_Id(PLAYLIST_DB_ID)).thenReturn(List.of(g1, g2, g3, g4));
+
+        service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID);
+
+        var captor = ArgumentCaptor.forClass(PlaylistRanking.class);
+        verify(playlistRankingRepository, times(2)).save(captor.capture());
+        var rankings = captor.getAllValues();
+
+        assertThat(rankings.get(0).getContributor()).isEqualTo(guesserA);
+        assertThat(rankings.get(0).getRankPosition()).isEqualTo(1);
+        assertThat(rankings.get(0).getCorrectGuesses()).isEqualTo(2);
+        assertThat(rankings.get(0).getTotalGuesses()).isEqualTo(2);
+
+        assertThat(rankings.get(1).getContributor()).isEqualTo(guesserB);
+        assertThat(rankings.get(1).getRankPosition()).isEqualTo(2);
+        assertThat(rankings.get(1).getCorrectGuesses()).isEqualTo(1);
+        assertThat(rankings.get(1).getTotalGuesses()).isEqualTo(2);
+    }
+
+    @Test
+    void publishPlaylist_assignsSameRankForTiedContributors() {
+        var playlist = guessingPlaylist();
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST, null);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, null, 0L, Instant.EPOCH, Instant.EPOCH);
+
+        var nominator = new Contributor(); nominator.setId(10L);
+        var nom = new Nomination(); nom.setId(100L); nom.setNominatedBy(nominator);
+
+        var guesserA = new Contributor(); guesserA.setId(20L);
+        var guesserB = new Contributor(); guesserB.setId(21L);
+
+        // both correct
+        var g1 = new Guess(null, null, playlist, nom, guesserA, nominator);
+        var g2 = new Guess(null, null, playlist, nom, guesserB, nominator);
+
+        when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
+        when(playlistRepository.save(playlist)).thenReturn(saved);
+        when(playlistMapper.toResponse(saved)).thenReturn(expected);
+        when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.APPROVED))
+                .thenReturn(List.of(nom));
+        when(guessRepository.findByPlaylist_Id(PLAYLIST_DB_ID)).thenReturn(List.of(g1, g2));
+
+        service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID);
+
+        var captor = ArgumentCaptor.forClass(PlaylistRanking.class);
+        verify(playlistRankingRepository, times(2)).save(captor.capture());
+        var rankings = captor.getAllValues();
+
+        assertThat(rankings.get(0).getRankPosition()).isEqualTo(1);
+        assertThat(rankings.get(1).getRankPosition()).isEqualTo(1);
     }
 
     @Test
@@ -405,6 +492,31 @@ class OrgasmServiceTest {
         assertThat(result.get(0).nominationId()).isEqualTo(NOMINATION_ID);
         assertThat(result.get(0).guesserId()).isEqualTo(CONTRIBUTOR_ID);
         assertThat(result.get(0).guessedContributorId()).isEqualTo(IdGenerator.format("cont", 99L));
+    }
+
+    // ── getRankings ───────────────────────────────────────────────────────────
+
+    @Test
+    void getRankings_returnsMappedList() {
+        var playlist = guessingPlaylist();
+        var contributor = new Contributor();
+        contributor.setId(20L);
+        contributor.setName("Alice");
+        contributor.setAvatarUrl("https://example.com/alice.png");
+
+        var ranking = new PlaylistRanking(null, null, playlist, contributor, 1, 3, 5);
+
+        when(playlistRankingRepository.findAllWithDetails()).thenReturn(List.of(ranking));
+
+        var result = service.getRankings();
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).playlistId()).isEqualTo(PLAYLIST_ID);
+        assertThat(result.get(0).playlistName()).isEqualTo("Mix");
+        assertThat(result.get(0).contributorName()).isEqualTo("Alice");
+        assertThat(result.get(0).rankPosition()).isEqualTo(1);
+        assertThat(result.get(0).correctGuesses()).isEqualTo(3);
+        assertThat(result.get(0).totalGuesses()).isEqualTo(5);
     }
 
     // ── findNominations ───────────────────────────────────────────────────────

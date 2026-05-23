@@ -32,6 +32,7 @@ export const playlistsDb: PlaylistRow[] = [
   { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() + 86400000).toISOString(), guessingDeadline: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
   { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 3600000).toISOString(), guessingDeadline: null, version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
   { id: 'play-b9c0d1e2f3a4b5c6', name: 'Road Trip Mix', description: 'Songs to guess!', status: 'GUESSING', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 7200000).toISOString(), guessingDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), version: 2, createdAt: '2024-01-04T08:00:00Z', updatedAt: '2024-01-12T10:00:00Z' },
+  { id: 'play-d7e8f9a0b1c2d3e4', name: 'Summer Classics', description: 'Best of summer', status: 'PUBLISHED', leadContributorId: 'cont-8f7e6d5c4b3a2019', leadContributorName: 'Nigel Godrich', leadContributorAvatarUrl: null, deadline: '2024-02-01T00:00:00Z', guessingDeadline: '2024-02-08T00:00:00Z', version: 3, createdAt: '2024-01-20T10:00:00Z', updatedAt: '2024-02-10T10:00:00Z' },
 ]
 
 export interface GuessRow {
@@ -52,6 +53,13 @@ export const guessesDb: GuessRow[] = [
   // Jonny Greenwood guesses (nominates nom-b, so guesses nom-a and nom-c)
   { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-a1b2c3d4e5f6a7b8', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-8f7e6d5c4b3a2019' },
   { playlistId: 'play-b9c0d1e2f3a4b5c6', nominationId: 'nom-c3d4e5f6a7b8c9d0', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-1a2b3c4d5e6f7089' },
+  // Summer Classics guesses (published playlist)
+  // Thom guesses nom-d (by Jonny) correctly, nom-e (by Thom) skipped (own nomination)
+  { playlistId: 'play-d7e8f9a0b1c2d3e4', nominationId: 'nom-d4e5f6a7b8c9d0e1', guesserId: 'cont-1a2b3c4d5e6f7089', guessedContributorId: 'cont-0c1d2e3f4a5b6c7d' },
+  { playlistId: 'play-d7e8f9a0b1c2d3e4', nominationId: 'nom-e5f6a7b8c9d0e1f2', guesserId: 'cont-1a2b3c4d5e6f7089', guessedContributorId: 'cont-8f7e6d5c4b3a2019' },
+  // Jonny guesses nom-e (by Nigel) correctly, nom-d (by Jonny) skipped
+  { playlistId: 'play-d7e8f9a0b1c2d3e4', nominationId: 'nom-e5f6a7b8c9d0e1f2', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-8f7e6d5c4b3a2019' },
+  { playlistId: 'play-d7e8f9a0b1c2d3e4', nominationId: 'nom-f6a7b8c9d0e1f2a3', guesserId: 'cont-0c1d2e3f4a5b6c7d', guessedContributorId: 'cont-1a2b3c4d5e6f7089' },
 ]
 
 export const nominationsDb: NominationRow[] = [
@@ -61,4 +69,8 @@ export const nominationsDb: NominationRow[] = [
   { id: 'nom-a1b2c3d4e5f6a7b8', playlistId: 'play-b9c0d1e2f3a4b5c6', songId: 'song-0af3b7c2d1e8f905', nominatedById: 'cont-8f7e6d5c4b3a2019', status: 'APPROVED', version: 1, createdAt: '2024-01-12T08:00:00Z', updatedAt: '2024-01-12T09:00:00Z' },
   { id: 'nom-b2c3d4e5f6a7b8c9', playlistId: 'play-b9c0d1e2f3a4b5c6', songId: 'song-9b2c5e3a7f1d4680', nominatedById: 'cont-0c1d2e3f4a5b6c7d', status: 'APPROVED', version: 1, createdAt: '2024-01-12T08:30:00Z', updatedAt: '2024-01-12T09:00:00Z' },
   { id: 'nom-c3d4e5f6a7b8c9d0', playlistId: 'play-b9c0d1e2f3a4b5c6', songId: 'song-c4d7a8e2f3b16509', nominatedById: 'cont-1a2b3c4d5e6f7089', status: 'APPROVED', version: 1, createdAt: '2024-01-12T09:00:00Z', updatedAt: '2024-01-12T09:00:00Z' },
+  // Summer Classics nominations (published playlist)
+  { id: 'nom-d4e5f6a7b8c9d0e1', playlistId: 'play-d7e8f9a0b1c2d3e4', songId: 'song-0af3b7c2d1e8f905', nominatedById: 'cont-0c1d2e3f4a5b6c7d', status: 'APPROVED', version: 1, createdAt: '2024-01-21T08:00:00Z', updatedAt: '2024-01-21T09:00:00Z' },
+  { id: 'nom-e5f6a7b8c9d0e1f2', playlistId: 'play-d7e8f9a0b1c2d3e4', songId: 'song-9b2c5e3a7f1d4680', nominatedById: 'cont-8f7e6d5c4b3a2019', status: 'APPROVED', version: 1, createdAt: '2024-01-21T08:30:00Z', updatedAt: '2024-01-21T09:00:00Z' },
+  { id: 'nom-f6a7b8c9d0e1f2a3', playlistId: 'play-d7e8f9a0b1c2d3e4', songId: 'song-c4d7a8e2f3b16509', nominatedById: 'cont-1a2b3c4d5e6f7089', status: 'APPROVED', version: 1, createdAt: '2024-01-21T09:00:00Z', updatedAt: '2024-01-21T09:00:00Z' },
 ]

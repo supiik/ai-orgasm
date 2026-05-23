@@ -25,3 +25,10 @@ test('navigates to contributors via sidebar', async ({ page }) => {
   await expect(page).toHaveURL('/contributors')
   await expect(page.getByRole('heading', { name: 'Contributors' })).toBeVisible()
 })
+
+test('navigates to stats via sidebar', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Stats' }).click()
+  await expect(page).toHaveURL('/stats')
+  await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible()
+})

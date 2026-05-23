@@ -2,6 +2,7 @@ package com.orgasm.backend.orgasm;
 
 import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.playlist.PlaylistResponse;
+import com.orgasm.backend.ranking.RankingResponse;
 import com.orgasm.backend.result.GuessingResultNotifier;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,11 @@ public class OrgasmController {
     @GetMapping("/playlists/{id}/guesses")
     public List<GuessResponse> getGuesses(@PathVariable String id) {
         return orgasmService.getGuesses(id);
+    }
+
+    @GetMapping("/rankings")
+    public List<RankingResponse> getRankings() {
+        return orgasmService.getRankings();
     }
 
     @PostMapping("/playlists/{id}/publish")

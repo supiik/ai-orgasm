@@ -8,6 +8,7 @@ import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.nomination.NominationStatus;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.ranking.RankingResponse;
 import com.orgasm.backend.result.GuessingResultNotifier;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
@@ -247,6 +248,20 @@ class OrgasmControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nominationId").value(NOMINATION_ID))
                 .andExpect(jsonPath("$[0].guesserId").value(CONTRIBUTOR_ID));
+    }
+
+    // ── getRankings ───────────────────────────────────────────────────────────
+
+    @Test
+    void getRankings_returns200() throws Exception {
+        when(service.getRankings()).thenReturn(List.of(
+                new RankingResponse(PLAYLIST_ID, "Mix", CONTRIBUTOR_ID, "Alice", null, 1, 3, 5)));
+
+        mvc.perform(get("/api/v1/rankings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].playlistId").value(PLAYLIST_ID))
+                .andExpect(jsonPath("$[0].contributorName").value("Alice"))
+                .andExpect(jsonPath("$[0].rankPosition").value(1));
     }
 
     // ── publishPlaylist ───────────────────────────────────────────────────────
