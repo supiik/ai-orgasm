@@ -55,7 +55,7 @@ class PlaylistControllerTest {
     }
 
     static PlaylistResponse response(String id, String name, String description) {
-        return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, description, PlaylistStatus.NEW, null, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
@@ -102,7 +102,7 @@ class PlaylistControllerTest {
 
         mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc", null))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("New Mix", "desc", null, null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/playlists/play-0001")))
                 .andExpect(jsonPath("$.id").value("play-0001"));
@@ -112,7 +112,7 @@ class PlaylistControllerTest {
     void create_returns400_whenNameBlank() throws Exception {
         mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null, null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -169,7 +169,7 @@ class PlaylistControllerTest {
     void create_returns400_withFieldErrors() throws Exception {
         mvc.perform(post("/api/v1/playlists")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null))))
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("", "desc", null, null))))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(400))

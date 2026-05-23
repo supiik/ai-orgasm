@@ -67,7 +67,7 @@ class OrgasmControllerTest {
     }
 
     static PlaylistResponse playlistResponse() {
-        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN,
+        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, null,
                 CONTRIBUTOR_ID, null, null, Instant.EPOCH, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
@@ -268,7 +268,7 @@ class OrgasmControllerTest {
 
     @Test
     void publishPlaylist_returns200() throws Exception {
-        var published = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED,
+        var published = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, null,
                 CONTRIBUTOR_ID, null, null, Instant.EPOCH, null, 0L, Instant.EPOCH, Instant.EPOCH);
         when(service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID)).thenReturn(published);
 

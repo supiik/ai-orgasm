@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const router = useRouter()
@@ -55,7 +56,13 @@ type DialogMode = 'create' | 'edit'
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
 const editingId = ref<string | null>(null)
-const form = ref({ name: '', description: '' })
+const RATING_TYPES = [
+  { value: 'LINEAR', label: 'Linear (1, 2, 3 pts)' },
+  { value: 'FIBONACCI', label: 'Fibonacci (5, 8, 13 pts)' },
+  { value: 'BEST_SONG', label: 'Best Song (pick one)' },
+] as const
+
+const form = ref({ name: '', description: '', ratingType: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
@@ -68,7 +75,7 @@ const submitLabel = computed(() => {
 function openCreate() {
   dialogMode.value = 'create'
   editingId.value = null
-  form.value = { name: '', description: '' }
+  form.value = { name: '', description: '', ratingType: '' }
   formError.value = null
   dialogOpen.value = true
 }
@@ -76,7 +83,7 @@ function openCreate() {
 function openEdit(playlist: PlaylistResponse) {
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
-  form.value = { name: playlist.name!, description: playlist.description ?? '' }
+  form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: '' }
   formError.value = null
   dialogOpen.value = true
 }
@@ -92,9 +99,12 @@ async function submitForm() {
     const payload = {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
+      ...(dialogMode.value === 'create' && form.value.ratingType
+        ? { ratingType: form.value.ratingType }
+        : {}),
     }
     if (dialogMode.value === 'create') {
-      await api.playlists().create(payload)
+      await api.playlists().create(payload as any)
       page.value === 0 ? fetchPage(0) : (page.value = 0)
     } else {
       await api.playlists().update(editingId.value!, payload)
@@ -217,6 +227,14 @@ async function submitForm() {
         <div class="space-y-1.5">
           <Label for="description">Description</Label>
           <Input id="description" v-model="form.description" placeholder="Optional description" />
+        </div>
+        <div v-if="dialogMode === 'create'" class="space-y-1.5">
+          <Label>Rating type</Label>
+          <Select v-model="form.ratingType" placeholder="None">
+            <SelectItem v-for="rt in RATING_TYPES" :key="rt.value" :value="rt.value">
+              {{ rt.label }}
+            </SelectItem>
+          </Select>
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>

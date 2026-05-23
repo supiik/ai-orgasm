@@ -26,7 +26,7 @@ export const playlistHandlers = [
   }),
 
   http.post('/api/v1/playlists', async ({ request }) => {
-    const body = await request.json() as { name: string; description?: string }
+    const body = await request.json() as { name: string; description?: string; ratingType?: string }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -35,10 +35,12 @@ export const playlistHandlers = [
       name: body.name,
       description: body.description ?? null,
       status: 'NEW' as const,
+      ratingType: (body.ratingType as 'LINEAR' | 'FIBONACCI' | 'BEST_SONG') ?? null,
       leadContributorId: null,
       leadContributorName: null,
       leadContributorAvatarUrl: null,
       deadline: null,
+      guessingDeadline: null,
       version: 0,
       createdAt: now(),
       updatedAt: now(),

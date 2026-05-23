@@ -33,7 +33,7 @@ class CreatePlaylistHandlerTest {
     }
 
     private static PlaylistResponse stubResponse() {
-        return new PlaylistResponse("play-0001", "My Mix", "desc", PlaylistStatus.NEW, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse("play-0001", "My Mix", "desc", PlaylistStatus.NEW, null, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     // Explicit cast resolves the create(CreatePlaylistRequest) vs create(UnaryOperator) ambiguity
@@ -99,7 +99,7 @@ class CreatePlaylistHandlerTest {
     void returns500_whenSerializationFails() throws Exception {
         var failingMapper = mock(ObjectMapper.class);
         when(failingMapper.readValue(any(String.class), any(Class.class)))
-                .thenReturn(new CreatePlaylistRequest("x", null, null));
+                .thenReturn(new CreatePlaylistRequest("x", null, null, null));
         when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("ser-fail"));
         var handler = new CreatePlaylistHandler(playlistService, failingMapper, VALIDATOR);
 

@@ -1,0 +1,1 @@
+ALTER TABLE playlists ADD COLUMN rating_type VARCHAR(20) NULL;

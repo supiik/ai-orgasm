@@ -51,4 +51,8 @@ public class Playlist extends AuditableEntity {
 
     @Column(name = "guessing_deadline")
     private Instant guessingDeadline;
+
+    @Column(name = "rating_type")
+    @Enumerated(EnumType.STRING)
+    private RatingType ratingType;
 }

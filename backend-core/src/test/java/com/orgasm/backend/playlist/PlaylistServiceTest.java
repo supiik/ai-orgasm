@@ -33,14 +33,14 @@ class PlaylistServiceTest {
     static final String USER_ID = IdGenerator.format("play", DB_ID);
 
     static PlaylistResponse response(String id, String name) {
-        return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(id, name, null, PlaylistStatus.NEW, null, null, null, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     @Test
     void create_savesAndReturnsResponse() {
-        var request = new CreatePlaylistRequest("My Mix", "desc", null);
-        var entity = new Playlist(null, null, "My Mix", "desc", null, null, null, null);
-        var saved = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null);
+        var request = new CreatePlaylistRequest("My Mix", "desc", null, null);
+        var entity = new Playlist(null, null, "My Mix", "desc", null, null, null, null, null);
+        var saved = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null, null);
         var expected = response(USER_ID, "My Mix");
 
         when(mapper.toEntity(request)).thenReturn(entity);
@@ -52,8 +52,8 @@ class PlaylistServiceTest {
 
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
-        var entity = new Playlist(null, null, "My Mix", "desc", null, null, null, null);
-        var saved = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(null, null, "My Mix", "desc", null, null, null, null, null);
+        var saved = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null, null);
         var expected = response(USER_ID, "My Mix");
 
         when(mapper.toEntity(any(CreatePlaylistRequest.class))).thenReturn(entity);
@@ -65,7 +65,7 @@ class PlaylistServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(DB_ID, null, "My Mix", "desc", PlaylistStatus.NEW, null, null, null, null);
         var expected = response(USER_ID, "My Mix");
         when(repository.findById(DB_ID)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
@@ -82,7 +82,7 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Playlist(DB_ID, null, "A", null, PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(DB_ID, null, "A", null, PlaylistStatus.NEW, null, null, null, null);
         var mapped = response(USER_ID, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -94,7 +94,7 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Playlist(DB_ID, null, "A", null, PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(DB_ID, null, "A", null, PlaylistStatus.NEW, null, null, null, null);
         var mapped = response(USER_ID, "A");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -106,7 +106,7 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Playlist(DB_ID, null, "Chill", null, PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(DB_ID, null, "Chill", null, PlaylistStatus.NEW, null, null, null, null);
         var mapped = response(USER_ID, "Chill");
         when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -119,7 +119,7 @@ class PlaylistServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Playlist(DB_ID, null, "Chill", null, PlaylistStatus.NEW, null, null, null);
+        var entity = new Playlist(DB_ID, null, "Chill", null, PlaylistStatus.NEW, null, null, null, null);
         var mapped = response(USER_ID, "Chill");
         when(repository.findByNameContainingIgnoreCase(eq("chi"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -133,8 +133,8 @@ class PlaylistServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdatePlaylistRequest("New", "new desc", null);
-        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null);
-        var saved = new Playlist(DB_ID, null, "New", "new desc", PlaylistStatus.OPEN, null, null, null);
+        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null, null);
+        var saved = new Playlist(DB_ID, null, "New", "new desc", PlaylistStatus.OPEN, null, null, null, null);
         var expected = response(USER_ID, "New");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
@@ -147,8 +147,8 @@ class PlaylistServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null);
-        var saved = new Playlist(DB_ID, null, "New", "new desc", PlaylistStatus.OPEN, null, null, null);
+        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null, null);
+        var saved = new Playlist(DB_ID, null, "New", "new desc", PlaylistStatus.OPEN, null, null, null, null);
         var expected = response(USER_ID, "New");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));

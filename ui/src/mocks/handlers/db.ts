@@ -1,11 +1,14 @@
 type PlaylistStatus = 'NEW' | 'OPEN' | 'GUESSING' | 'UNDER_EVALUATION' | 'CLOSED' | 'PUBLISHED'
 type NominationStatus = 'PENDING' | 'APPROVED' | 'DECLINED'
 
+type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
+
 export interface PlaylistRow {
   id: string
   name: string
   description: string | null
   status: PlaylistStatus
+  ratingType: RatingType | null
   leadContributorId: string | null
   leadContributorName: string | null
   leadContributorAvatarUrl: string | null
@@ -28,11 +31,11 @@ export interface NominationRow {
 }
 
 export const playlistsDb: PlaylistRow[] = [
-  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', leadContributorId: null, leadContributorName: null, leadContributorAvatarUrl: null, deadline: null, guessingDeadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() + 86400000).toISOString(), guessingDeadline: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 3600000).toISOString(), guessingDeadline: null, version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
-  { id: 'play-b9c0d1e2f3a4b5c6', name: 'Road Trip Mix', description: 'Songs to guess!', status: 'GUESSING', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 7200000).toISOString(), guessingDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), version: 2, createdAt: '2024-01-04T08:00:00Z', updatedAt: '2024-01-12T10:00:00Z' },
-  { id: 'play-d7e8f9a0b1c2d3e4', name: 'Summer Classics', description: 'Best of summer', status: 'PUBLISHED', leadContributorId: 'cont-8f7e6d5c4b3a2019', leadContributorName: 'Nigel Godrich', leadContributorAvatarUrl: null, deadline: '2024-02-01T00:00:00Z', guessingDeadline: '2024-02-08T00:00:00Z', version: 3, createdAt: '2024-01-20T10:00:00Z', updatedAt: '2024-02-10T10:00:00Z' },
+  { id: 'play-a1b2c3d4e5f60718', name: 'Chill Vibes', description: 'Relaxing tunes', status: 'NEW', ratingType: null, leadContributorId: null, leadContributorName: null, leadContributorAvatarUrl: null, deadline: null, guessingDeadline: null, version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
+  { id: 'play-2d3e4f5a6b7c8d90', name: 'Workout Hits', description: 'High energy bangers', status: 'OPEN', ratingType: 'LINEAR', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() + 86400000).toISOString(), guessingDeadline: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
+  { id: 'play-e5f6a7b8c9d0e1f2', name: 'Late Night', description: null, status: 'OPEN', ratingType: 'FIBONACCI', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 3600000).toISOString(), guessingDeadline: null, version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'play-b9c0d1e2f3a4b5c6', name: 'Road Trip Mix', description: 'Songs to guess!', status: 'GUESSING', ratingType: 'BEST_SONG', leadContributorId: 'cont-1a2b3c4d5e6f7089', leadContributorName: 'Thom Yorke', leadContributorAvatarUrl: 'https://i.pravatar.cc/150?u=thom', deadline: new Date(Date.now() - 7200000).toISOString(), guessingDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), version: 2, createdAt: '2024-01-04T08:00:00Z', updatedAt: '2024-01-12T10:00:00Z' },
+  { id: 'play-d7e8f9a0b1c2d3e4', name: 'Summer Classics', description: 'Best of summer', status: 'PUBLISHED', ratingType: 'LINEAR', leadContributorId: 'cont-8f7e6d5c4b3a2019', leadContributorName: 'Nigel Godrich', leadContributorAvatarUrl: null, deadline: '2024-02-01T00:00:00Z', guessingDeadline: '2024-02-08T00:00:00Z', version: 3, createdAt: '2024-01-20T10:00:00Z', updatedAt: '2024-02-10T10:00:00Z' },
 ]
 
 export interface GuessRow {

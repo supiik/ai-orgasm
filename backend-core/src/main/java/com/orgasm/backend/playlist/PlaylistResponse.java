@@ -10,6 +10,7 @@ public record PlaylistResponse(
         String name,
         String description,
         PlaylistStatus status,
+        RatingType ratingType,
         String leadContributorId,
         String leadContributorName,
         String leadContributorAvatarUrl,

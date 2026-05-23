@@ -7,5 +7,6 @@ import lombok.Builder;
 public record CreatePlaylistRequest(
         @NotBlank String name,
         String description,
-        PlaylistStatus status
+        PlaylistStatus status,
+        RatingType ratingType
 ) {}
