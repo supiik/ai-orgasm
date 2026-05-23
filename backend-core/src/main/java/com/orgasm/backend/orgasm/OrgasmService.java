@@ -3,6 +3,10 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.guessing.Guess;
+import com.orgasm.backend.guessing.GuessRepository;
+import com.orgasm.backend.guessing.GuessSubmission;
+import com.orgasm.backend.guessing.GuessSubmissionRepository;
 import com.orgasm.backend.nomination.Nomination;
 import com.orgasm.backend.nomination.NominationMapper;
 import com.orgasm.backend.nomination.NominationRepository;
@@ -24,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 
 @Service
@@ -35,6 +40,8 @@ public class OrgasmService {
     private final ContributorRepository contributorRepository;
     private final SongRepository songRepository;
     private final NominationRepository nominationRepository;
+    private final GuessSubmissionRepository guessSubmissionRepository;
+    private final GuessRepository guessRepository;
     private final PlaylistMapper playlistMapper;
     private final NominationMapper nominationMapper;
 
@@ -114,8 +121,33 @@ public class OrgasmService {
             throw new IllegalStateException("Deadline has not passed and there are still pending nominations");
         }
         nominationRepository.declinePendingByPlaylistId(playlist.getId());
+        playlist.setGuessingDeadline(Instant.now().plus(7, ChronoUnit.DAYS));
         playlist.setStatus(PlaylistStatus.GUESSING);
         return playlistMapper.toResponse(playlistRepository.save(playlist));
+    }
+
+    @CircuitBreaker(name = "db")
+    public void submitGuesses(String playlistId, String contributorId, java.util.List<SubmitGuessesRequest.GuessItem> guessItems) {
+        Playlist playlist = requirePlaylist(playlistId);
+        if (playlist.getStatus() != PlaylistStatus.GUESSING) {
+            throw new IllegalStateException("Playlist is not in guessing phase");
+        }
+        long contributorDbId = IdGenerator.parse(contributorId);
+        if (!contributorRepository.existsById(contributorDbId)) {
+            throw new EntityNotFoundException("Contributor not found: " + contributorId);
+        }
+        Contributor guesser = contributorRepository.getReferenceById(contributorDbId);
+        guessRepository.deleteByPlaylistAndGuesser(playlist.getId(), contributorDbId);
+        for (SubmitGuessesRequest.GuessItem item : guessItems) {
+            long nominationDbId = IdGenerator.parse(item.nominationId());
+            Nomination nomination = nominationRepository.findById(nominationDbId)
+                    .orElseThrow(() -> new EntityNotFoundException("Nomination not found: " + item.nominationId()));
+            Contributor guessedContributor = contributorRepository.getReferenceById(IdGenerator.parse(item.guessedContributorId()));
+            guessRepository.save(new Guess(null, null, playlist, nomination, guesser, guessedContributor));
+        }
+        if (!guessSubmissionRepository.existsByPlaylist_IdAndContributor_Id(playlist.getId(), contributorDbId)) {
+            guessSubmissionRepository.save(new GuessSubmission(null, null, playlist, guesser));
+        }
     }
 
     @CircuitBreaker(name = "db")

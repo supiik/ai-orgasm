@@ -53,7 +53,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void save_persistsPlaylist() {
-        Playlist saved = repository.save(new Playlist(null, null, "My Mix", "a description", PlaylistStatus.NEW, null, null));
+        Playlist saved = repository.save(new Playlist(null, null, "My Mix", "a description", PlaylistStatus.NEW, null, null, null));
 
         assertThat(saved.getId()).isNotNull();
         assertThat(saved.getCreatedAt()).isNotNull();
@@ -61,16 +61,16 @@ class PlaylistRepositoryIT {
 
     @Test
     void findById_returnsPlaylist_afterSave() {
-        Playlist saved = repository.save(new Playlist(null, null, "Find Me", null, PlaylistStatus.NEW, null, null));
+        Playlist saved = repository.save(new Playlist(null, null, "Find Me", null, PlaylistStatus.NEW, null, null, null));
 
         assertThat(repository.findById(saved.getId())).contains(saved);
     }
 
     @Test
     void findAll_returnsPaginatedResults() {
-        repository.save(new Playlist(null, null, "A", null, PlaylistStatus.NEW, null, null));
-        repository.save(new Playlist(null, null, "B", null, PlaylistStatus.NEW, null, null));
-        repository.save(new Playlist(null, null, "C", null, PlaylistStatus.NEW, null, null));
+        repository.save(new Playlist(null, null, "A", null, PlaylistStatus.NEW, null, null, null));
+        repository.save(new Playlist(null, null, "B", null, PlaylistStatus.NEW, null, null, null));
+        repository.save(new Playlist(null, null, "C", null, PlaylistStatus.NEW, null, null, null));
 
         Page<Playlist> page = repository.findAll(PageRequest.of(0, 2));
 
@@ -80,7 +80,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void softDelete_hidesRowFromSubsequentFinds() {
-        Playlist saved = repository.save(new Playlist(null, null, "To Delete", null, PlaylistStatus.NEW, null, null));
+        Playlist saved = repository.save(new Playlist(null, null, "To Delete", null, PlaylistStatus.NEW, null, null, null));
         repository.flush();
 
         int affected = repository.softDeleteById(saved.getId(), Instant.now());
@@ -99,9 +99,9 @@ class PlaylistRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_returnsMatches() {
-        repository.save(new Playlist(null, null, "Chill Vibes", null, PlaylistStatus.NEW, null, null));
-        repository.save(new Playlist(null, null, "Workout Hits", null, PlaylistStatus.NEW, null, null));
-        repository.save(new Playlist(null, null, "Chillout Sessions", null, PlaylistStatus.NEW, null, null));
+        repository.save(new Playlist(null, null, "Chill Vibes", null, PlaylistStatus.NEW, null, null, null));
+        repository.save(new Playlist(null, null, "Workout Hits", null, PlaylistStatus.NEW, null, null, null));
+        repository.save(new Playlist(null, null, "Chillout Sessions", null, PlaylistStatus.NEW, null, null, null));
 
         Page<Playlist> result = repository.findByNameContainingIgnoreCase("chill", PageRequest.of(0, 10));
 
@@ -111,7 +111,7 @@ class PlaylistRepositoryIT {
 
     @Test
     void findByNameContainingIgnoreCase_isCaseInsensitive() {
-        repository.save(new Playlist(null, null, "Late Night", null, PlaylistStatus.NEW, null, null));
+        repository.save(new Playlist(null, null, "Late Night", null, PlaylistStatus.NEW, null, null, null));
 
         Page<Playlist> result = repository.findByNameContainingIgnoreCase("LATE", PageRequest.of(0, 10));
 

@@ -16,6 +16,10 @@ async function bootstrap() {
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)
+
+  const { useAuthStore } = await import('@/stores/auth')
+  await useAuthStore().load()
+
   app.mount('#app')
 }
 

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api } from '@/api'
+import { useAuthStore } from '@/stores/auth'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -14,6 +15,12 @@ import SongUrlBadge from '@/components/SongUrlBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
+const isMock = import.meta.env.VITE_MOCK === 'true'
+
+const isLead = computed(() =>
+  isMock || authStore.isLeadOf((playlist.value as any)?.leadContributorId)
+)
 
 const id = route.params.id as string
 const playlist = ref<PlaylistResponse | null>(null)
@@ -85,6 +92,11 @@ function formatDate(iso: string | null | undefined) {
 const deadlinePassed = computed(() => {
   if (!playlist.value?.deadline) return false
   return new Date(playlist.value.deadline) < new Date()
+})
+
+const guessingDeadlinePassed = computed(() => {
+  if (!(playlist.value as any)?.guessingDeadline) return false
+  return new Date((playlist.value as any).guessingDeadline) < new Date()
 })
 
 // ── Edit dialog ───────────────────────────────────────────────────────────────
@@ -311,15 +323,15 @@ function statusClass(s: NominationStatus | undefined) {
         <span v-else>{{ playlist?.name }}</span>
       </h1>
       <div class="ml-auto flex gap-2">
-        <Button v-if="playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
+        <Button v-if="isLead && playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
           <Play class="h-4 w-4" />
           Open for nominations
         </Button>
-        <Button v-if="playlist?.status === PlaylistStatus.Open && (deadlinePassed || allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
+        <Button v-if="isLead && playlist?.status === PlaylistStatus.Open && (deadlinePassed || allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
           <Headphones class="h-4 w-4" />
           Start guessing
         </Button>
-        <Button v-if="playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" @click="showPublish">
+        <Button v-if="isLead && playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" @click="showPublish">
           <BookOpen class="h-4 w-4" />
           Publish
         </Button>
@@ -369,6 +381,13 @@ function statusClass(s: NominationStatus | undefined) {
             <span v-if="deadlinePassed" class="ml-1 text-xs">(passed)</span>
           </dd>
         </div>
+        <div v-if="(playlist as any).guessingDeadline" class="flex px-4 py-3 gap-4">
+          <dt class="w-36 shrink-0 text-muted-foreground">Guessing deadline</dt>
+          <dd :class="guessingDeadlinePassed ? 'text-destructive' : ''">
+            {{ formatDate((playlist as any).guessingDeadline) }}
+            <span v-if="guessingDeadlinePassed" class="ml-1 text-xs">(passed)</span>
+          </dd>
+        </div>
         <div class="flex px-4 py-3 gap-4">
           <dt class="w-36 shrink-0 text-muted-foreground">Created</dt>
           <dd>{{ formatDate(playlist.createdAt) }}</dd>
@@ -408,7 +427,7 @@ function statusClass(s: NominationStatus | undefined) {
             </div>
             <!-- Status / actions -->
             <div class="flex items-center justify-end gap-1">
-              <template v-if="playlist.status === PlaylistStatus.Open">
+              <template v-if="isLead && playlist.status === PlaylistStatus.Open">
                 <Button size="sm" variant="ghost" :class="nom.status === NominationStatus.Approved ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'" @click="reviewNomination(nom.id!, 'approve')">
                   <CheckCircle class="h-4 w-4" />
                 </Button>

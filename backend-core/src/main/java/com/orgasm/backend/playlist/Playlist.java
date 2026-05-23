@@ -48,4 +48,7 @@ public class Playlist extends AuditableEntity {
 
     @Column(name = "deadline")
     private Instant deadline;
+
+    @Column(name = "guessing_deadline")
+    private Instant guessingDeadline;
 }

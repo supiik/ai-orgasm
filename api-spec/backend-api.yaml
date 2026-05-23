@@ -69,6 +69,21 @@ paths:
         '400':
           description: Validation error
 
+  /api/v1/contributors/me:
+    get:
+      tags: [contributors]
+      operationId: findCurrentContributor
+      summary: Get the contributor matching the authenticated user's email
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContributorResponse'
+        '404':
+          description: No contributor matches the current user's email
+
   /api/v1/contributors/{id}:
     get:
       tags: [contributors]
@@ -369,6 +384,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlaylistResponse'
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+
+  /api/v1/playlists/{id}/submit-guesses:
+    post:
+      tags: [playlists]
+      operationId: submitGuesses
+      summary: Record that a contributor has submitted their guesses for a playlist
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitGuessesRequest'
+      responses:
+        '204':
+          description: No content
         '404':
           description: Not found
         '409':
@@ -707,6 +747,26 @@ components:
         contributorId:
           type: string
 
+    SubmitGuessesRequest:
+      type: object
+      required: [contributorId, guesses]
+      properties:
+        contributorId:
+          type: string
+        guesses:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuessItem'
+
+    GuessItem:
+      type: object
+      required: [nominationId, guessedContributorId]
+      properties:
+        nominationId:
+          type: string
+        guessedContributorId:
+          type: string
+
     NominateSongRequest:
       type: object
       required: [contributorId, songId]
@@ -802,6 +862,10 @@ components:
           type: string
           nullable: true
         deadline:
+          type: string
+          format: date-time
+          nullable: true
+        guessingDeadline:
           type: string
           format: date-time
           nullable: true

@@ -108,8 +108,18 @@ export const playlistHandlers = [
       const idx = nominationsDb.findIndex(nom => nom.id === n.id)
       if (idx !== -1) nominationsDb[idx] = { ...nominationsDb[idx], status: 'DECLINED', version: nominationsDb[idx].version + 1, updatedAt: now() }
     })
-    playlistsDb[index] = { ...playlistsDb[index], status: 'GUESSING', updatedAt: now() }
+    const guessingDeadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    playlistsDb[index] = { ...playlistsDb[index], status: 'GUESSING', guessingDeadline, updatedAt: now() }
     return HttpResponse.json(playlistsDb[index])
+  }),
+
+  http.post('/api/v1/playlists/:id/submit-guesses', async ({ params, request }) => {
+    const index = playlistsDb.findIndex(p => p.id === params.id)
+    if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    if (playlistsDb[index].status !== 'GUESSING') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Playlist is not in guessing phase' }, { status: 409 })
+    }
+    return new HttpResponse(null, { status: 204 })
   }),
 
   http.post('/api/v1/playlists/:id/publish', async ({ params, request }) => {

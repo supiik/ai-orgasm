@@ -5,7 +5,7 @@ import {
   type CreatePlaylistRequest, type UpdatePlaylistRequest,
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
-  type NominateSongRequest, type ReviewNominationRequest,
+  type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest, type GuessItem,
 } from '@orgasm/backend-client'
 
 async function getAccessToken(): Promise<string> {
@@ -32,6 +32,7 @@ const _nominations = new NominationsApi(config)
 const contributorClient = {
   list:          (page?: number, size?: number, sort?: string, name?: string) => _contributors.findAllContributors(page, size, sort, name),
   get:           (id: string) => _contributors.findContributorById(id),
+  me:            () => _contributors.findCurrentContributor(),
   create:        (body: CreateContributorRequest) => _contributors.createContributor(body),
   update:        (id: string, body: UpdateContributorRequest) => _contributors.updateContributor(id, body),
   delete:        (id: string) => _contributors.deleteContributor(id),
@@ -46,6 +47,7 @@ const playlistClient = {
   delete:  (id: string) => _playlists.deletePlaylist(id),
   open:          (id: string, body: OpenPlaylistRequest) => _playlists.openPlaylist(id, body),
   startGuessing: (id: string, body: StartGuessingRequest) => _playlists.startGuessing(id, body),
+  submitGuesses: (id: string, body: SubmitGuessesRequest) => _playlists.submitGuesses(id, body),
   publish:       (id: string, body: PublishPlaylistRequest) => _playlists.publishPlaylist(id, body),
 }
 

@@ -8,6 +8,7 @@ import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.nomination.NominationStatus;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
+import com.orgasm.backend.result.GuessingResultNotifier;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ class OrgasmControllerTest {
 
     MockMvc mvc;
     OrgasmService service = mock(OrgasmService.class);
+    GuessingResultNotifier guessingResultNotifier = mock(GuessingResultNotifier.class);
 
     @SuppressWarnings("removal")
     ObjectMapper objectMapper = new ObjectMapper()
@@ -55,7 +57,7 @@ class OrgasmControllerTest {
     @BeforeEach
     void setup() {
         mvc = MockMvcBuilders
-                .standaloneSetup(new OrgasmController(service))
+                .standaloneSetup(new OrgasmController(service, guessingResultNotifier))
                 .setApiVersionStrategy(VersionTestSupport.pathVersionStrategy())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
@@ -65,7 +67,7 @@ class OrgasmControllerTest {
 
     static PlaylistResponse playlistResponse() {
         return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN,
-                CONTRIBUTOR_ID, null, null, Instant.EPOCH, 0L, Instant.EPOCH, Instant.EPOCH);
+                CONTRIBUTOR_ID, null, null, Instant.EPOCH, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     static NominationResponse nominationResponse() {
@@ -239,7 +241,7 @@ class OrgasmControllerTest {
     @Test
     void publishPlaylist_returns200() throws Exception {
         var published = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED,
-                CONTRIBUTOR_ID, null, null, Instant.EPOCH, 0L, Instant.EPOCH, Instant.EPOCH);
+                CONTRIBUTOR_ID, null, null, Instant.EPOCH, null, 0L, Instant.EPOCH, Instant.EPOCH);
         when(service.publishPlaylist(PLAYLIST_ID, CONTRIBUTOR_ID)).thenReturn(published);
 
         mvc.perform(post("/api/v1/playlists/{id}/publish", PLAYLIST_ID)

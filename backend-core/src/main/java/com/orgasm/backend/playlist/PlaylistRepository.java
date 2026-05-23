@@ -18,6 +18,8 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     List<Playlist> findByStatusAndDeadlineBetween(PlaylistStatus status, Instant from, Instant to);
 
+    List<Playlist> findByStatusAndGuessingDeadlineBetween(PlaylistStatus status, Instant from, Instant to);
+
     Page<Playlist> findByLeadContributor_Id(Long leadContributorId, Pageable pageable);
 
     @Modifying(clearAutomatically = true)
