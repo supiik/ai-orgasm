@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -41,6 +42,7 @@ interface Playlist {
 
 // ── State ──────────────────────────────────────────────────────────────────
 
+const router = useRouter()
 const authStore = useAuthStore()
 const isMock = import.meta.env.VITE_MOCK === 'true'
 
@@ -55,7 +57,6 @@ const loadingNominations = ref(false)
 
 const me = ref<string>('')
 const guesses = ref<Record<string, string>>({})
-const submitted = ref(false)
 
 // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -88,10 +89,6 @@ const allGuessed = computed(() =>
   guessList.value.length > 0 && guessList.value.every(n => guesses.value[n.id])
 )
 
-const score = computed(() =>
-  guessList.value.filter(n => guesses.value[n.id] === n.nominatedById).length
-)
-
 // ── Data loading ───────────────────────────────────────────────────────────
 
 onMounted(async () => {
@@ -111,7 +108,6 @@ onMounted(async () => {
 
 async function selectPlaylist(playlist: Playlist) {
   selectedPlaylist.value = playlist
-  submitted.value = false
   guesses.value = {}
   me.value = ''
   nominations.value = []
@@ -169,19 +165,20 @@ function availableOptions(nominationId: string) {
 
 async function submit() {
   if (!selectedPlaylist.value || !me.value) return
+  const playlistId = selectedPlaylist.value.id
   const guessItems = Object.entries(guesses.value).map(([nominationId, guessedContributorId]) => ({
     nominationId,
     guessedContributorId,
   }))
   try {
-    await api.playlists().submitGuesses(selectedPlaylist.value.id, {
+    await api.playlists().submitGuesses(playlistId, {
       contributorId: me.value,
       guesses: guessItems,
     })
   } catch {
-    // submission recording failed — still show results locally
+    // submission recording failed — navigate anyway
   }
-  submitted.value = true
+  router.push(`/playlists/${playlistId}`)
 }
 
 function downloadPlaylist() {
@@ -288,17 +285,17 @@ function downloadPlaylist() {
         <div class="flex items-center gap-3">
           <label class="text-sm font-medium whitespace-nowrap">I am</label>
           <!-- Auto-resolved in real mode -->
-          <template v-if="me && !isMock && !submitted">
+          <template v-if="me && !isMock">
             <span class="text-sm font-medium">{{ contributorName(me) }}</span>
             <button class="text-xs text-muted-foreground underline" @click="me = ''">Change</button>
           </template>
           <!-- Manual picker in mock mode or when identity is not resolved -->
-          <Select v-else v-model="me" :disabled="submitted" class="w-56" placeholder="Select your name…">
+          <Select v-else v-model="me" class="w-56" placeholder="Select your name…">
             <SelectItem v-for="c in eligibleContributors" :key="c.id" :value="c.id">
               {{ c.name }}
             </SelectItem>
           </Select>
-          <span v-if="me && !submitted" class="text-sm text-muted-foreground">
+          <span v-if="me" class="text-sm text-muted-foreground">
             You nominated <strong>{{ songs[myNomination?.songId ?? '']?.name ?? '…' }}</strong> —
             now guess the other {{ guessList.length }} song{{ guessList.length !== 1 ? 's' : '' }}.
           </span>
@@ -313,7 +310,6 @@ function downloadPlaylist() {
                 <TableHead>Song</TableHead>
                 <TableHead>Album</TableHead>
                 <TableHead class="w-56">Your guess</TableHead>
-                <TableHead v-if="submitted" class="w-44">Actual nominator</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -330,16 +326,9 @@ function downloadPlaylist() {
                   <ContributorSelect
                     v-model="guesses[nomination.id]"
                     :contributors="availableOptions(nomination.id)"
-                    :disabled="submitted"
                     placeholder="Pick a contributor…"
                     class="w-full"
                   />
-                </TableCell>
-                <TableCell v-if="submitted">
-                  <span :class="guesses[nomination.id] === nomination.nominatedById ? 'text-green-600 font-medium' : 'text-destructive'">
-                    {{ contributorName(nomination.nominatedById) }}
-                    {{ guesses[nomination.id] === nomination.nominatedById ? '✓' : '✗' }}
-                  </span>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -347,21 +336,8 @@ function downloadPlaylist() {
         </div>
 
         <!-- Actions -->
-        <div v-if="me && !submitted" class="flex justify-end">
+        <div v-if="me" class="flex justify-end">
           <Button :disabled="!allGuessed" @click="submit">Submit guesses</Button>
-        </div>
-
-        <!-- Score -->
-        <div v-if="submitted" class="rounded-md border border-border p-4 space-y-2">
-          <p class="font-medium">Results</p>
-          <p class="text-sm text-muted-foreground">
-            You got
-            <span class="text-foreground font-semibold">{{ score }}</span>
-            out of
-            <span class="text-foreground font-semibold">{{ guessList.length }}</span>
-            correct.
-          </p>
-
         </div>
       </template>
     </div>
