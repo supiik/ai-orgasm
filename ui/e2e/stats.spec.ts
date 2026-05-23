@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { mockLogin } from './helpers'
 
 function browserFetch(page: import('@playwright/test').Page, input: string) {
   return page.evaluate(
@@ -13,6 +14,7 @@ function browserFetch(page: import('@playwright/test').Page, input: string) {
 
 test.describe('stats (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
+    await mockLogin(page)
     const mswReady = page.waitForResponse(
       async res =>
         res.url().endsWith('/api/health') &&

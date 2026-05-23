@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { mockLogin } from './helpers'
 
 // MSW seed data (see src/mocks/handlers/contributors.ts)
 const SEED_NAMES = ['Thom Yorke', 'Nigel Godrich', 'Jonny Greenwood']
@@ -17,6 +18,7 @@ function browserFetch(page: import('@playwright/test').Page, input: string, init
 
 test.describe('contributors API (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
+    await mockLogin(page)
     const mswReady = page.waitForResponse(
       async res =>
         res.url().endsWith('/api/health') &&

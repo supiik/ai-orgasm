@@ -1,19 +1,32 @@
 <script setup lang="ts">
 import { RouterView, RouterLink } from 'vue-router'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut } from 'lucide-vue-next'
+import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
+import { useTokenRefresh } from '@/composables/useTokenRefresh'
+import { useAuthStore } from '@/stores/auth'
+import { Button } from '@/components/ui/button'
+import MockLoginOverlay from '@/components/MockLoginOverlay.vue'
 
 const { theme, cycle } = useTheme()
+useTokenRefresh()
 
+const authStore = useAuthStore()
 const isMock = import.meta.env.VITE_MOCK === 'true'
-
-async function logout() {
-  const keycloak = (await import('./keycloak')).default
-  await keycloak.logout({ redirectUri: window.location.origin })
-}
 </script>
 
 <template>
+  <!-- Mock login overlay -->
+  <MockLoginOverlay v-if="isMock && !authStore.isAuthenticated" />
+
+  <!-- Session expired overlay -->
+  <div v-if="authStore.sessionExpired" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-card rounded-lg border border-border p-6 shadow-lg max-w-sm text-center space-y-4">
+      <h2 class="text-lg font-semibold">Session Expired</h2>
+      <p class="text-sm text-muted-foreground">Your session has expired. Please log in again.</p>
+      <Button @click="authStore.reauthenticate()">Log in</Button>
+    </div>
+  </div>
+
   <div class="flex h-screen bg-background text-foreground">
 
     <!-- Sidebar -->
@@ -72,7 +85,20 @@ async function logout() {
           <BarChart3 class="h-4 w-4 shrink-0" />
           Stats
         </RouterLink>
-        <div class="mt-auto pt-2 border-t border-border">
+        <div class="mt-auto pt-2 border-t border-border space-y-0.5">
+          <!-- Current user -->
+          <div v-if="authStore.currentContributor" class="flex items-center gap-3 px-3 py-2 text-sm">
+            <img
+              v-if="authStore.currentContributor.avatarUrl"
+              :src="authStore.currentContributor.avatarUrl"
+              :alt="authStore.currentContributor.name ?? ''"
+              class="h-6 w-6 rounded-full object-cover shrink-0"
+            />
+            <div v-else class="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground shrink-0">
+              {{ (authStore.currentContributor.name ?? '?')[0].toUpperCase() }}
+            </div>
+            <span class="truncate font-medium">{{ authStore.currentContributor.name }}</span>
+          </div>
           <button
             class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
             @click="cycle"
@@ -83,12 +109,12 @@ async function logout() {
             <span>{{ theme === 'light' ? 'Light' : theme === 'dark' ? 'Dark' : 'System' }}</span>
           </button>
           <button
-            v-if="!isMock"
             class="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-            @click="logout"
+            @click="authStore.logout()"
           >
-            <LogOut class="h-4 w-4 shrink-0" />
-            <span>Logout</span>
+            <ArrowLeftRight v-if="isMock" class="h-4 w-4 shrink-0" />
+            <LogOut v-else class="h-4 w-4 shrink-0" />
+            <span>{{ isMock ? 'Switch User' : 'Logout' }}</span>
           </button>
         </div>
       </nav>

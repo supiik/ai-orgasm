@@ -16,11 +16,12 @@ import SongUrlBadge from '@/components/SongUrlBadge.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
-const isMock = import.meta.env.VITE_MOCK === 'true'
 
 const isLead = computed(() =>
-  isMock || authStore.isLeadOf((playlist.value as any)?.leadContributorId)
+  authStore.isLeadOf((playlist.value as any)?.leadContributorId)
 )
+
+const myId = computed(() => authStore.currentContributor?.id ?? '')
 
 const id = route.params.id as string
 const playlist = ref<PlaylistResponse | null>(null)
@@ -46,6 +47,7 @@ async function load() {
     }
     if (data.status === PlaylistStatus.Published && (data as any).ratingType) {
       await loadSongRatings()
+      if (myId.value) ratingContributorId.value = myId.value
     }
   } catch {
     error.value = 'Playlist not found.'
@@ -162,7 +164,7 @@ const opening = ref(false)
 function showOpen() {
   const d = new Date(); d.setDate(d.getDate() + 14)
   const defaultDeadline = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  openForm.value = { contributorId: '', deadline: defaultDeadline }
+  openForm.value = { contributorId: myId.value, deadline: defaultDeadline }
   openError.value = null
   openOpen.value = true
   if (!allContributors.value.length) loadAllContributors()
@@ -353,7 +355,7 @@ const ratingTypeLabel = computed(() => {
 })
 
 function showNominate(contributorId = '') {
-  nominateForm.value = { contributorId, artist: '', name: '', album: '', releaseYear: '', url: '' }
+  nominateForm.value = { contributorId: contributorId || myId.value, artist: '', name: '', album: '', releaseYear: '', url: '' }
   nominateError.value = null
   nominateOpen.value = true
 }
@@ -424,7 +426,7 @@ const publishError = ref<string | null>(null)
 const publishing = ref(false)
 
 function showPublish() {
-  publishContributorId.value = ''
+  publishContributorId.value = myId.value
   publishError.value = null
   publishOpen.value = true
 }

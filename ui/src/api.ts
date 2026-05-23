@@ -15,9 +15,27 @@ async function getAccessToken(): Promise<string> {
   try {
     await keycloak.updateToken(60)
   } catch {
-    await keycloak.login()
+    const { useAuthStore } = await import('@/stores/auth')
+    useAuthStore().sessionExpired = true
+    throw new Error('Session expired')
   }
   return keycloak.token ?? ''
+}
+
+async function authenticatedFetch(input: string, init?: RequestInit): Promise<Response> {
+  const token = await getAccessToken()
+  const res = await fetch(input, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+  if (res.status === 401) {
+    const { useAuthStore } = await import('@/stores/auth')
+    useAuthStore().sessionExpired = true
+  }
+  return res
 }
 
 const config = new Configuration({
@@ -81,10 +99,7 @@ export type RankingEntry = {
 
 const guessesClient = {
   list: async (playlistId: string): Promise<{ data: GuessEntry[] }> => {
-    const token = await getAccessToken()
-    const res = await fetch(`/api/v1/playlists/${playlistId}/guesses`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
+    const res = await authenticatedFetch(`/api/v1/playlists/${playlistId}/guesses`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return { data: await res.json() }
   },
@@ -92,10 +107,7 @@ const guessesClient = {
 
 const rankingsClient = {
   list: async (): Promise<{ data: RankingEntry[] }> => {
-    const token = await getAccessToken()
-    const res = await fetch('/api/v1/rankings', {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
+    const res = await authenticatedFetch('/api/v1/rankings')
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return { data: await res.json() }
   },
@@ -110,21 +122,14 @@ export type SongRatingEntry = {
 
 const songRatingsClient = {
   list: async (playlistId: string): Promise<{ data: SongRatingEntry[] }> => {
-    const token = await getAccessToken()
-    const res = await fetch(`/api/v1/playlists/${playlistId}/ratings`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
+    const res = await authenticatedFetch(`/api/v1/playlists/${playlistId}/ratings`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return { data: await res.json() }
   },
   submit: async (playlistId: string, body: { contributorId: string; ratings: Array<{ nominationId: string; points: number }> }): Promise<void> => {
-    const token = await getAccessToken()
-    const res = await fetch(`/api/v1/playlists/${playlistId}/ratings`, {
+    const res = await authenticatedFetch(`/api/v1/playlists/${playlistId}/ratings`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)

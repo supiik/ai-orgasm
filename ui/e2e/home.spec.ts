@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test'
+import { mockLogin } from './helpers'
 
 test('shows backend status from health endpoint', async ({ page }) => {
+  await mockLogin(page)
   await page.goto('/')
   await expect(page.getByText('UP')).toBeVisible()
 })
 
 test('navigates to songs via sidebar', async ({ page }) => {
+  await mockLogin(page)
   await page.goto('/')
   await page.getByRole('link', { name: 'Songs' }).click()
   await expect(page).toHaveURL('/songs')
@@ -13,6 +16,7 @@ test('navigates to songs via sidebar', async ({ page }) => {
 })
 
 test('navigates to playlists via sidebar', async ({ page }) => {
+  await mockLogin(page)
   await page.goto('/')
   await page.getByRole('link', { name: 'Playlists' }).click()
   await expect(page).toHaveURL('/playlists')
@@ -20,6 +24,7 @@ test('navigates to playlists via sidebar', async ({ page }) => {
 })
 
 test('navigates to contributors via sidebar', async ({ page }) => {
+  await mockLogin(page)
   await page.goto('/')
   await page.getByRole('link', { name: 'Contributors' }).click()
   await expect(page).toHaveURL('/contributors')
@@ -27,6 +32,7 @@ test('navigates to contributors via sidebar', async ({ page }) => {
 })
 
 test('navigates to stats via sidebar', async ({ page }) => {
+  await mockLogin(page)
   await page.goto('/')
   await page.getByRole('link', { name: 'Stats' }).click()
   await expect(page).toHaveURL('/stats')

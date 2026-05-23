@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { mockLogin } from './helpers'
 
 // MSW seed data (see src/mocks/handlers/playlists.ts)
 const SEED_NAMES = ['Chill Vibes', 'Workout Hits', 'Late Night', 'Road Trip Mix', 'Summer Classics']
@@ -17,7 +18,7 @@ function browserFetch(page: import('@playwright/test').Page, input: string, init
 
 test.describe('playlists API (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
-    // Set up response listener BEFORE goto so we don't miss the health request
+    await mockLogin(page)
     const mswReady = page.waitForResponse(
       async res =>
         res.url().endsWith('/api/health') &&

@@ -44,7 +44,6 @@ interface Playlist {
 
 const router = useRouter()
 const authStore = useAuthStore()
-const isMock = import.meta.env.VITE_MOCK === 'true'
 
 const playlists = ref<Playlist[]>([])
 const allContributors = ref<Contributor[]>([])
@@ -285,11 +284,10 @@ function downloadPlaylist() {
         <div class="flex items-center gap-3">
           <label class="text-sm font-medium whitespace-nowrap">I am</label>
           <!-- Auto-resolved in real mode -->
-          <template v-if="me && !isMock">
+          <template v-if="me && authStore.currentContributor">
             <span class="text-sm font-medium">{{ contributorName(me) }}</span>
             <button class="text-xs text-muted-foreground underline" @click="me = ''">Change</button>
           </template>
-          <!-- Manual picker in mock mode or when identity is not resolved -->
           <Select v-else v-model="me" class="w-56" placeholder="Select your name…">
             <SelectItem v-for="c in eligibleContributors" :key="c.id" :value="c.id">
               {{ c.name }}

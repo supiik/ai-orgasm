@@ -18,11 +18,22 @@ export const db: ContributorResponse[] = [
   { id: 'cont-0c1d2e3f4a5b6c7d', name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
 ]
 
+let mockCurrentContributorId: string | null = null
+
+export function setMockCurrentContributor(id: string) { mockCurrentContributorId = id }
+export function clearMockCurrentContributor() { mockCurrentContributorId = null }
+
 const now = () => new Date().toISOString()
 
 export const contributorHandlers = [
-  http.get('/api/v1/contributors/me', () =>
-    HttpResponse.json({ message: 'Not found' }, { status: 404 })),
+  http.get('/api/v1/contributors/me', () => {
+    if (!mockCurrentContributorId) {
+      return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    }
+    const contributor = db.find(c => c.id === mockCurrentContributorId)
+    if (!contributor) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    return HttpResponse.json(contributor)
+  }),
 
   http.get('/api/v1/contributors', ({ request }) => {
     const url = new URL(request.url)
