@@ -3,6 +3,8 @@ package com.orgasm.backend.orgasm;
 import com.orgasm.backend.contributor.Contributor;
 import com.orgasm.backend.contributor.ContributorRepository;
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.guessing.GuessRepository;
+import com.orgasm.backend.guessing.GuessSubmissionRepository;
 import com.orgasm.backend.nomination.Nomination;
 import com.orgasm.backend.nomination.NominationMapper;
 import com.orgasm.backend.nomination.NominationRepository;
@@ -40,6 +42,8 @@ class OrgasmServiceTest {
     @Mock ContributorRepository contributorRepository;
     @Mock SongRepository songRepository;
     @Mock NominationRepository nominationRepository;
+    @Mock GuessSubmissionRepository guessSubmissionRepository;
+    @Mock GuessRepository guessRepository;
     @Mock PlaylistMapper playlistMapper;
     @Mock NominationMapper nominationMapper;
     @InjectMocks OrgasmService service;
@@ -64,23 +68,23 @@ class OrgasmServiceTest {
     }
 
     Playlist newPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.NEW, null, null);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.NEW, null, null, null);
     }
 
     Playlist openPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), FUTURE, null);
     }
 
     Playlist openPlaylistPastDeadline() {
-        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST, null);
     }
 
     Playlist guessingPlaylist() {
-        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST);
+        return new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST, null);
     }
 
     PlaylistResponse playlistResponse() {
-        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_ID, null, null, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.OPEN, CONTRIBUTOR_ID, null, null, FUTURE, null, 0L, Instant.EPOCH, Instant.EPOCH);
     }
 
     NominationResponse nominationResponse() {
@@ -183,7 +187,7 @@ class OrgasmServiceTest {
 
     @Test
     void nominateSong_throwsConflict_whenDeadlinePassed() {
-        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST);
+        var playlist = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.OPEN, leadContributor(), PAST, null);
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
 
         assertThatThrownBy(() -> service.nominateSong(PLAYLIST_ID, new NominateSongRequest(CONTRIBUTOR_ID, SONG_ID)))
@@ -290,8 +294,8 @@ class OrgasmServiceTest {
     @Test
     void startGuessing_setsStatusToGuessing_whenDeadlinePassed() {
         var playlist = openPlaylistPastDeadline();
-        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST);
-        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), PAST, null);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, PAST, null, 0L, Instant.EPOCH, Instant.EPOCH);
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
         when(playlistRepository.save(playlist)).thenReturn(saved);
@@ -305,8 +309,8 @@ class OrgasmServiceTest {
     @Test
     void startGuessing_setsStatusToGuessing_whenNoPendingNominations() {
         var playlist = openPlaylist();
-        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), FUTURE);
-        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, FUTURE, 0L, Instant.EPOCH, Instant.EPOCH);
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.GUESSING, leadContributor(), FUTURE, null);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.GUESSING, CONTRIBUTOR_ID, null, null, FUTURE, null, 0L, Instant.EPOCH, Instant.EPOCH);
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
         when(nominationRepository.findByPlaylist_IdAndStatus(PLAYLIST_DB_ID, NominationStatus.PENDING)).thenReturn(List.of());
@@ -352,8 +356,8 @@ class OrgasmServiceTest {
     @Test
     void publishPlaylist_setsStatusToPublished() {
         var playlist = guessingPlaylist();
-        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST);
-        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, 0L, Instant.EPOCH, Instant.EPOCH);
+        var saved = new Playlist(PLAYLIST_DB_ID, null, "Mix", null, PlaylistStatus.PUBLISHED, leadContributor(), PAST, null);
+        var expected = new PlaylistResponse(PLAYLIST_ID, "Mix", null, PlaylistStatus.PUBLISHED, CONTRIBUTOR_ID, null, null, PAST, null, 0L, Instant.EPOCH, Instant.EPOCH);
 
         when(playlistRepository.findById(PLAYLIST_DB_ID)).thenReturn(Optional.of(playlist));
         when(playlistRepository.save(playlist)).thenReturn(saved);

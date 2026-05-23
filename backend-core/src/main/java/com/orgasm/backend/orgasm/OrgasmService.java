@@ -146,7 +146,7 @@ public class OrgasmService {
             guessRepository.save(new Guess(null, null, playlist, nomination, guesser, guessedContributor));
         }
         if (!guessSubmissionRepository.existsByPlaylist_IdAndContributor_Id(playlist.getId(), contributorDbId)) {
-            guessSubmissionRepository.save(new GuessSubmission(null, null, playlist, guesser, null));
+            guessSubmissionRepository.save(new GuessSubmission(null, null, playlist, guesser));
         }
     }
 
