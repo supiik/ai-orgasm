@@ -127,6 +127,7 @@
                     </excludedClasses>
                     <excludedTestClasses>
                         <param>com.orgasm.backend.*IT</param>
+                        <param>com.orgasm.billing.*IT</param>
                     </excludedTestClasses>
                 </configuration>
             </plugin>

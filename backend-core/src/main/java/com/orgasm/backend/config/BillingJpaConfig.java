@@ -16,7 +16,7 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableJpaRepositories(
-        basePackages = "com.orgasm.backend.repository.billing",
+        basePackages = "com.orgasm.billing.repository",
         entityManagerFactoryRef = "billingEntityManagerFactory",
         transactionManagerRef = "billingTransactionManager"
 )
@@ -29,7 +29,7 @@ public class BillingJpaConfig {
             @Autowired(required = false) @Qualifier("billingFlyway") Flyway billingFlyway) {
         return builder
                 .dataSource(dataSource)
-                .packages("com.orgasm.backend.domain.billing")
+                .packages("com.orgasm.billing.domain")
                 .persistenceUnit("billing")
                 .build();
     }

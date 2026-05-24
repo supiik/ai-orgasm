@@ -357,6 +357,17 @@ The path includes the full `/api/v1/` prefix; the `version` attribute tells Spri
 - `InvalidApiVersionException` (unsupported version) → 400
 - `NotAcceptableApiVersionException` → 406
 
+### Public registration endpoints
+
+Two endpoints are intentionally public (no JWT required):
+
+- `GET /api/v1/organizations` — lists `Organization` entries from the billing DB (for registration form)
+- `POST /api/v1/register` — creates a `Contributor` in the app DB for the given organization slug
+
+Both are declared in `SecurityConfig.permitAll()`. `TenantResolverFilter` already passes through non-JWT requests. The `RegistrationController` sets `TenantContext` manually from the resolved organization's id before calling `ContributorService.create()`, and clears it in a `finally` block.
+
+**Organization** (`com.orgasm.billing.domain`) is the billing-database identity entity. `Organization.id` equals the `tenant_id` used throughout the app DB. When the mock login overlay's "Register" tab submits, `POST /api/v1/register` creates the contributor and auto-logs them in.
+
 ### CORS
 `WebConfig` allows `http://localhost:5173` (Vite dev server) for `/api/**` (all methods). For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
 
@@ -369,11 +380,15 @@ The backend uses two physically separate MariaDB databases, each with its own `D
 | `billingDataSource` / `billingEntityManagerFactory` | `orgasm_billing` | 3307 | Billing data |
 
 **Package layout for entities and repositories:**
-- `com.orgasm.backend.domain.billing` — `@Entity` classes for the **billing** database
-- `com.orgasm.backend.repository.billing` — Spring Data repositories for billing (use `billingTransactionManager`)
-- Everything else under `com.orgasm.backend` — entities and repositories for the **app** database
+- `com.orgasm.billing.domain` — `@Entity` classes for the **billing** database (e.g. `Organization`)
+- `com.orgasm.billing.repository` — Spring Data repositories for billing (use `billingTransactionManager`)
+- `com.orgasm.backend.*` — entities and repositories for the **app** database
 
-`AppJpaConfig` scans `com.orgasm.backend` broadly for both entities and repositories. `BillingJpaConfig` keeps a narrow scan (`com.orgasm.backend.domain.billing` / `com.orgasm.backend.repository.billing`). This means **new feature packages (e.g. `com.orgasm.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new entity.
+`AppJpaConfig` scans `com.orgasm.backend` broadly for both entities and repositories. `BillingJpaConfig` scans `com.orgasm.billing` exclusively. **Billing code lives in `com.orgasm.billing.*`** (not under `com.orgasm.backend`) to prevent the app `EntityManagerFactory` from picking up billing entities — which would cause `ddl-auto: validate` to fail in production (the app DB has no billing tables).
+
+This means **new app feature packages (e.g. `com.orgasm.backend.song`) are picked up automatically** — no changes to `AppJpaConfig` required when adding a new app entity.
+
+**Billing entities must NOT extend `AuditableEntity`** — the billing `EntityManagerFactory` has no `@EnableJpaAuditing` infrastructure and no `CurrentTenantIdentifierResolver`. Billing entities also must NOT have `@TenantId`.
 
 `BackendApplicationTests.contextLoads()` serves as the safety net: a new entity whose repository is not visible to the app `EntityManagerFactory` will cause the context load test to fail immediately.
 
