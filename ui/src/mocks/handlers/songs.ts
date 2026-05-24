@@ -1,4 +1,6 @@
 import { http, HttpResponse } from 'msw'
+import { nominationsDb, playlistsDb } from './db'
+import { db as contributorsDb } from './contributors'
 
 interface SongResponse {
   id: string
@@ -106,5 +108,23 @@ export const songHandlers = [
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  http.get('/api/v1/songs/:id/nominations', ({ params }) => {
+    const nominations = nominationsDb
+      .filter(n => n.songId === params.id)
+      .map(n => {
+        const playlist = playlistsDb.find(p => p.id === n.playlistId)
+        const contributor = contributorsDb.find(c => c.id === n.nominatedById)
+        return {
+          id: n.id,
+          playlistId: n.playlistId,
+          playlistName: playlist?.name ?? n.playlistId,
+          nominatedById: n.nominatedById,
+          nominatedByName: contributor?.name ?? n.nominatedById,
+          status: n.status,
+        }
+      })
+    return HttpResponse.json(nominations)
   }),
 ]

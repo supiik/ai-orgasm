@@ -521,6 +521,27 @@ class OrgasmServiceTest {
         assertThat(result.get(0).totalGuesses()).isEqualTo(5);
     }
 
+    // ── findNominationsBySong ─────────────────────────────────────────────────
+
+    @Test
+    void findNominationsBySong_returnsMappedList() {
+        var nomination = pendingNomination();
+        var contributor = leadContributor();
+        contributor.setName("Alice");
+        nomination.setNominatedBy(contributor);
+        when(nominationRepository.findBySong_Id(SONG_DB_ID)).thenReturn(List.of(nomination));
+
+        var result = service.findNominationsBySong(SONG_ID);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).id()).isEqualTo(NOMINATION_ID);
+        assertThat(result.get(0).playlistId()).isEqualTo(PLAYLIST_ID);
+        assertThat(result.get(0).playlistName()).isEqualTo("Mix");
+        assertThat(result.get(0).nominatedById()).isEqualTo(CONTRIBUTOR_ID);
+        assertThat(result.get(0).nominatedByName()).isEqualTo("Alice");
+        assertThat(result.get(0).status()).isEqualTo(NominationStatus.PENDING);
+    }
+
     // ── findNominations ───────────────────────────────────────────────────────
 
     @Test

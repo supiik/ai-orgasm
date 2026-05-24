@@ -12,6 +12,7 @@ import com.orgasm.backend.nomination.NominationMapper;
 import com.orgasm.backend.nomination.NominationRepository;
 import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.nomination.NominationStatus;
+import com.orgasm.backend.nomination.SongNominationResponse;
 import com.orgasm.backend.playlist.Playlist;
 import com.orgasm.backend.playlist.PlaylistMapper;
 import com.orgasm.backend.playlist.PlaylistRepository;
@@ -296,6 +297,20 @@ public class OrgasmService {
         return nominationRepository
                 .findByPlaylist_Id(IdGenerator.parse(playlistId), pageable)
                 .map(nominationMapper::toResponse);
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public List<SongNominationResponse> findNominationsBySong(String songId) {
+        return nominationRepository.findBySong_Id(IdGenerator.parse(songId)).stream()
+                .map(n -> new SongNominationResponse(
+                        IdGenerator.format("nom",  n.getId()),
+                        IdGenerator.format("play", n.getPlaylist().getId()),
+                        n.getPlaylist().getName(),
+                        IdGenerator.format("cont", n.getNominatedBy().getId()),
+                        n.getNominatedBy().getName(),
+                        n.getStatus()))
+                .toList();
     }
 
     @CircuitBreaker(name = "db")

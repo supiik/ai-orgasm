@@ -9,11 +9,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+interface SongNomination {
+  id: string
+  playlistId: string
+  playlistName: string
+  nominatedById: string
+  nominatedByName: string
+  status: string
+}
+
 const route = useRoute()
 const router = useRouter()
 
 const id = route.params.id as string
 const song = ref<SongResponse | null>(null)
+const nominations = ref<SongNomination[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -21,8 +31,12 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const { data } = await api.songs().get(id)
-    song.value = data
+    const [songRes, nomRes] = await Promise.all([
+      api.songs().get(id),
+      fetch(`/api/v1/songs/${id}/nominations`).then(r => r.json() as Promise<SongNomination[]>),
+    ])
+    song.value = songRes.data
+    nominations.value = nomRes
   } catch {
     error.value = 'Song not found.'
   } finally {
@@ -137,6 +151,35 @@ async function submitEdit() {
           <dd class="text-muted-foreground">{{ song.version }}</dd>
         </div>
       </dl>
+    </template>
+
+    <template v-if="song && !loading">
+      <h2 class="text-lg font-semibold">Nominations</h2>
+      <p v-if="nominations.length === 0" class="text-sm text-muted-foreground">Not nominated in any playlist yet.</p>
+      <ul v-else class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden">
+        <li v-for="nom in nominations" :key="nom.id"
+            class="flex items-center justify-between px-4 py-3 gap-4 [&:nth-child(even)]:bg-muted/40">
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <RouterLink :to="`/playlists/${nom.playlistId}`"
+                        class="font-medium hover:underline underline-offset-2 truncate">
+              {{ nom.playlistName }}
+            </RouterLink>
+            <span class="text-xs text-muted-foreground">
+              nominated by
+              <RouterLink :to="`/contributors/${nom.nominatedById}`"
+                          class="hover:underline underline-offset-2">
+                {{ nom.nominatedByName }}
+              </RouterLink>
+            </span>
+          </div>
+          <span :class="[
+            'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+            nom.status === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+            nom.status === 'DECLINED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+            'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+          ]">{{ nom.status }}</span>
+        </li>
+      </ul>
     </template>
 
   </div>

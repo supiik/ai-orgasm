@@ -18,6 +18,8 @@ public interface NominationRepository extends JpaRepository<Nomination, Long> {
 
     List<Nomination> findByPlaylist_IdAndStatus(Long playlistId, NominationStatus status);
 
+    List<Nomination> findBySong_Id(Long songId);
+
     @Modifying
     @Query("UPDATE Nomination n SET n.status = com.orgasm.backend.nomination.NominationStatus.DECLINED WHERE n.playlist.id = :playlistId AND n.status = com.orgasm.backend.nomination.NominationStatus.PENDING")
     int declinePendingByPlaylistId(Long playlistId);

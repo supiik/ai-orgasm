@@ -6,6 +6,7 @@ import com.orgasm.backend.config.GlobalExceptionHandler;
 import com.orgasm.backend.config.VersionTestSupport;
 import com.orgasm.backend.nomination.NominationResponse;
 import com.orgasm.backend.nomination.NominationStatus;
+import com.orgasm.backend.nomination.SongNominationResponse;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.playlist.PlaylistStatus;
 import com.orgasm.backend.ranking.RankingResponse;
@@ -171,6 +172,21 @@ class OrgasmControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"contributorId\":\"\",\"songId\":\"\"}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ── findNominationsBySong ─────────────────────────────────────────────────
+
+    @Test
+    void findNominationsBySong_returns200() throws Exception {
+        var response = new SongNominationResponse(
+                NOMINATION_ID, PLAYLIST_ID, "Mix", CONTRIBUTOR_ID, "Alice", NominationStatus.PENDING);
+        when(service.findNominationsBySong(SONG_ID)).thenReturn(List.of(response));
+
+        mvc.perform(get("/api/v1/songs/{id}/nominations", SONG_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(NOMINATION_ID))
+                .andExpect(jsonPath("$[0].playlistName").value("Mix"))
+                .andExpect(jsonPath("$[0].nominatedByName").value("Alice"));
     }
 
     // ── findNominations ───────────────────────────────────────────────────────

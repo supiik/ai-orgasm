@@ -266,6 +266,27 @@ paths:
         '404':
           description: Not found
 
+  /api/v1/songs/{id}/nominations:
+    get:
+      tags: [songs]
+      operationId: findNominationsBySong
+      summary: List all nominations for a song
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SongNominationResponse'
+
   /api/health:
     get:
       tags: [health]
@@ -852,6 +873,22 @@ components:
         updatedAt:
           type: string
           format: date-time
+
+    SongNominationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        playlistId:
+          type: string
+        playlistName:
+          type: string
+        nominatedById:
+          type: string
+        nominatedByName:
+          type: string
+        status:
+          $ref: '#/components/schemas/NominationStatus'
 
     NominationPage:
       type: object

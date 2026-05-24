@@ -1,6 +1,7 @@
 package com.orgasm.backend.orgasm;
 
 import com.orgasm.backend.nomination.NominationResponse;
+import com.orgasm.backend.nomination.SongNominationResponse;
 import com.orgasm.backend.playlist.PlaylistResponse;
 import com.orgasm.backend.ranking.RankingResponse;
 import com.orgasm.backend.rating.SongRatingResponse;
@@ -48,6 +49,11 @@ public class OrgasmController {
     public Page<NominationResponse> findNominations(
             @PathVariable String id, Pageable pageable) {
         return orgasmService.findNominations(id, pageable);
+    }
+
+    @GetMapping("/songs/{id}/nominations")
+    public List<SongNominationResponse> findNominationsBySong(@PathVariable String id) {
+        return orgasmService.findNominationsBySong(id);
     }
 
     @PutMapping("/nominations/{id}/approve")
