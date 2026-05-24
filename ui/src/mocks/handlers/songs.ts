@@ -28,7 +28,17 @@ export const songHandlers = [
     const page = Number(url.searchParams.get('page') ?? 0)
     const size = Number(url.searchParams.get('size') ?? 20)
     const name = url.searchParams.get('name')?.toLowerCase()
-    const filtered = name ? db.filter(s => s.name.toLowerCase().includes(name)) : db
+    const sort = url.searchParams.get('sort')
+    const filtered = name ? db.filter(s => s.name.toLowerCase().includes(name)) : [...db]
+    if (sort) {
+      const [field, dir] = sort.split(',')
+      const key = field as keyof SongResponse
+      filtered.sort((a, b) => {
+        const av = a[key] ?? '', bv = b[key] ?? ''
+        const cmp = av < bv ? -1 : av > bv ? 1 : 0
+        return dir === 'desc' ? -cmp : cmp
+      })
+    }
     const content = filtered.slice(page * size, page * size + size)
     return HttpResponse.json({
       content,

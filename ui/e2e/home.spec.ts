@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
 import { mockLogin } from './helpers'
 
-test('shows backend status from health endpoint', async ({ page }) => {
+test('shows recent songs on home page', async ({ page }) => {
   await mockLogin(page)
   await page.goto('/')
-  await expect(page.getByText('UP')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recent Songs' })).toBeVisible()
+  await expect(page.getByText('Creep')).toBeVisible()
 })
 
 test('navigates to songs via sidebar', async ({ page }) => {
