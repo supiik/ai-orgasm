@@ -1,0 +1,27 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Maven needs a JVM to run the openapi-generator + frontend-maven-plugin
+        # steps that produce the @orgasm/backend-client package ui/ depends on
+        # (file:../sdk-typescript/target/typescript-client). sdk-typescript has no
+        # hand-written Java, so any modern JDK works here regardless of the
+        # project's Java 25 target.
+        - dnf install -y java-21-amazon-corretto-headless
+        - ./mvnw --batch-mode --no-transfer-progress install -pl sdk-typescript -am -DskipTests -q
+        - cd ui && npm install
+    build:
+      commands:
+        # Phase 1: self-contained mock-data build (MSW), no backend/Keycloak required.
+        # Drop VITE_MOCK once a real backend endpoint is wired up via a rewrite rule.
+        - cd ui && VITE_MOCK=true npm run build
+  artifacts:
+    baseDirectory: ui/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - $HOME/.m2/**/*
+      - sdk-typescript/target/typescript-client/node_modules/**/*
+      - ui/node_modules/**/*
