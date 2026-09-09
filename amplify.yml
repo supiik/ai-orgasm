@@ -10,12 +10,15 @@ frontend:
         # project's Java 25 target.
         - sudo dnf install -y java-21-amazon-corretto-headless
         - ./mvnw --batch-mode --no-transfer-progress install -pl sdk-typescript -am -DskipTests
-        - cd ui && npm install
+        # Amplify runs phase commands in a persistent shell (cwd carries over
+        # between commands and phases), so `cd ui` here would otherwise leave
+        # later commands looking for a nested ui/ui. Scope it to a subshell.
+        - (cd ui && npm install)
     build:
       commands:
         # Phase 1: self-contained mock-data build (MSW), no backend/Keycloak required.
         # Drop VITE_MOCK once a real backend endpoint is wired up via a rewrite rule.
-        - cd ui && VITE_MOCK=true npm run build
+        - (cd ui && VITE_MOCK=true npm run build)
   artifacts:
     baseDirectory: ui/dist
     files:
