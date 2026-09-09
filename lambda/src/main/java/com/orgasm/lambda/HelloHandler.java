@@ -2,7 +2,7 @@ package com.orgasm.lambda;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.orgasm.backend.playlist.PlaylistService;
+import com.orgasm.dynamo.playlist.PlaylistService;
 import jakarta.validation.Validator;
 import org.springframework.data.domain.Pageable;
 

@@ -24,10 +24,10 @@
     </properties>
 
     <dependencies>
-        <!-- Backend core: service layer, JPA entities, Flyway, datasource config -->
+        <!-- Backend dynamo: DynamoDB-backed service layer used when deployed to AWS -->
         <dependency>
             <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-backend-core</artifactId>
+            <artifactId>orgasm-backend-dynamo</artifactId>
         </dependency>
 
         <!-- Spring Boot core (no web) – provides ApplicationContext bootstrap -->
@@ -103,12 +103,6 @@
                     <groupId>com.amazonaws</groupId>
                     <artifactId>aws-lambda-java-runtime-interface-client</artifactId>
                 </dependency>
-                <!-- H2 needed by process-aot via application-aot profile -->
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <scope>runtime</scope>
-                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -129,9 +123,6 @@
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
                             <mainClass>com.orgasm.lambda.LambdaApplication</mainClass>
-                            <profiles>
-                                <profile>aot</profile>
-                            </profiles>
                         </configuration>
                         <executions>
                             <execution>

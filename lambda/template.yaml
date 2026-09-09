@@ -12,12 +12,7 @@ Globals:
     PackageType: Image
     Environment:
       Variables:
-        DATASOURCE_APP_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/url}}"
-        DATASOURCE_APP_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/username}}"
-        DATASOURCE_APP_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/app/password}}"
-        DATASOURCE_BILLING_URL: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/url}}"
-        DATASOURCE_BILLING_USERNAME: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/username}}"
-        DATASOURCE_BILLING_PASSWORD: !Sub "{{resolve:ssm:/orgasm/${Env}/datasource/billing/password}}"
+        DYNAMODB_TABLE_PLAYLISTS: !Ref PlaylistsTable
 
 Parameters:
   Env:
@@ -31,6 +26,22 @@ Parameters:
       Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/orgasm-lambda:latest
 
 Resources:
+  PlaylistsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "orgasm-playlists-${Env}"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
   HelloFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -40,6 +51,9 @@ Resources:
       ImageConfig:
         Command:
           - com.orgasm.lambda.HelloHandler::handleRequest
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlaylistsTable
       FunctionUrlConfig:
         AuthType: NONE
         Cors:
@@ -57,6 +71,9 @@ Resources:
       ImageConfig:
         Command:
           - com.orgasm.lambda.CreatePlaylistHandler::handleRequest
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlaylistsTable
       FunctionUrlConfig:
         AuthType: NONE
         Cors:

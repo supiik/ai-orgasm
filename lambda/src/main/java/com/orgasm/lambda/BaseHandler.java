@@ -6,7 +6,6 @@ import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import org.slf4j.Logger;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Base for all Lambda Function URL handlers. Subclasses implement {@link #execute} and
@@ -23,7 +23,7 @@ import java.util.Map;
  * <ul>
  *   <li>{@link IOException} (bad JSON) → 400</li>
  *   <li>{@link ConstraintViolationException} (bean validation) → 400</li>
- *   <li>{@link EntityNotFoundException} → 404</li>
+ *   <li>{@link NoSuchElementException} → 404</li>
  *   <li>Everything else → 500</li>
  * </ul>
  */
@@ -59,7 +59,7 @@ public abstract class BaseHandler<T>
             return respond(400, Map.of("errors", errors));
         } catch (IOException e) {
             return respond(400, Map.of("error", "Invalid request body: " + e.getMessage()));
-        } catch (EntityNotFoundException e) {
+        } catch (NoSuchElementException e) {
             return respond(404, Map.of("error", e.getMessage()));
         } catch (CallNotPermittedException e) {
             return respond(503, Map.of("error", "Service temporarily unavailable"));

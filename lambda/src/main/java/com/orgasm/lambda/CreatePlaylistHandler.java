@@ -2,9 +2,9 @@ package com.orgasm.lambda;
 
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.orgasm.backend.playlist.CreatePlaylistRequest;
-import com.orgasm.backend.playlist.PlaylistResponse;
-import com.orgasm.backend.playlist.PlaylistService;
+import com.orgasm.dynamo.playlist.CreatePlaylistRequest;
+import com.orgasm.dynamo.playlist.PlaylistResponse;
+import com.orgasm.dynamo.playlist.PlaylistService;
 import jakarta.validation.Validator;
 
 public class CreatePlaylistHandler extends BaseHandler<PlaylistResponse> {

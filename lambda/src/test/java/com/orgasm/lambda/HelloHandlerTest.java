@@ -2,7 +2,7 @@ package com.orgasm.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.orgasm.backend.playlist.PlaylistService;
+import com.orgasm.dynamo.playlist.PlaylistService;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.Test;

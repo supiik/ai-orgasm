@@ -19,6 +19,7 @@
         <module>sdk-java11</module>
         <module>sdk-typescript</module>
         <module>backend-core</module>
+        <module>backend-dynamo</module>
         <module>backend</module>
         <module>lambda</module>
         <module>ui</module>
@@ -92,6 +93,11 @@
             <dependency>
                 <groupId>com.orgasm</groupId>
                 <artifactId>orgasm-backend-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.orgasm</groupId>
+                <artifactId>orgasm-backend-dynamo</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -4,29 +4,31 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project layout
 
-Five independent sub-projects sharing a root directory:
+Six independent sub-projects sharing a root directory:
 
 | Directory | Type | Artifact |
 |-----------|------|----------|
-| `sdk/` | Java 25 library | `orgasm-sdk` JAR – consumed by `backend` and `lambda` |
-| `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – service layer, JPA, Flyway, datasource config; shared by `backend` and `lambda` |
+| `sdk/` | Java 25 library | `orgasm-sdk` JAR – consumed by `backend` |
+| `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – MariaDB/JPA service layer, Flyway, datasource config; used by `backend` |
+| `backend-dynamo/` | Spring Boot 4 library | `orgasm-backend-dynamo` JAR – DynamoDB-backed service layer for Playlist; used by `lambda` in place of `backend-core` |
 | `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080`; thin web layer only |
-| `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml` |
+| `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml`; DynamoDB-backed (see [Architecture decisions](#dynamodb-persistence-for-lambda)) |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
 
-The parent POM declares modules in dependency order: `sdk → backend-core → backend → lambda → ui`.
+The parent POM declares modules in dependency order: `sdk → backend-core → backend-dynamo → backend → lambda → ui`. `backend-dynamo` has no dependency on `backend-core`/`sdk` — it's a fully independent module (see architecture decision below for why).
 
 ## Build commands
 
 A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it instead of a system `mvn` to guarantee the pinned Maven version. All commands run from the repo root unless noted.
 
 ```bash
-# Build everything (sdk → backend → lambda → ui)
+# Build everything (sdk → backend-core → backend-dynamo → backend → lambda → ui)
 ./mvnw install
 
 # Build a single module without running tests
 ./mvnw install -pl sdk -am -DskipTests
 ./mvnw install -pl backend-core -am -DskipTests
+./mvnw install -pl backend-dynamo -am -DskipTests
 ./mvnw install -pl backend -am -DskipTests
 ./mvnw install -pl lambda -am -DskipTests
 ./mvnw install -pl ui -am -DskipTests   # skips npm build + Playwright
@@ -37,6 +39,7 @@ A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it i
 # Run tests in a specific module
 ./mvnw test -pl sdk
 ./mvnw test -pl backend-core
+./mvnw test -pl backend-dynamo
 ./mvnw test -pl backend
 ./mvnw test -pl lambda
 
@@ -51,6 +54,9 @@ A Maven wrapper (`mvnw` / `mvnw.cmd`) is committed at the repo root — use it i
 
 # Run integration tests (requires Docker — Testcontainers spins up MariaDB containers)
 ./mvnw verify -pl backend
+
+# Run backend-dynamo integration tests (requires Docker — Testcontainers spins up DynamoDB Local)
+./mvnw verify -pl backend-dynamo
 
 # Run integration tests only, skipping unit tests
 ./mvnw failsafe:integration-test failsafe:verify -pl backend -DskipTests
@@ -88,7 +94,7 @@ mvn pitest:mutationCoverage -pl backend
 JaCoCo writes `target/site/jacoco/jacoco.csv` after `mvn verify`. This one-liner prints a per-module summary:
 
 ```bash
-for m in sdk-models sdk sdk-java8 sdk-java11 backend lambda; do
+for m in sdk-models sdk sdk-java8 sdk-java11 backend-core backend-dynamo backend lambda; do
   csv=$(find $m/target/site/jacoco -name "jacoco.csv" 2>/dev/null | head -1)
   [ -n "$csv" ] && awk -F',' 'NR>1 { miss+=$8; cov+=$9 } END {
     total=miss+cov; pct=(total>0 ? cov/total*100 : 0);
@@ -102,6 +108,7 @@ Current baseline (modules with `jacoco.line-coverage-minimum=0` are exempt):
 | Module | Line coverage | Notes |
 |--------|--------------|-------|
 | `backend-core` | 100% | Gate ≥ 80%, currently exceeds; holds all service/JPA code |
+| `backend-dynamo` | n/a | Gate ≥ 80% (default, hand-written code); DynamoDB-backed Playlist service used by `lambda` |
 | `backend` | 100% | Gate ≥ 80%, currently exceeds; thin web layer only |
 | `lambda` | n/a | Gate set to 0; `LambdaApplication`+`SpringContextHolder` are untestable infrastructure |
 | `sdk` / `sdk-models` / `sdk-java8` / `sdk-java11` | n/a | Generated code; gate set to 0 in module POM |
@@ -284,39 +291,68 @@ sam deploy --parameter-overrides \
   Env=dev
 ```
 
-**AOT / database during native build:** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. It uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
+**AOT / database during native build (backend):** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. `backend` uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
+
+`lambda` needs no such substitution — `backend-dynamo` builds `DynamoDbClient`/`DynamoDbEnhancedClient` beans without making any network call at construction time, so `process-aot` for `lambda` runs against the plain `application.yml` with no profile override.
 
 **Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.orgasm.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
 
 ## Lambda local testing
 
-Requires [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
+Requires [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) and, since `lambda` is DynamoDB-backed, a local DynamoDB:
 
 ```bash
+# Start DynamoDB Local
+docker run -p 8000:8000 amazon/dynamodb-local:2.5.4
+
+# AWS CLI needs *some* region/credentials even against DynamoDB Local (it doesn't validate them)
+export AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1
+
+# Create the local table (one-time; matches the PlaylistsTable resource in template.yaml)
+aws dynamodb create-table --endpoint-url http://localhost:8000 \
+  --table-name orgasm-playlists-local \
+  --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S \
+  --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE \
+  --billing-mode PAY_PER_REQUEST
+
 # Build fat JAR first (JVM mode, no native required)
 ./mvnw package -pl lambda -am -DskipTests
 
 # Invoke a single function directly (JVM mode, uses events/ directory)
-sam local invoke HelloFunction --event events/hello.json
+DYNAMODB_ENDPOINT_OVERRIDE=http://localhost:8000 sam local invoke HelloFunction --event events/hello.json
 ```
 
 ## Architecture decisions
 
 ### SDK as the shared contract
-`sdk` contains only pure Java (no Spring, no Lambda SDK). Both `backend` and `lambda` depend on it. Put shared models, interfaces, and utilities here. Never add framework-specific code to `sdk`.
+`sdk` contains only pure Java (no Spring, no Lambda SDK). `backend` depends on it (via `sdk-typescript`/other SDK modules downstream). Put shared models, interfaces, and utilities here. Never add framework-specific code to `sdk`. Note: `lambda` does **not** depend on `sdk` or `backend-core` — see "DynamoDB persistence for Lambda" below.
 
-### backend-core: shared service layer
+### backend-core: shared service layer (MariaDB path)
 `backend-core` is a plain Spring library JAR (no Tomcat, no web) containing:
 - JPA entities, Spring Data repositories, MapStruct mappers, and service classes
 - `DataSourceConfig`, `AppJpaConfig`, `BillingJpaConfig`, `AuditConfig`, `FlywayConfig`
 - Flyway migration scripts (`classpath:db/migration/app/` and `classpath:db/migration/billing/`)
 
-Both `backend` (thin REST layer) and `lambda` depend on `backend-core`. Lambda bootstraps a Spring `ApplicationContext` (no web) via `SpringContextHolder` and calls services directly — avoiding HTTP round-trips between Lambda and backend.
+`backend` (thin REST layer) depends on `backend-core` for its MariaDB-backed persistence. `lambda` does **not** — see the next section.
 
-**Lambda Spring bootstrap pattern:**
+**Lambda JaCoCo gate:** Set to `0` (override in `lambda/pom.xml`) because `LambdaApplication` and `SpringContextHolder` are deployment infrastructure that cannot be unit-tested without a live database.
+
+### DynamoDB persistence for Lambda
+Two independent Lambda functions exist purely to prove out DynamoDB, so `lambda` depends on `backend-dynamo` — a separate library module, not `backend-core` — for its persistence:
+
+- **Why:** MariaDB (RDS-class, always-on compute) is expensive to keep running for a low-traffic serverless deployment. DynamoDB (`PAY_PER_REQUEST` billing) has no idle cost. `backend-core`/MariaDB stays the persistence for the traditional `backend` app (`:8080`) and local dev; `lambda`, when deployed to AWS, uses DynamoDB instead.
+- **Why a separate module instead of an interface/profile switch inside `backend-core`:** `backend-core`'s persistence is deeply Hibernate-specific — Hibernate-managed multi-tenancy (`@TenantId` + `CurrentTenantIdentifierResolver`), `@SQLRestriction` soft-delete filtering, `JOIN FETCH` queries, bulk `@Modifying` JPQL, and `Pageable`/`Page`-based pagination — none of which have a DynamoDB equivalent at the ORM layer. `backend-dynamo` reimplements the (currently much smaller) subset of business logic Lambda actually needs, independently, rather than forcing a shared abstraction onto two fundamentally different persistence models.
+- **Scope:** only `Playlist` (`create`/`findById`/`findAll`) — the one entity Lambda's two handlers (`HelloHandler`, `CreatePlaylistHandler`) touch. Other entities get a `backend-dynamo` equivalent later, incrementally, as Lambda grows more handlers — not all at once.
+- **Table design:** one DynamoDB table per entity type. Partition key = `<tenantId>#<ENTITY_TYPE>` (e.g. `1#PLAYLIST`), sort key = the item's internal id (same app-generated `IdGenerator` scheme as `backend-core`, duplicated into `backend-dynamo` since it's backend-agnostic). A `Query` against this partition key lists one tenant's items cheaply — never a table-wide `Scan`. Soft deletes use a `deletedAt` attribute, filtered explicitly in each read (no Hibernate-style automatic filter exists in DynamoDB).
+- **Multi-tenancy:** `DynamoTenantContext` (a `ThreadLocal<Long>`, mirroring `backend-core`'s `TenantContext`) defaults to tenant `1` when unset — matching Lambda's existing (auth-less) behavior, since neither handler sets a tenant today.
+- **Optimistic locking:** `PlaylistItem.version` uses `@DynamoDbVersionAttribute`. The Enhanced Client's `VersionedRecordExtension` must be registered explicitly on the `DynamoDbEnhancedClient` bean (`DynamoDbConfig`) — it is not on by default. Use `table.updateItem(item)`, not `table.putItem(item)`, when you need the post-write item (with version populated) back — `putItem` returns `void` and never mutates the Java object passed to it.
+- **Local dev / IT tests:** `app.dynamodb.endpoint-override` points the client at DynamoDB Local (Docker for manual/`sam local invoke` testing, a Testcontainers `GenericContainer` for `backend-dynamo`'s IT tests) instead of the real AWS endpoint; unset in the deployed Lambda so the SDK uses the default region/credential chain (the Lambda execution role).
+
+**Lambda Spring bootstrap pattern** (unchanged shape, now resolves `com.orgasm.dynamo.playlist.PlaylistService` instead of `backend-core`'s):
 ```java
+// LambdaApplication scans "com.orgasm.dynamo" (not "com.orgasm.backend")
 // SpringContextHolder initializes once on cold start (static block)
-// HelloHandler.no-arg constructor pulls beans from context
+// HelloHandler's no-arg constructor pulls beans from context
 // Package-private constructor takes mocks for unit tests (never triggers context)
 public HelloHandler() {
     var ctx = SpringContextHolder.get();
@@ -324,8 +360,6 @@ public HelloHandler() {
     this.mapper = ctx.getBean(ObjectMapper.class);
 }
 ```
-
-**Lambda JaCoCo gate:** Set to `0` (override in `lambda/pom.xml`) because `LambdaApplication` and `SpringContextHolder` are deployment infrastructure that cannot be unit-tested without a live database.
 
 ### Spring Boot BOM imported, not inherited
 The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependencyManagement>`. This lets `lambda` avoid pulling Spring Boot transitive dependencies while still benefiting from version alignment for Jackson/SLF4J etc.

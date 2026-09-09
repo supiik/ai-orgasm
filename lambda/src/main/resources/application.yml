@@ -1,28 +1,11 @@
 spring:
   application:
     name: orgasm-lambda
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
-      - org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
 
-datasource:
-  app:
-    url: ${DATASOURCE_APP_URL:jdbc:mariadb://localhost:3306/orgasm}
-    username: ${DATASOURCE_APP_USERNAME:orgasm}
-    password: ${DATASOURCE_APP_PASSWORD:orgasm}
-    driver-class-name: org.mariadb.jdbc.Driver
-  billing:
-    url: ${DATASOURCE_BILLING_URL:jdbc:mariadb://localhost:3307/orgasm_billing}
-    username: ${DATASOURCE_BILLING_USERNAME:orgasm_billing}
-    password: ${DATASOURCE_BILLING_PASSWORD:orgasm_billing}
-    driver-class-name: org.mariadb.jdbc.Driver
-  flyway:
-    enabled: false
+app:
+  dynamodb:
+    table-playlists: ${DYNAMODB_TABLE_PLAYLISTS:orgasm-playlists-local}
+    endpoint-override: ${DYNAMODB_ENDPOINT_OVERRIDE:}
 
 resilience4j:
   circuitbreaker:
@@ -34,8 +17,7 @@ resilience4j:
         wait-duration-in-open-state: 30s
         permitted-number-of-calls-in-half-open-state: 3
         record-exceptions:
-          - org.springframework.dao.DataAccessException
-          - java.sql.SQLException
+          - software.amazon.awssdk.services.dynamodb.model.DynamoDbException
 
 logging:
   level:
