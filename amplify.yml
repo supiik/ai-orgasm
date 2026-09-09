@@ -8,7 +8,7 @@ frontend:
         # (file:../sdk-typescript/target/typescript-client). sdk-typescript has no
         # hand-written Java, so any modern JDK works here regardless of the
         # project's Java 25 target.
-        - dnf install -y java-21-amazon-corretto-headless
+        - sudo dnf install -y java-21-amazon-corretto-headless
         - ./mvnw --batch-mode --no-transfer-progress install -pl sdk-typescript -am -DskipTests -q
         - cd ui && npm install
     build:
