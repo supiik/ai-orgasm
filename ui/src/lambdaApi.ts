@@ -1,11 +1,15 @@
 import { fetchAuthSession } from 'aws-amplify/auth'
+import outputs from '../amplify_outputs.json'
 
 // Minimal client for the two new Cognito-auth endpoints — NOT a general-purpose lambda API
 // client. lambda has no shared base path (each endpoint is its own Function URL), and
 // migrating the other business endpoints' UI calls from `backend` to `lambda` is a separate,
-// larger decision (see CLAUDE.md "Cognito auth for the Lambda API").
-const LINK_URL = import.meta.env.VITE_LAMBDA_LINK_URL as string | undefined
-const ME_URL = import.meta.env.VITE_LAMBDA_ME_URL as string | undefined
+// larger decision (see CLAUDE.md "Cognito auth for the Lambda API"). URLs come from
+// amplify_outputs.json's custom.functionUrls, populated by ui/amplify/backend.ts's
+// backend.addOutput(...) — see amplify.ts for why that file is committed with placeholders.
+const functionUrls = (outputs as { custom?: { functionUrls?: Record<string, string> } }).custom?.functionUrls ?? {}
+const LINK_URL = functionUrls['link-contributor']
+const ME_URL = functionUrls['get-current-contributor']
 
 export interface LinkContributorRequest {
   organizationSlug: string
@@ -36,7 +40,7 @@ async function authorizedFetch(url: string, init?: RequestInit): Promise<Respons
 }
 
 export async function linkContributor(request: LinkContributorRequest): Promise<LambdaContributorResponse> {
-  if (!LINK_URL) throw new Error('VITE_LAMBDA_LINK_URL is not configured')
+  if (!LINK_URL) throw new Error('amplify_outputs.json custom.functionUrls["link-contributor"] is not configured')
   const res = await authorizedFetch(LINK_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -51,7 +55,7 @@ export async function linkContributor(request: LinkContributorRequest): Promise<
 
 /** Returns null when the signed-in Cognito identity has no linked Contributor yet (403). */
 export async function getCurrentContributor(): Promise<LambdaContributorResponse | null> {
-  if (!ME_URL) throw new Error('VITE_LAMBDA_ME_URL is not configured')
+  if (!ME_URL) throw new Error('amplify_outputs.json custom.functionUrls["get-current-contributor"] is not configured')
   const res = await authorizedFetch(ME_URL)
   if (res.status === 403 || res.status === 404) return null
   if (!res.ok) throw new Error(`Failed to load current contributor: ${res.status}`)

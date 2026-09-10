@@ -2,17 +2,15 @@
 .git/
 .gitignore
 
-# Build outputs
+# Build outputs — except the shaded fat jar the lambda Dockerfile packages (built by Maven
+# outside Docker; see lambda/Dockerfile's header comment).
 target/
 */target/
 **/target/
+!lambda/target/orgasm-lambda-*.jar
 
-# Frontend (not needed for lambda Docker build) — pom.xml itself stays included: the
-# lambda Dockerfile's multi-stage build needs every reactor module's pom.xml present for
-# Maven to resolve the root POM's <modules> list, even though only backend-dynamo/lambda
-# actually get their src/ copied and built.
+# Frontend (not needed for lambda Docker build)
 ui/
-!ui/pom.xml
 ui/node_modules/
 
 # IDE / editor

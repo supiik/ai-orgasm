@@ -12,7 +12,7 @@ Six independent sub-projects sharing a root directory:
 | `backend-core/` | Spring Boot 4 library | `orgasm-backend-core` JAR – MariaDB/JPA service layer, Flyway, datasource config; used by `backend` |
 | `backend-dynamo/` | Spring Boot 4 library | `orgasm-backend-dynamo` JAR – DynamoDB-backed service layer for Playlist; used by `lambda` in place of `backend-core` |
 | `backend/` | Spring Boot 4 app | Fat JAR, serves REST on `:8080`; thin web layer only |
-| `lambda/` | AWS Serverless (SAM) | Fat JAR via shade plugin, deployed through `template.yaml`; DynamoDB-backed (see [Architecture decisions](#dynamodb-persistence-for-lambda)) |
+| `lambda/` | AWS Serverless (Amplify Gen 2) | Fat JAR via shade plugin, packaged as a container image, deployed via `ui/amplify/backend.ts` (AWS CDK, run through `ampx pipeline-deploy`/`ampx sandbox`); DynamoDB-backed (see [Architecture decisions](#dynamodb-persistence-for-lambda)) |
 | `ui/` | Vue 3 + Vite 6 SPA | Built to `ui/dist/`, Node 22 |
 
 The parent POM declares modules in dependency order: `sdk → backend-core → backend-dynamo → backend → lambda → ui`. `backend-dynamo` has no dependency on `backend-core`/`sdk` — it's a fully independent module (see architecture decision below for why).
@@ -266,68 +266,70 @@ Requires GraalVM JDK 25 (`ghcr.io/graalvm/graalvm-community:25`) — in Docker o
 ./mvnw spring-boot:build-image -pl backend -Pnative
 ```
 
+**AOT / database during native build:** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. `backend` uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
+
 ### Lambda
 
-```bash
-# Build native executable 'bootstrap' to lambda/target/bootstrap
-./mvnw package -pl lambda -am -DskipTests -Pnative
+`lambda` deploys as a plain **JVM** container image (not GraalVM native-image — see "Cognito auth
+for the Lambda API" for why that path is parked). The `native` Maven profile is still present in
+`lambda/pom.xml` for a future revisit, but is not part of the current build/deploy path; skip
+straight to the JVM commands below unless specifically reviving native-image.
 
-# Build Docker image for ECR (build context = repo root)
+```bash
+# Build the fat jar (default, non-native profile)
+./mvnw package -pl lambda -am -DskipTests
+
+# Build the Lambda container image (build context = repo root; base image
+# public.ecr.aws/lambda/java:25 already includes the Lambda runtime interface client)
 docker build -f lambda/Dockerfile -t orgasm-lambda:latest .
 
-# For Graviton arm64 (matches template.yaml Architectures: [arm64]):
-docker buildx build --platform linux/arm64 \
-    -f lambda/Dockerfile -t orgasm-lambda:latest .
-
-# Push to ECR
-aws ecr get-login-password --region <region> \
-  | docker login --username AWS --password-stdin <account>.dkr.ecr.<region>.amazonaws.com
-docker tag orgasm-lambda:latest <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
-docker push <account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest
-
-# Deploy via SAM (pass the image URI)
-sam deploy --parameter-overrides \
-  ImageUri=<account>.dkr.ecr.<region>.amazonaws.com/orgasm-lambda:latest \
-  Env=dev
+# For Graviton arm64 (matches ui/amplify/backend.ts's Architecture.ARM_64):
+docker buildx build --platform linux/arm64 -f lambda/Dockerfile -t orgasm-lambda:latest .
 ```
 
-**AOT / database during native build (backend):** `spring-boot:process-aot` starts the Spring context to pre-compute bean factories. `backend` uses the `aot` Spring profile (`application-aot.yml`) which substitutes H2 and disables Flyway so no MariaDB is needed at build time. At runtime, the normal `application.yml` (MariaDB) takes effect.
+Deployment (pushing this image to ECR + provisioning the 34 Lambda functions/DynamoDB
+tables/Cognito User Pool that reference it) happens via `ui/amplify/backend.ts` — see
+"Amplify Gen 2 backend" below. There is no separate manual deploy step for `lambda` in normal
+operation; `amplify.yml`'s `backend` phase does the image build/push + `ampx pipeline-deploy`
+automatically on every push to a branch connected to Amplify Hosting.
 
-`lambda` needs no such substitution — `backend-dynamo` builds `DynamoDbClient`/`DynamoDbEnhancedClient` beans without making any network call at construction time, so `process-aot` for `lambda` runs against the plain `application.yml` with no profile override.
-
-**Adding new handlers:** Register the new handler class in `lambda/src/main/resources/META-INF/native-image/com.orgasm.lambda/reflect-config.json` and add its `ImageConfig.Command` entry in `template.yaml`. GraalVM needs explicit reflection registration because the Lambda Runtime Interface Client instantiates handlers dynamically.
+**Adding new handlers:** create the handler class (extends `BaseHandler<T>`, same pattern as any
+existing one), then add one entry to the `fnSpecs` array in `ui/amplify/functions.ts` (name,
+handler class, tables it needs, HTTP methods, CORS headers) — `ui/amplify/backend.ts`'s loop
+picks it up automatically, no per-function boilerplate to hand-write.
 
 ## Lambda local testing
 
-Requires [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) and, since `lambda` is DynamoDB-backed, a local DynamoDB:
+Two levels, depending on what you're checking:
+
+**Single function, no AWS resources** — run the built image directly via the AWS base image's
+built-in [Lambda Runtime Interface Emulator](https://docs.aws.amazon.com/lambda/latest/dg/images-test.html),
+overriding `CMD` to pick a handler:
 
 ```bash
-# Start DynamoDB Local
-docker run -p 8000:8000 amazon/dynamodb-local:2.5.4
-
-# AWS CLI needs *some* region/credentials even against DynamoDB Local (it doesn't validate them)
-export AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local AWS_DEFAULT_REGION=us-east-1
-
-# Create the local tables (one-time; matches the *Table resources in template.yaml —
-# 3 plain pk/sk tables, plus Organizations and 5 GSI-backed tables. Simple ones:
-for t in playlists songs contributors; do
-  aws dynamodb create-table --endpoint-url http://localhost:8000 \
-    --table-name orgasm-$t-local \
-    --attribute-definitions AttributeName=pk,AttributeType=S AttributeName=sk,AttributeType=S \
-    --key-schema AttributeName=pk,KeyType=HASH AttributeName=sk,KeyType=RANGE \
-    --billing-mode PAY_PER_REQUEST
-done
-# Organizations (not tenant-partitioned) and the GSI-backed tables (nominations, guesses,
-# guess-submissions, song-ratings, playlist-rankings) need their own --global-secondary-indexes
-# — copy the AttributeDefinitions/KeySchema/GlobalSecondaryIndexes straight out of the matching
-# resource in template.yaml rather than retyping them here.
-
-# Build fat JAR first (JVM mode, no native required)
 ./mvnw package -pl lambda -am -DskipTests
+docker build -f lambda/Dockerfile -t orgasm-lambda:latest .
+docker run -d -p 9000:8080 --name orgasm-lambda-test \
+  -e AWS_REGION=us-east-1 -e AWS_ACCESS_KEY_ID=local -e AWS_SECRET_ACCESS_KEY=local \
+  -e DYNAMODB_TABLE_PLAYLISTS=orgasm-playlists-local \
+  -e COGNITO_USER_POOL_ID=us-east-1_local -e COGNITO_REGION=us-east-1 -e COGNITO_CLIENT_ID=local \
+  orgasm-lambda:latest com.orgasm.lambda.HelloHandler::handleRequest
 
-# Invoke a single function directly (JVM mode, uses events/ directory)
-DYNAMODB_ENDPOINT_OVERRIDE=http://localhost:8000 sam local invoke HelloFunction --event events/hello.json
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+  -d '{"requestContext":{"http":{"method":"GET"}},"rawPath":"/hello","headers":{}}'
 ```
+
+Confirms the image boots (Spring context, Jackson, Cognito JWKS client construction) and routes
+to the right handler; DynamoDB calls will fail without a real/local table behind
+`DYNAMODB_TABLE_PLAYLISTS` (point `DYNAMODB_ENDPOINT_OVERRIDE` at a `docker run -p 8000:8000
+amazon/dynamodb-local:2.5.4` instance and pre-create the tables — copy each table's key
+schema/GSIs from `ui/amplify/tables.ts` — to exercise that path too).
+
+**Full backend, real AWS resources** — `npx ampx sandbox` (run from `ui/`) deploys a real,
+isolated, per-developer AWS stack (all 9 tables, the Cognito User Pool, all 34 functions) — not
+an emulator. Requires the image already pushed once (`ampx sandbox` doesn't build/push it for
+you): `docker build`/`docker tag`/`docker push` to an ECR repo named `orgasm-lambda-sandbox`
+(matching `ui/amplify/backend.ts`'s fallback `envName`) before the first `ampx sandbox` run.
 
 ## Architecture decisions
 
@@ -358,7 +360,7 @@ DYNAMODB_ENDPOINT_OVERRIDE=http://localhost:8000 sam local invoke HelloFunction 
 - **Bulk operations become loops.** DynamoDB has no bulk-update/bulk-delete primitive. `declinePendingByPlaylistId` (JPQL bulk `UPDATE`) and the guess/rating "delete all, then recreate" full-replace flows (JPQL bulk `DELETE`) are both a `Query` followed by a loop of individual `UpdateItem`/`DeleteItem` calls — same non-atomic-across-the-whole-operation behavior the JPA bulk queries already had (no surrounding transaction there either).
 - **Multi-tenancy:** `DynamoTenantContext` (a `ThreadLocal<Long>`, mirroring `backend-core`'s `TenantContext`) defaults to tenant `1` when unset.
 - **Optimistic locking:** entities that are ever updated in place (all except `Guess`, which is create/hard-delete only) carry `@DynamoDbVersionAttribute version`. The Enhanced Client's `VersionedRecordExtension` must be registered explicitly on the `DynamoDbEnhancedClient` bean — it is not on by default. Use `table.updateItem(item)`, not `table.putItem(item)`, when you need the post-write item (with version populated) back — `putItem` returns `void` and never mutates the Java object passed to it. For a **partial** update (only some attributes), load-mutate-`updateItem`-the-whole-object instead of an `ignoreNulls(true)` partial item — a partial item has no `version`, which the extension reads as "doesn't exist yet" and fails its conditional check against an item that already exists (hit this exact bug in `NominationDynamoRepository.declinePendingByPlaylistId` during development).
-- **Local dev / IT tests:** `app.dynamodb.endpoint-override` points the client at DynamoDB Local (Docker for manual/`sam local invoke` testing, a Testcontainers `GenericContainer` for `backend-dynamo`'s IT tests) instead of the real AWS endpoint; unset in the deployed Lambda so the SDK uses the default region/credential chain (the Lambda execution role).
+- **Local dev / IT tests:** `app.dynamodb.endpoint-override` points the client at DynamoDB Local (Docker, for manual Lambda-image testing — see "Lambda local testing" — or a Testcontainers `GenericContainer` for `backend-dynamo`'s IT tests) instead of the real AWS endpoint; unset in the deployed Lambda so the SDK uses the default region/credential chain (the Lambda execution role).
 
 ### Cognito auth for the Lambda API
 
@@ -371,7 +373,10 @@ DYNAMODB_ENDPOINT_OVERRIDE=http://localhost:8000 sam local invoke HelloFunction 
 - **`ContributorItem.cognitoSub`** is a sparse GSI (`byCognitoSub`, mirrors `Organization`'s `bySlug`) — Contributors without a linked Cognito identity simply don't appear in it. `ContributorDynamoRepository.findByEmail` is a plain in-memory filter over the tenant's already-fetched `Query`, not a new GSI — same "lookup-at-read" scale reasoning as everywhere else in this module.
 - **Test seam:** `BaseHandler`'s 2-arg test constructor (`ObjectMapper`, `Validator`) leaves `cognitoJwtValidator`/`contributorRepository` null, which makes `authenticate()` a no-op regardless of a handler's `authMode()` — this is why all ~30 pre-existing handler tests kept passing unmodified when the default `authMode()` became `AUTHENTICATED_WITH_CONTRIBUTOR`. Auth/tenant-resolution itself is tested once, in `BaseHandlerAuthTest`, via a 4-arg constructor (`+CognitoJwtValidator, +ContributorDynamoRepository`) that handlers needing the real auth path (or their tests) can use instead.
 - **UI side is a standalone proof, not wired into the app shell.** `ui/src/amplify.ts` configures the Amplify client (`VITE_COGNITO_USER_POOL_ID`/`VITE_COGNITO_CLIENT_ID`, same build-time-env convention as `VITE_KC_URL` in `keycloak.ts`); `ui/src/lambdaApi.ts` is a minimal fetch client for just the two new endpoints (`VITE_LAMBDA_LINK_URL`/`VITE_LAMBDA_ME_URL`), attaching the Cognito ID token via `fetchAuthSession()`; `ui/src/components/CognitoLoginOverlay.vue` wraps `@aws-amplify/ui-vue`'s `<authenticator>` (sign-up/sign-in/confirm-code) and, once authenticated (watched via the `useAuthenticator()` composable, not a slot-scoped watcher), calls `getCurrentContributor()` — on no-linked-Contributor it shows an org-picker "complete your profile" form calling `linkContributor()`. Deliberately **not** added to `App.vue`'s existing mock/Keycloak overlay switch, and `api.ts`/`stores/auth.ts` are untouched — the UI has no other wiring to `lambda` today (everything else still talks to `backend` via nginx's proxy), so this is a working building block, not a live third auth mode yet.
-- **Known gap — GraalVM native-image build is currently broken, pre-existing and unrelated to Cognito.** `lambda/Dockerfile`'s multi-stage build previously had a stale module `COPY` list (missing `backend-dynamo` entirely, still referencing `sdk`/`sdk-models`/`backend-core`, which `lambda` hasn't depended on since the DynamoDB port) — fixed to copy every reactor module's `pom.xml` (Maven needs them present to resolve the root POM's `<modules>` list) while only `backend-dynamo/src` and `lambda/src` actually get built. `.dockerignore` needed a `!ui/pom.xml` exception since `ui/` is otherwise fully excluded. With that fixed, the build now gets **through** Spring AOT processing successfully (Nimbus/`CognitoJwtValidator` included — confirmed native-image-compatible) but fails at final native-image linking: Netty (pulled in transitively via the AWS SDK's `netty-nio-client`/`s3` dependencies, unrelated to Cognito) captures a static Logback `Logger`/`LoggerContext` into the build-time image heap, which GraalVM rejects. `--initialize-at-build-time=ch.qos.logback` (added to the `native` profile's `buildArgs`) gets partway there but doesn't fully resolve it — the GraalVM Reachability Metadata Repository's bundled config for `logback-classic`/Netty appears to reassert run-time init. This means the native-image/ECR deployment path (`docker build -f lambda/Dockerfile`) has apparently never been exercised to completion before; the JVM-mode fat-JAR build (`mvn package -pl lambda`, what `mvn test`/`mvn verify` already exercise) is unaffected and fully validated. Resolving the Netty/Logback conflict is separate follow-up work, likely either excluding Netty's reachability metadata explicitly or switching the DynamoDB/S3 clients' HTTP client away from the async Netty one to the already-present `url-connection-client`.
+- **GraalVM native-image is parked, not removed.** An earlier attempt got the build through Spring AOT successfully (Nimbus/`CognitoJwtValidator` confirmed native-image-compatible) but failed at final linking on a pre-existing, Cognito-unrelated conflict: Netty (pulled in transitively via the AWS SDK's `netty-nio-client`/`s3` dependencies) captures a static Logback `Logger`/`LoggerContext` into the build-time image heap, which GraalVM rejects, and the GraalVM Reachability Metadata Repository's bundled config for `logback-classic`/Netty kept reasserting run-time init even after `--initialize-at-build-time=ch.qos.logback`. Rather than keep chasing that, the Amplify Gen 2 migration (see below) deploys a plain **JVM** container image instead — the `native` Maven profile and its `buildArgs` fix stay in `lambda/pom.xml` for a future revisit, but are not part of the current build/deploy path.
+- **The JVM fat-jar path had its own latent packaging bugs, only surfaced by actually running the built image** (via the Lambda Runtime Interface Emulator — see "Lambda local testing" — this fat jar/container combination had never been executed standalone before this migration; `mvn test`'s Spring Test context bootstrapping doesn't hit either bug):
+  - `maven-shade-plugin` had no merge transformers for `META-INF/spring.factories`/`META-INF/spring/*.imports`. Multiple dependency jars each ship one of these; naive shading keeps only the last jar's copy instead of merging them, silently dropping Spring Boot auto-configuration (the app booted, but `application.yml` was never read — every `@Value` resolved to its literal, unresolved `${...}` placeholder text). Fixed with `ServicesResourceTransformer` + two `AppendingTransformer`s in `lambda/pom.xml`'s shade execution.
+  - Spring Boot 4 split Jackson auto-configuration into its own `spring-boot-jackson` module, which configures a **Jackson 3.x** (`tools.jackson.databind.ObjectMapper`) bean — a different type from the **Jackson 2.x** (`com.fasterxml.jackson.databind.ObjectMapper`) type every handler in this module actually uses. `ctx.getBean(ObjectMapper.class)` in `BaseHandler` found no matching bean. Fixed by defining an explicit `@Bean ObjectMapper` in `com.orgasm.lambda.config.JacksonConfig` (`new ObjectMapper().findAndRegisterModules()`, same construction every test file already used) rather than depending on Spring Boot's Jackson-generation auto-config — `LambdaApplication`'s `scanBasePackages` had to grow to include `com.orgasm.lambda.config`.
 
 **Lambda Spring bootstrap pattern** (unchanged shape, now resolves `com.orgasm.dynamo.*` services instead of `backend-core`'s):
 ```java
@@ -393,7 +398,19 @@ public GetPlaylistHandler() {
 The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependencyManagement>`. This lets `lambda` avoid pulling Spring Boot transitive dependencies while still benefiting from version alignment for Jackson/SLF4J etc.
 
 ### Lambda packaging
-`lambda` uses `maven-shade-plugin` to produce a single fat JAR. The handler class is referenced directly in `template.yaml` (`Handler: com.orgasm.lambda.HelloHandler::handleRequest`). New Lambda functions follow the same pattern: implement `RequestHandler<IN, OUT>`, add a new `AWS::Serverless::Function` resource in `template.yaml`.
+`lambda` uses `maven-shade-plugin` (with merge transformers for Spring's factories/imports files — see "Cognito auth for the Lambda API") to produce a single fat JAR, packaged into a container image (`lambda/Dockerfile`) that every Lambda function shares — see "Amplify Gen 2 backend" for how a function picks its handler class from that one image. New Lambda functions implement `RequestHandler<IN, OUT>` (via `BaseHandler<T>`, same pattern as every existing handler) and add one entry to `ui/amplify/functions.ts`'s `fnSpecs` array — no per-function infra block to hand-write.
+
+### Amplify Gen 2 backend
+`ui/amplify/` is a AWS Amplify Gen 2 backend-as-code project (`@aws-amplify/backend`, deployed via the `ampx` CLI) — it, not AWS SAM, is what provisions Cognito, the 9 DynamoDB tables, and all 34 Lambda functions. It lives inside `ui/` (not at the repo root) because Amplify Hosting auto-detects a Gen 2 backend by finding `amplify/` next to the app's own `package.json`, and this repo's actual frontend root is `ui/`.
+
+- **`ui/amplify/auth/resource.ts`** — `defineAuth({ loginWith: { email: true } })`, the Cognito User Pool backing the auth described above.
+- **`ui/amplify/tables.ts`** — the 9 DynamoDB tables as raw CDK `Table` L2 constructs (key schema + GSIs), **not** Gen 2's opinionated `defineData`/AppSync model — this schema is hand-rolled pk/sk + GSIs, unrelated to GraphQL.
+- **`ui/amplify/functions.ts`** — the `fnSpecs` array: one entry per Lambda function (name, handler class, tables it needs, HTTP methods, CORS headers), replacing what would otherwise be 34 hand-written CDK blocks with data.
+- **`ui/amplify/backend.ts`** — `defineBackend({ auth })`, then a custom CDK stack (`backend.createStack('LambdaApi')`) building the tables, looping `fnSpecs` to construct each `lambda.Function` + its per-table IAM grants (`table.grantReadWriteData(fn)`, the L2 equivalent of SAM's old `DynamoDBCrudPolicy`) + its Function URL, and `backend.addOutput({ custom: { functionUrls } })` to surface the Function URLs into the generated `ui/amplify_outputs.json`.
+- **One pushed image, many functions, different `CMD`.** `lambda.DockerImageCode.fromImageAsset()` with a different `cmd` per function would trigger a separate `docker build` per function. Instead, the image is built and pushed to ECR **once** by `amplify.yml`'s `backend` phase, and every function references that already-pushed image via `lambda.Code.fromEcrImage(repo, { tagOrDigest, cmd: [handlerClass] })` — no rebuild per function. The ECR repo itself is imported (`ecr.Repository.fromRepositoryName`), never CDK-owned (`new ecr.Repository`), since a CDK-owned repo conflicts with externally-pushed images at drift/destroy time; `amplify.yml` creates it idempotently (`aws ecr create-repository ... || true`) before pushing.
+- **`ui/amplify_outputs.json`** is Gen 2's generated client config (Cognito User Pool/Client id + the `custom.functionUrls` map) — committed with placeholder values so local type-checking/builds work before any real deploy, then overwritten by every `ampx sandbox`/`ampx pipeline-deploy`. Never hand-edit it. `ui/src/amplify.ts` and `ui/src/lambdaApi.ts` read from it directly (`Amplify.configure(outputs)`, `outputs.custom.functionUrls[...]`) instead of `VITE_*` build-time env vars.
+- **Deployment is now automatic.** `amplify.yml` has a `backend` phase (build the jar, build+push the image, `npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID`) ahead of the existing `frontend` phase — Amplify Hosting runs both on every push to a connected branch. Requires the Amplify Console's Build image switched to a Docker-capable one (e.g. `public.ecr.aws/codebuild/amazonlinux-x86_64-standard:5.0`); the default Amplify build image has no Docker daemon.
+- **SAM is gone.** `lambda/template.yaml` and the GraalVM stage of `lambda/Dockerfile` were removed — one infra-as-code path (Gen 2/CDK), not two describing the same resources.
 
 ### API versioning
 
@@ -558,6 +575,9 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | Playwright | 1.x |
 | MapStruct | 1.6.3 |
 | frontend-maven-plugin | 1.15.1 (pinned in root POM as `frontend-maven-plugin.version`) |
-| Lambda runtime | `java21` (Graviton arm64) |
+| Lambda runtime | `public.ecr.aws/lambda/java:25` container image (Graviton arm64) |
+| Nimbus JOSE+JWT | pinned in root POM as `nimbus-jose-jwt.version` |
+| @aws-amplify/backend | ^1.25.0 (`ui/package.json` devDependencies) |
+| aws-cdk-lib | ^2.268.0 |
 
 All Java dependency versions are managed centrally in the root `pom.xml` `<properties>` block. Update versions there, not in individual module POMs. `node.version` and `frontend-maven-plugin.version` are also in the root `<properties>` block.

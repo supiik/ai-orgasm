@@ -3,6 +3,7 @@ package com.orgasm.lambda;
 import com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orgasm.dynamo.playlist.PlaylistService;
+import com.orgasm.lambda.auth.AuthMode;
 import jakarta.validation.Validator;
 import org.springframework.data.domain.Pageable;
 
@@ -26,5 +27,10 @@ public class HelloHandler extends BaseHandler<Map<String, Object>> {
     protected Map<String, Object> execute(APIGatewayV2HTTPEvent event) {
         var playlists = playlistService.findAll(r -> r, Pageable.ofSize(10));
         return Map.of("message", "Hello from Lambda!", "totalPlaylists", playlists.getTotalElements());
+    }
+
+    @Override
+    protected AuthMode authMode() {
+        return AuthMode.PUBLIC;
     }
 }

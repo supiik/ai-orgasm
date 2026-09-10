@@ -198,6 +198,20 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <!-- Without these, multiple dependency jars each shipping their own
+                                 META-INF/spring.factories / spring/*.imports / services/* get
+                                 naively overwritten (last-jar-wins) instead of merged, silently
+                                 dropping Spring Boot auto-configuration (e.g. YAML property-source
+                                 loading) — the fat jar boots but application.yml is never read. -->
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.factories</resource>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>

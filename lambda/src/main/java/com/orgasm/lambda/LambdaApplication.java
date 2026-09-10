@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.orgasm.dynamo", "com.orgasm.lambda.auth"})
+@SpringBootApplication(scanBasePackages = {"com.orgasm.dynamo", "com.orgasm.lambda.auth", "com.orgasm.lambda.config"})
 public class LambdaApplication {
 
     public static void main(String[] args) {
