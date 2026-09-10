@@ -18,8 +18,10 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
+    "@aws-amplify/ui-vue": "^4.4.6",
     "@orgasm/backend-client": "file:../sdk-typescript/target/typescript-client",
     "@tailwindcss/vite": "^4.3.0",
+    "aws-amplify": "^6.20.0",
     "axios": "^1.8.4",
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",

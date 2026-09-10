@@ -23,19 +23,27 @@ WORKDIR /workspace
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
 
-# Copy only the module POMs in the lambda dependency chain (sdk-models→sdk→backend-core→lambda)
-COPY sdk-models/pom.xml  sdk-models/pom.xml
-COPY sdk/pom.xml          sdk/pom.xml
-COPY backend-core/pom.xml backend-core/pom.xml
-COPY lambda/pom.xml       lambda/pom.xml
+# Maven needs every module's pom.xml present to resolve the root reactor (the root POM's
+# <modules> list), even though `-pl lambda -am` below only ever BUILDS lambda's actual
+# dependency chain (backend-dynamo → lambda — lambda does NOT depend on sdk/sdk-models/
+# backend-core, see CLAUDE.md "DynamoDB persistence for Lambda"). Only backend-dynamo/ and
+# lambda/ get their src/ copied below, so the other modules' compilation is never triggered.
+COPY sdk-models/pom.xml     sdk-models/pom.xml
+COPY sdk/pom.xml            sdk/pom.xml
+COPY sdk-java8/pom.xml      sdk-java8/pom.xml
+COPY sdk-java11/pom.xml     sdk-java11/pom.xml
+COPY sdk-typescript/pom.xml sdk-typescript/pom.xml
+COPY backend-core/pom.xml   backend-core/pom.xml
+COPY backend-dynamo/pom.xml backend-dynamo/pom.xml
+COPY backend/pom.xml        backend/pom.xml
+COPY lambda/pom.xml         lambda/pom.xml
+COPY ui/pom.xml             ui/pom.xml
 
 # Warm up the Maven cache — layer is re-used until any POM changes
 RUN ./mvnw dependency:resolve -pl lambda -am -DskipTests -Pnative -q 2>&1 | tail -3 || true
 
 # Copy sources
-COPY sdk-models/src/    sdk-models/src/
-COPY sdk/src/            sdk/src/
-COPY backend-core/src/   backend-core/src/
+COPY backend-dynamo/src/ backend-dynamo/src/
 COPY lambda/src/         lambda/src/
 
 # Compile + Spring AOT + GraalVM native image → target/bootstrap

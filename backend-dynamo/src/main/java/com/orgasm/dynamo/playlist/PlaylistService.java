@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
@@ -72,5 +73,32 @@ public class PlaylistService {
     public Page<PlaylistResponse> findAll(
             UnaryOperator<FindPlaylistsRequest.FindPlaylistsRequestBuilder> customizer, Pageable pageable) {
         return findAll(customizer.apply(FindPlaylistsRequest.builder()).build(), pageable);
+    }
+
+    @CircuitBreaker(name = "db")
+    public PlaylistResponse update(String id, UpdatePlaylistRequest request) {
+        PlaylistItem existing = requireById(id);
+        mapper.updateItem(request, existing);
+        existing.setUpdatedAt(Instant.now());
+        return mapper.toResponse(repository.save(existing));
+    }
+
+    @CircuitBreaker(name = "db")
+    public PlaylistResponse update(String id, UnaryOperator<UpdatePlaylistRequest.UpdatePlaylistRequestBuilder> customizer) {
+        return update(id, customizer.apply(UpdatePlaylistRequest.builder()).build());
+    }
+
+    @CircuitBreaker(name = "db")
+    public void delete(String id) {
+        PlaylistItem existing = requireById(id);
+        existing.setDeletedAt(Instant.now());
+        repository.save(existing);
+    }
+
+    private PlaylistItem requireById(String id) {
+        long tenantId = DynamoTenantContext.get();
+        return repository.findById(tenantId, IdGenerator.parse(id))
+                .filter(item -> item.getDeletedAt() == null)
+                .orElseThrow(() -> new NoSuchElementException("Playlist not found: " + id));
     }
 }

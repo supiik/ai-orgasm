@@ -101,6 +101,7 @@ class CreatePlaylistHandlerTest {
         var failingMapper = mock(ObjectMapper.class);
         when(failingMapper.readValue(any(String.class), any(Class.class)))
                 .thenReturn(new CreatePlaylistRequest("x", null, null, null));
+        when(playlistService.create(anyRequest())).thenReturn(stubResponse());
         when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("ser-fail"));
         var handler = new CreatePlaylistHandler(playlistService, failingMapper, VALIDATOR);
 

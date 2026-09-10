@@ -53,6 +53,7 @@
         <native-maven-plugin.version>0.10.4</native-maven-plugin.version>
         <aws-lambda-java-ric.version>2.8.0</aws-lambda-java-ric.version>
         <resilience4j.version>2.3.0</resilience4j.version>
+        <nimbus-jose-jwt.version>10.3</nimbus-jose-jwt.version>
 
         <!-- JaCoCo line-coverage gate: per-module BUNDLE minimum.
              Override to 0 in modules with no hand-written code (generated SDKs). -->

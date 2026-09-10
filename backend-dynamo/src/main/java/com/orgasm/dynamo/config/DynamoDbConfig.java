@@ -1,14 +1,11 @@
 package com.orgasm.dynamo.config;
 
-import com.orgasm.dynamo.playlist.PlaylistItem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
-import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.extensions.VersionedRecordExtension;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -16,14 +13,17 @@ import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
 import java.net.URI;
 
+/**
+ * Shared DynamoDB client beans only. Each entity package owns its own {@code XDynamoConfig}
+ * declaring that entity's {@code DynamoDbTable}/{@code DynamoDbIndex} beans (see
+ * {@code playlist.PlaylistDynamoConfig} for the pattern) — keeps this file from becoming a
+ * merge-conflict magnet as entities are added.
+ */
 @Configuration
 public class DynamoDbConfig {
 
     @Value("${app.dynamodb.endpoint-override:}")
     private String endpointOverride;
-
-    @Value("${app.dynamodb.table-playlists:orgasm-playlists-local}")
-    private String playlistsTableName;
 
     @Bean
     public DynamoDbClient dynamoDbClient() {
@@ -46,10 +46,5 @@ public class DynamoDbConfig {
                 .dynamoDbClient(dynamoDbClient)
                 .extensions(VersionedRecordExtension.builder().build())
                 .build();
-    }
-
-    @Bean
-    public DynamoDbTable<PlaylistItem> playlistsTable(DynamoDbEnhancedClient enhancedClient) {
-        return enhancedClient.table(playlistsTableName, TableSchema.fromBean(PlaylistItem.class));
     }
 }

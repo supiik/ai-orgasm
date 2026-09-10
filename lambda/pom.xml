@@ -76,6 +76,13 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
+        <!-- Cognito JWT validation (signature + claims), no AWS SDK call needed -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -146,6 +153,10 @@
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
+                                <!-- Netty's ChannelHandlerMask (pulled in transitively via the AWS SDK's
+                                     netty-nio-client) captures a static Logback Logger/LoggerContext,
+                                     which native-image would otherwise try to initialize at build time. -->
+                                <buildArg>--initialize-at-build-time=ch.qos.logback</buildArg>
                             </buildArgs>
                         </configuration>
                         <executions>

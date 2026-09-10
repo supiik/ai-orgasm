@@ -5,7 +5,22 @@ spring:
 app:
   dynamodb:
     table-playlists: ${DYNAMODB_TABLE_PLAYLISTS:orgasm-playlists-local}
+    table-songs: ${DYNAMODB_TABLE_SONGS:orgasm-songs-local}
+    table-contributors: ${DYNAMODB_TABLE_CONTRIBUTORS:orgasm-contributors-local}
+    table-organizations: ${DYNAMODB_TABLE_ORGANIZATIONS:orgasm-organizations-local}
+    table-nominations: ${DYNAMODB_TABLE_NOMINATIONS:orgasm-nominations-local}
+    table-guesses: ${DYNAMODB_TABLE_GUESSES:orgasm-guesses-local}
+    table-guess-submissions: ${DYNAMODB_TABLE_GUESS_SUBMISSIONS:orgasm-guess-submissions-local}
+    table-song-ratings: ${DYNAMODB_TABLE_SONG_RATINGS:orgasm-song-ratings-local}
+    table-playlist-rankings: ${DYNAMODB_TABLE_PLAYLIST_RANKINGS:orgasm-playlist-rankings-local}
     endpoint-override: ${DYNAMODB_ENDPOINT_OVERRIDE:}
+  cognito:
+    user-pool-id: ${COGNITO_USER_POOL_ID:}
+    region: ${COGNITO_REGION:us-east-1}
+    client-id: ${COGNITO_CLIENT_ID:}
+    # Overrides the derived JWKS URL; local/manual testing points this at a throwaway
+    # static file server serving a locally generated test key (see CognitoJwtValidatorTest).
+    jwks-url-override: ${COGNITO_JWKS_URL_OVERRIDE:}
 
 resilience4j:
   circuitbreaker:

@@ -14,7 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -134,5 +136,73 @@ class PlaylistServiceTest {
 
         assertThat(result.getContent()).containsExactly(response("play-1", "A"));
         assertThat(result.getTotalElements()).isEqualTo(2);
+    }
+
+    private static String externalId(long id) {
+        return com.orgasm.dynamo.domain.IdGenerator.format("play", id);
+    }
+
+    @Test
+    void update_appliesMappingAndReturnsResponse() {
+        var existing = item(1L, "Old");
+        var expected = response(externalId(1L), "New");
+        when(repository.findById(1L, 1L)).thenReturn(Optional.of(existing));
+        when(repository.save(existing)).thenReturn(existing);
+        when(mapper.toResponse(existing)).thenReturn(expected);
+
+        assertThat(service.update(externalId(1L), new UpdatePlaylistRequest("New", "new desc", null)))
+                .isEqualTo(expected);
+        verify(mapper).updateItem(any(UpdatePlaylistRequest.class), org.mockito.ArgumentMatchers.eq(existing));
+    }
+
+    @Test
+    void update_appliesMappingAndReturnsResponse_viaBuilder() {
+        var existing = item(1L, "Old");
+        var expected = response(externalId(1L), "New");
+        when(repository.findById(1L, 1L)).thenReturn(Optional.of(existing));
+        when(repository.save(existing)).thenReturn(existing);
+        when(mapper.toResponse(existing)).thenReturn(expected);
+
+        assertThat(service.update(externalId(1L), b -> b.name("New").description("new desc"))).isEqualTo(expected);
+    }
+
+    @Test
+    void update_throwsNotFound_whenMissing() {
+        when(repository.findById(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.update(externalId(1L), new UpdatePlaylistRequest("X", null, null)))
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining(externalId(1L));
+    }
+
+    @Test
+    void update_throwsNotFound_whenSoftDeleted() {
+        var deleted = item(1L, "Old");
+        deleted.setDeletedAt(Instant.now());
+        when(repository.findById(1L, 1L)).thenReturn(Optional.of(deleted));
+
+        assertThatThrownBy(() -> service.update(externalId(1L), new UpdatePlaylistRequest("X", null, null)))
+                .isInstanceOf(java.util.NoSuchElementException.class);
+    }
+
+    @Test
+    void delete_softDeletes_whenExists() {
+        var existing = item(1L, "Old");
+        when(repository.findById(1L, 1L)).thenReturn(Optional.of(existing));
+        when(repository.save(existing)).thenReturn(existing);
+
+        service.delete(externalId(1L));
+
+        assertThat(existing.getDeletedAt()).isNotNull();
+        verify(repository).save(existing);
+    }
+
+    @Test
+    void delete_throwsNotFound_whenMissing() {
+        when(repository.findById(1L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.delete(externalId(1L)))
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining(externalId(1L));
     }
 }

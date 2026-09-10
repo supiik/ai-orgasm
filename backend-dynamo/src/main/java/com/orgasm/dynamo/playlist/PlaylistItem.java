@@ -26,6 +26,9 @@ public class PlaylistItem {
     private String description;
     private String status;
     private String ratingType;
+    private Long leadContributorId;
+    private Instant deadline;
+    private Instant guessingDeadline;
     private Instant createdAt;
     private Instant updatedAt;
     private Instant deletedAt;
@@ -95,6 +98,30 @@ public class PlaylistItem {
 
     public void setRatingType(String ratingType) {
         this.ratingType = ratingType;
+    }
+
+    public Long getLeadContributorId() {
+        return leadContributorId;
+    }
+
+    public void setLeadContributorId(Long leadContributorId) {
+        this.leadContributorId = leadContributorId;
+    }
+
+    public Instant getDeadline() {
+        return deadline;
+    }
+
+    public void setDeadline(Instant deadline) {
+        this.deadline = deadline;
+    }
+
+    public Instant getGuessingDeadline() {
+        return guessingDeadline;
+    }
+
+    public void setGuessingDeadline(Instant guessingDeadline) {
+        this.guessingDeadline = guessingDeadline;
     }
 
     public Instant getCreatedAt() {
