@@ -24,23 +24,35 @@ function functionUrl(name: string): string {
   return url.replace(/\/+$/, '')
 }
 
-async function authorizedFetch(input: string, init?: RequestInit): Promise<Response> {
+async function doFetch(input: string, init: RequestInit | undefined): Promise<Response> {
   const session = await fetchAuthSession().catch(() => null)
   const token = session?.tokens?.idToken?.toString()
-  const res = await fetch(input, {
+  return fetch(input, {
     ...init,
     headers: {
       ...init?.headers,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   })
+}
+
+async function authorizedFetch(input: string, init?: RequestInit): Promise<Response> {
+  let res = await doFetch(input, init)
   if (res.status === 401) {
-    // Underlying views mount (and fire requests) even while CognitoLoginOverlay is showing on
-    // top — a 401 before the user has ever signed in is expected, not an expired session. Only
-    // flag sessionExpired when we previously believed we were authenticated.
     const { useAuthStore } = await import('@/stores/auth')
     const authStore = useAuthStore()
-    if (authStore.isAuthenticated) authStore.sessionExpired = true
+    // Underlying views mount (and fire requests) even while CognitoLoginOverlay is showing on
+    // top — a 401 before the user has ever signed in is expected, not an expired session, so
+    // only the isAuthenticated branch below is a real candidate for retry/session-expiry.
+    if (authStore.isAuthenticated) {
+      // The very first authenticated request right after sign-in can 401 once even though the
+      // session is valid — fetchAuthSession() here and the Authenticator's own internal sign-in
+      // completion aren't perfectly synchronized. One short-delayed retry clears it; a second
+      // failure means the session is genuinely gone.
+      await new Promise((r) => setTimeout(r, 400))
+      res = await doFetch(input, init)
+      if (res.status === 401) authStore.sessionExpired = true
+    }
   }
   return res
 }
