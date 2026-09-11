@@ -540,6 +540,10 @@ Both are declared in `SecurityConfig.permitAll()`. `TenantResolverFilter` alread
 
 **Organization** (`com.orgasm.billing.domain`) is the billing-database identity entity. `Organization.id` equals the `tenant_id` used throughout the app DB. When the mock login overlay's "Register" tab submits, `POST /api/v1/register` creates the contributor and auto-logs them in.
 
+**Domain-restricted registration:** Because both endpoints above are unauthenticated and `organizationSlug` is a free-form field, anyone who can see the org list could otherwise self-register into *any* organization. `Organization.allowedDomain` (nullable, `@JsonIgnore`d — never returned by `GET /api/v1/organizations`) closes this per-org, opt-in: when set, `RegistrationController.assertEmailAllowed` rejects registration with 400 unless the submitted email's domain matches (case-insensitive); a null/blank `allowedDomain` means unrestricted, so existing organizations are unaffected until someone sets the column. `IllegalArgumentException` → 400 is a new `GlobalExceptionHandler` mapping added for this. There is currently no admin endpoint to set `allowedDomain` — like `Organization` creation itself, it's set directly in the database (e.g. via a migration or manual `UPDATE`) until an org-admin API exists.
+
+The same gate is mirrored in the deployed TypeScript Cognito path (`ui/amplify/lib/services/registration.ts`'s `assertEmailAllowed`, used by both `register()` and `linkContributor()`) against `OrganizationItem.allowedDomain`, using the Cognito-verified email for `linkContributor`. **Not** ported to the frozen Java reference implementation (`backend-dynamo`'s `RegistrationService`/`LinkContributorService`) — that module tracks the original 34-endpoint parity snapshot the TS port was checked against, not every subsequent app-level feature.
+
 ### CORS
 `WebConfig` allows `http://localhost:5173` (Vite dev server) for `/api/**` (all methods). For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
 

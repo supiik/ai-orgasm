@@ -38,6 +38,7 @@ public class RegistrationController {
         Organization org = organizationRepository.findBySlug(request.organizationSlug())
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Organization not found: " + request.organizationSlug()));
+        assertEmailAllowed(org, request.email());
 
         TenantContext.set(org.getId());
         try {
@@ -52,6 +53,23 @@ public class RegistrationController {
             return ResponseEntity.created(location).body(created);
         } finally {
             TenantContext.clear();
+        }
+    }
+
+    /** No-op when the organization has no {@code allowedDomain} configured (default: unrestricted). */
+    private static void assertEmailAllowed(Organization org, String email) {
+        String allowedDomain = org.getAllowedDomain();
+        if (allowedDomain == null || allowedDomain.isBlank()) {
+            return;
+        }
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Email required: organization \"" + org.getSlug() + "\" only accepts @" + allowedDomain + " addresses");
+        }
+        String domain = email.substring(email.lastIndexOf('@') + 1);
+        if (!domain.equalsIgnoreCase(allowedDomain)) {
+            throw new IllegalArgumentException(
+                    "Email domain does not match organization \"" + org.getSlug() + "\"'s allowed domain (@" + allowedDomain + ")");
         }
     }
 }

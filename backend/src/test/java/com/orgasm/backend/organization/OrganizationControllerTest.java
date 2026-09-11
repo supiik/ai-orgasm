@@ -34,14 +34,24 @@ class OrganizationControllerTest {
     @Test
     void findAll_returns200_withOrganizationList() throws Exception {
         when(repository.findAll()).thenReturn(List.of(
-                new Organization(1L, "default", "Default Organization"),
-                new Organization(2L, "acme", "ACME Corp")));
+                new Organization(1L, "default", "Default Organization", null),
+                new Organization(2L, "acme", "ACME Corp", null)));
 
         mvc.perform(get("/api/v1/organizations"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].slug").value("default"))
                 .andExpect(jsonPath("$[1].slug").value("acme"));
+    }
+
+    @Test
+    void findAll_doesNotExposeAllowedDomain() throws Exception {
+        when(repository.findAll()).thenReturn(List.of(
+                new Organization(1L, "acme", "ACME Corp", "acme.com")));
+
+        mvc.perform(get("/api/v1/organizations"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].allowedDomain").doesNotExist());
     }
 
     @Test

@@ -14,6 +14,13 @@ export interface OrganizationItem {
   id: number
   slug: string
   name: string
+  /**
+   * When set, registration/linking requires the contributor's email to end in
+   * `@<allowedDomain>`. Undefined means unrestricted (mirrors `Organization.allowedDomain` on
+   * the Java side). Never returned from `listOrganizations()` — it's a server-side registration
+   * gate, not part of the public contract (see `services/organization.ts`'s mapper).
+   */
+  allowedDomain?: string
 }
 
 export async function findOrganizationById(id: number): Promise<OrganizationItem | undefined> {

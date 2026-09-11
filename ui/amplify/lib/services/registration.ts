@@ -1,7 +1,7 @@
-import { ConflictError, NotFoundError } from '../errors'
+import { ConflictError, NotFoundError, ValidationError } from '../errors'
 import { generateId } from '../idGenerator'
 import { findContributorByEmail, saveContributor, type ContributorItem } from '../repositories/contributor'
-import { findOrganizationBySlug } from '../repositories/organization'
+import { findOrganizationBySlug, type OrganizationItem } from '../repositories/organization'
 import { createContributor, toContributorResponse, type ContributorResponse } from './contributor'
 
 export interface RegisterContributorRequest {
@@ -11,10 +11,26 @@ export interface RegisterContributorRequest {
   avatarUrl?: string
 }
 
+/**
+ * No-op when the organization has no `allowedDomain` configured (default: unrestricted).
+ * Mirrors `RegistrationController.assertEmailAllowed` on the Java side.
+ */
+function assertEmailAllowed(org: OrganizationItem, email: string | undefined): void {
+  if (!org.allowedDomain) return
+  if (!email) {
+    throw new ValidationError([`Email required: organization "${org.slug}" only accepts @${org.allowedDomain} addresses`])
+  }
+  const domain = email.slice(email.lastIndexOf('@') + 1)
+  if (domain.toLowerCase() !== org.allowedDomain.toLowerCase()) {
+    throw new ValidationError([`Email domain does not match organization "${org.slug}"'s allowed domain (@${org.allowedDomain})`])
+  }
+}
+
 /** Public, unauthenticated — resolves the org by slug, then creates a Contributor under its tenant. */
 export async function register(request: RegisterContributorRequest): Promise<ContributorResponse> {
   const org = await findOrganizationBySlug(request.organizationSlug)
   if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)
+  assertEmailAllowed(org, request.email)
 
   return createContributor(org.id, { name: request.name, email: request.email, avatarUrl: request.avatarUrl })
 }
@@ -38,6 +54,7 @@ export async function linkContributor(
 ): Promise<ContributorResponse> {
   const org = await findOrganizationBySlug(request.organizationSlug)
   if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)
+  assertEmailAllowed(org, email)
 
   const existing = await findContributorByEmail(org.id, email)
   const item = existing ? await attach(existing, cognitoSub) : await create(request, org.id, email, cognitoSub)
