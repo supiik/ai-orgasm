@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button'
 // via Amplify Gen 2").
 
 const authStore = useAuthStore()
-const authenticator = useAuthenticator()
 
 const contributor = ref<LambdaContributorResponse | null>(null)
 const checkingLink = ref(false)
@@ -26,17 +25,23 @@ const linkName = ref('')
 const linkOrgSlug = ref('')
 const linking = ref(false)
 
-watch(
-  () => authenticator.authStatus,
-  (status) => {
-    if (status === 'authenticated') {
-      checkLinkedContributor()
-    } else {
-      contributor.value = null
-    }
-  },
-  { immediate: true },
-)
+// useAuthenticator() must not be called before <authenticator> itself has mounted and run its
+// own init — calling it earlier steals the first subscription to the shared auth state machine,
+// and it never receives its INIT event (the state machine gets stuck in "setup" forever, and
+// <authenticator> renders nothing). Deferring to onMounted lets <authenticator> (rendered
+// unconditionally in the template below, so it always mounts before this runs) initialize first.
+// See https://github.com/aws-amplify/amplify-ui/issues/5028.
+onMounted(() => {
+  const authenticator = useAuthenticator()
+  watch(
+    () => authenticator.authStatus,
+    (status) => {
+      if (status === 'authenticated') checkLinkedContributor()
+      else contributor.value = null
+    },
+    { immediate: true },
+  )
+})
 
 onMounted(async () => {
   try {
