@@ -24,12 +24,11 @@ frontend:
         - (cd ui && npm install)
     build:
       commands:
-        # Phase 1: self-contained mock-data build (MSW), no backend/Keycloak required.
-        # Drop VITE_MOCK once the UI is wired to call the Lambda API for real (see
-        # CLAUDE.md "Cognito auth for the Lambda API" — deliberately not done yet).
-        # ui/amplify_outputs.json was just overwritten by the backend phase's
-        # ampx pipeline-deploy with this branch's real Cognito/Function URL values.
-        - (cd ui && VITE_MOCK=true npm run build)
+        # ui/amplify_outputs.json was just overwritten by the backend phase's ampx
+        # pipeline-deploy with this branch's real Cognito User Pool + Function URL values.
+        # VITE_AUTH_MODE=cognito wires the app to use them — see CLAUDE.md "TypeScript
+        # Lambda API via Amplify Gen 2" / ui/src/authMode.ts.
+        - (cd ui && VITE_AUTH_MODE=cognito npm run build)
   artifacts:
     baseDirectory: ui/dist
     files:

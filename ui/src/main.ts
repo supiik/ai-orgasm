@@ -3,11 +3,16 @@ import './assets/index.css'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { authMode } from './authMode'
 
 async function bootstrap() {
-  if (import.meta.env.VITE_MOCK === 'true') {
+  if (authMode === 'mock') {
     const { worker } = await import('./mocks/browser')
     await worker.start({ onUnhandledRequest: 'warn' })
+  } else if (authMode === 'cognito') {
+    // Cognito auth is an in-app overlay (CognitoLoginOverlay, gated in App.vue), not a
+    // redirect-before-mount flow like Keycloak — just configure Amplify and mount normally.
+    await import('./amplify')
   } else {
     const keycloak = (await import('./keycloak')).default
     await keycloak.init({ onLoad: 'login-required', pkceMethod: 'S256' })

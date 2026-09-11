@@ -10,6 +10,13 @@ import outputs from '../amplify_outputs.json'
 const functionUrls = (outputs as { custom?: { functionUrls?: Record<string, string> } }).custom?.functionUrls ?? {}
 const LINK_URL = functionUrls['link-contributor']
 const ME_URL = functionUrls['get-current-contributor']
+const ORGANIZATIONS_URL = functionUrls['list-organizations']
+
+export interface OrganizationResponse {
+  id: number
+  slug: string
+  name: string
+}
 
 export interface LinkContributorRequest {
   organizationSlug: string
@@ -59,5 +66,13 @@ export async function getCurrentContributor(): Promise<LambdaContributorResponse
   const res = await authorizedFetch(ME_URL)
   if (res.status === 403 || res.status === 404) return null
   if (!res.ok) throw new Error(`Failed to load current contributor: ${res.status}`)
+  return res.json()
+}
+
+/** Public endpoint — no auth needed, may be called before the user signs in. */
+export async function listOrganizations(): Promise<OrganizationResponse[]> {
+  if (!ORGANIZATIONS_URL) throw new Error('amplify_outputs.json custom.functionUrls["list-organizations"] is not configured')
+  const res = await fetch(ORGANIZATIONS_URL)
+  if (!res.ok) throw new Error(`Failed to load organizations: ${res.status}`)
   return res.json()
 }

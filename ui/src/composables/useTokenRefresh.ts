@@ -1,7 +1,10 @@
 import { onUnmounted } from 'vue'
+import { authMode } from '@/authMode'
 
 export function useTokenRefresh() {
-  if (import.meta.env.VITE_MOCK === 'true') return
+  // Mock needs no refresh; Amplify's fetchAuthSession() (called per-request in api-lambda.ts)
+  // auto-refreshes Cognito tokens near expiry on its own — no periodic timer needed there.
+  if (authMode === 'mock' || authMode === 'cognito') return
 
   const REFRESH_INTERVAL = 4 * 60 * 1000
 

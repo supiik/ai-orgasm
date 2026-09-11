@@ -3,18 +3,18 @@ import { ref, watch, onMounted } from 'vue'
 import '@/amplify'
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue'
 import '@aws-amplify/ui-vue/styles.css'
-import { getCurrentContributor, linkContributor, type LambdaContributorResponse } from '@/lambdaApi'
+import { getCurrentContributor, linkContributor, listOrganizations, type LambdaContributorResponse, type OrganizationResponse } from '@/lambdaApi'
+import { useAuthStore } from '@/stores/auth'
 import { Select, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import type { OrganizationResponse } from '@/mocks/handlers/organizations'
 
-// Standalone proof of the Cognito auth path (see CLAUDE.md "Cognito auth for the Lambda API").
-// Not wired into App.vue's existing mock/Keycloak overlay switch — the UI has no other wiring
-// to `lambda` today, and deciding how/whether this becomes the live login path is a separate,
-// larger call than adding auth was.
+// Cognito's sign-up/sign-in UI + post-signup Contributor-linking flow. Rendered by App.vue when
+// authMode === 'cognito' and no Contributor is linked yet (see CLAUDE.md "TypeScript Lambda API
+// via Amplify Gen 2").
 
+const authStore = useAuthStore()
 const authenticator = useAuthenticator()
 
 const contributor = ref<LambdaContributorResponse | null>(null)
@@ -39,17 +39,25 @@ watch(
 )
 
 onMounted(async () => {
-  const res = await fetch('/api/v1/organizations')
-  if (res.ok) {
-    organizations.value = await res.json()
+  try {
+    organizations.value = await listOrganizations()
+  } catch {
+    // Org picker just stays empty; the link form's submit button is disabled without a selection.
   }
 })
+
+function onContributorResolved(c: LambdaContributorResponse) {
+  contributor.value = c
+  authStore.setCognitoContributor(c)
+}
 
 async function checkLinkedContributor() {
   checkingLink.value = true
   linkError.value = null
   try {
-    contributor.value = await getCurrentContributor()
+    const found = await getCurrentContributor()
+    if (found) onContributorResolved(found)
+    else contributor.value = null
   } catch (e) {
     linkError.value = e instanceof Error ? e.message : 'Failed to check linked account'
   } finally {
@@ -62,10 +70,11 @@ async function completeLink() {
   linking.value = true
   linkError.value = null
   try {
-    contributor.value = await linkContributor({
+    const linked = await linkContributor({
       organizationSlug: linkOrgSlug.value,
       name: linkName.value,
     })
+    onContributorResolved(linked)
   } catch (e) {
     linkError.value = e instanceof Error ? e.message : 'Failed to link account'
   } finally {

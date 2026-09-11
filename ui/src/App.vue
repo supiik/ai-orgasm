@@ -4,19 +4,24 @@ import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3,
 import { useTheme } from '@/composables/useTheme'
 import { useTokenRefresh } from '@/composables/useTokenRefresh'
 import { useAuthStore } from '@/stores/auth'
+import { authMode } from '@/authMode'
 import { Button } from '@/components/ui/button'
 import MockLoginOverlay from '@/components/MockLoginOverlay.vue'
+import CognitoLoginOverlay from '@/components/CognitoLoginOverlay.vue'
 
 const { theme, cycle } = useTheme()
 useTokenRefresh()
 
 const authStore = useAuthStore()
-const isMock = import.meta.env.VITE_MOCK === 'true'
+const isMock = authMode === 'mock'
 </script>
 
 <template>
   <!-- Mock login overlay -->
   <MockLoginOverlay v-if="isMock && !authStore.isAuthenticated" />
+
+  <!-- Cognito login/link overlay — stays visible through "signed in but not yet linked" -->
+  <CognitoLoginOverlay v-if="authMode === 'cognito' && !authStore.currentContributor" />
 
   <!-- Session expired overlay -->
   <div v-if="authStore.sessionExpired" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
