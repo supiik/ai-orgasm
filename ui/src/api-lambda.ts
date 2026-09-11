@@ -35,8 +35,12 @@ async function authorizedFetch(input: string, init?: RequestInit): Promise<Respo
     },
   })
   if (res.status === 401) {
+    // Underlying views mount (and fire requests) even while CognitoLoginOverlay is showing on
+    // top — a 401 before the user has ever signed in is expected, not an expired session. Only
+    // flag sessionExpired when we previously believed we were authenticated.
     const { useAuthStore } = await import('@/stores/auth')
-    useAuthStore().sessionExpired = true
+    const authStore = useAuthStore()
+    if (authStore.isAuthenticated) authStore.sessionExpired = true
   }
   return res
 }
