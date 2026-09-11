@@ -2,7 +2,8 @@ import { NotFoundError } from '../errors'
 import { formatId, generateId, parseId } from '../idGenerator'
 import type { PageRequest } from '../http'
 import { findAllPlaylistsByTenant, findPlaylistById, savePlaylist, type PlaylistItem, type PlaylistStatus } from '../repositories/playlist'
-import { findContributorById } from '../repositories/contributor'
+import { findContributorById, type ContributorItem } from '../repositories/contributor'
+import { memoize } from '../memo'
 
 export type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
 
@@ -41,7 +42,23 @@ export interface PlaylistResponse {
 // matching backend-core's PlaylistMapper (which always resolves the JPA-lazy leadContributor
 // relation) — every read path returns the name, not just the Orgasm workflow methods.
 export async function toPlaylistResponse(tenantId: number, item: PlaylistItem): Promise<PlaylistResponse> {
-  const lead = item.leadContributorId !== undefined ? await findContributorById(tenantId, item.leadContributorId) : undefined
+  return buildResponse(item, (id) => findContributorById(tenantId, id))
+}
+
+/**
+ * Batch form of `toPlaylistResponse`. Playlists in a page typically share a handful of leads, so
+ * memoizing turns one GetItem per row into one per distinct lead.
+ */
+export function toPlaylistResponses(tenantId: number, items: PlaylistItem[]): Promise<PlaylistResponse[]> {
+  const lookupLead = memoize((id: bigint) => findContributorById(tenantId, id))
+  return Promise.all(items.map((item) => buildResponse(item, lookupLead)))
+}
+
+async function buildResponse(
+  item: PlaylistItem,
+  lookupLead: (id: bigint) => Promise<ContributorItem | undefined>,
+): Promise<PlaylistResponse> {
+  const lead = item.leadContributorId !== undefined ? await lookupLead(item.leadContributorId) : undefined
   return {
     id: formatId('play', item.id),
     name: item.name,
@@ -98,7 +115,7 @@ export async function listPlaylists(
     .filter((item) => !filter.name || item.name?.toLowerCase().includes(filter.name.toLowerCase()))
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
-  return { content: await Promise.all(paged.map((item) => toPlaylistResponse(tenantId, item))), totalElements: all.length }
+  return { content: await toPlaylistResponses(tenantId, paged), totalElements: all.length }
 }
 
 export async function updatePlaylist(tenantId: number, id: string, request: UpdatePlaylistRequest): Promise<PlaylistResponse> {

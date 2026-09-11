@@ -1,5 +1,5 @@
 import { defineBackend } from '@aws-amplify/backend'
-import { FunctionUrlAuthType, type IFunction, type Function as CdkFunction } from 'aws-cdk-lib/aws-lambda'
+import { FunctionUrlAuthType, type CfnFunction, type IFunction, type Function as CdkFunction } from 'aws-cdk-lib/aws-lambda'
 import { auth } from './auth/resource'
 import { fnSpecs } from './functions'
 import { createTables } from './tables'
@@ -21,7 +21,6 @@ import { listContributorsFn } from './functions/list-contributors/resource'
 import { updateContributorFn } from './functions/update-contributor/resource'
 import { deleteContributorFn } from './functions/delete-contributor/resource'
 import { listOrganizationsFn } from './functions/list-organizations/resource'
-import { registerContributorFn } from './functions/register-contributor/resource'
 import { openPlaylistFn } from './functions/open-playlist/resource'
 import { listPlaylistsByContributorFn } from './functions/list-playlists-by-contributor/resource'
 import { nominateSongFn } from './functions/nominate-song/resource'
@@ -58,7 +57,6 @@ const backend = defineBackend({
   updateContributorFn,
   deleteContributorFn,
   listOrganizationsFn,
-  registerContributorFn,
   openPlaylistFn,
   listPlaylistsByContributorFn,
   nominateSongFn,
@@ -99,7 +97,28 @@ const sharedEnv: Record<string, string> = {
   DYNAMODB_TABLE_PLAYLIST_RANKINGS: tables.playlistRankings.tableName,
   COGNITO_USER_POOL_ID: userPool.userPoolId,
   COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
+  // Keys lib/idGenerator.ts's format/parse scrambling. Unset at deploy time means the all-zero
+  // default key, i.e. the external id representation is a plain reversible transform of the DB id.
+  ID_GENERATOR_SECRET: process.env.ID_GENERATOR_SECRET ?? '0000000000000000',
 }
+
+/**
+ * Browser origins allowed to call the Function URLs. Defaults to `*` because the deployed origin
+ * is branch-dependent (Amplify Hosting assigns it), so pinning it in code would break every
+ * preview branch. Set ALLOWED_ORIGINS in the Amplify Console build environment to a
+ * comma-separated list to lock production down. Note the API is token-authenticated, not
+ * cookie-authenticated, so `*` does not by itself enable a CSRF-style cross-origin attack.
+ */
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '*').split(',').map((o) => o.trim()).filter(Boolean)
+
+/**
+ * Reserved concurrency for the endpoints reachable without a bearer token, capping how much
+ * Lambda a flood can burn before the auth check (which those endpoints don't have) would matter.
+ * AWS requires at least 100 unreserved concurrent executions in the account, and a low account
+ * limit makes any reservation fail the deploy — so this is deliberately small and tunable. Set
+ * PUBLIC_FN_RESERVED_CONCURRENCY=0 to disable reservations entirely.
+ */
+const publicReservedConcurrency = Number(process.env.PUBLIC_FN_RESERVED_CONCURRENCY ?? '5')
 
 // Keyed by fnSpecs' `name` — maps each spec to the actual defineFunction resource created above.
 const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
@@ -120,7 +139,6 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'update-contributor': backend.updateContributorFn,
   'delete-contributor': backend.deleteContributorFn,
   'list-organizations': backend.listOrganizationsFn,
-  'register-contributor': backend.registerContributorFn,
   'open-playlist': backend.openPlaylistFn,
   'list-playlists-by-contributor': backend.listPlaylistsByContributorFn,
   'nominate-song': backend.nominateSongFn,
@@ -147,14 +165,24 @@ for (const spec of fnSpecs) {
     ;(fn as unknown as CdkFunction).addEnvironment(key, value)
   }
 
+  // Least privilege: only the tables a function actually mutates get write access. Everything
+  // else it touches — including the `contributors` read `withAuth` performs on every
+  // authenticated request — is read-only.
+  const writes = new Set(spec.writes ?? [])
   for (const tableKey of spec.tables) {
-    tables[tableKey].grantReadWriteData(fn)
+    if (writes.has(tableKey)) tables[tableKey].grantReadWriteData(fn)
+    else tables[tableKey].grantReadData(fn)
+  }
+
+  if (spec.publiclyReachable && publicReservedConcurrency > 0) {
+    ;((fn as unknown as CdkFunction).node.defaultChild as CfnFunction).reservedConcurrentExecutions =
+      publicReservedConcurrency
   }
 
   const url = fn.addFunctionUrl({
     authType: FunctionUrlAuthType.NONE,
     cors: {
-      allowedOrigins: ['*'],
+      allowedOrigins,
       allowedMethods: spec.methods,
       allowedHeaders: spec.corsHeaders.length > 0 ? spec.corsHeaders : undefined,
     },

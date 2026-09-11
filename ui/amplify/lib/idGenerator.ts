@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto'
+import { NotFoundError } from './errors'
 
 /**
  * Port of backend-dynamo's IdGenerator.java (com.orgasm.dynamo.domain.IdGenerator). Java's
@@ -49,9 +50,15 @@ export function formatId(prefix: string, id: bigint): string {
   return `${prefix}-${reversed.toString(16).padStart(16, '0')}`
 }
 
-/** Inverse of formatId — parses a prefixed id back to the DB id. */
+/**
+ * Inverse of formatId — parses a prefixed id back to the DB id. Anything that isn't the hex tail
+ * formatId produces is rejected as NotFound: without this, `BigInt('0x' + garbage)` threw a raw
+ * SyntaxError, which withAuth's catch chain surfaced as a 500 rather than a client error.
+ */
 export function parseId(prefixedId: string): bigint {
-  const dash = prefixedId.lastIndexOf('-')
-  const scrambled = BigInt(`0x${prefixedId.slice(dash + 1)}`)
-  return wrap64(reverse64(scrambled) ^ secretKey)
+  const hex = prefixedId.slice(prefixedId.lastIndexOf('-') + 1)
+  if (!/^[0-9a-fA-F]{1,16}$/.test(hex)) {
+    throw new NotFoundError('Malformed id')
+  }
+  return wrap64(reverse64(BigInt(`0x${hex}`)) ^ secretKey)
 }

@@ -26,7 +26,13 @@ function assertEmailAllowed(org: OrganizationItem, email: string | undefined): v
   }
 }
 
-/** Public, unauthenticated — resolves the org by slug, then creates a Contributor under its tenant. */
+/**
+ * Port of the Java `POST /api/v1/register` — resolves the org by slug, then creates a Contributor
+ * under its tenant. **Not exposed as a Function URL.** It was, as `register-contributor`, until the
+ * 2026-09-11 security review: an unauthenticated, unrate-limited write that nothing in the UI
+ * called (Cognito sign-up goes through `linkContributor` below, which has a verified identity).
+ * Kept — with its tests — as the parity reference; wire it back up only behind real abuse controls.
+ */
 export async function register(request: RegisterContributorRequest): Promise<ContributorResponse> {
   const org = await findOrganizationBySlug(request.organizationSlug)
   if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)

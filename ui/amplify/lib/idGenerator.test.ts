@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { NotFoundError } from './errors'
 import { formatId, generateId, parseId } from './idGenerator'
 
 // Golden values generated from the actual Java bit-manipulation logic (IdGenerator.java's
@@ -21,6 +22,14 @@ describe('formatId / parseId (secretKey=0)', () => {
   it.each(GOLDEN_ZERO_SECRET)('parses %s back from %s', (id, formatted) => {
     expect(parseId(formatted)).toBe(id)
   })
+
+  // Was a raw SyntaxError from BigInt(), which the handler catch chain turned into a 500.
+  it.each(['play-notahexstring', 'play-', '', 'play-00000000000000000', "play-'; DROP", 'play-0x10'])(
+    'rejects malformed id %j as NotFound rather than throwing',
+    (input) => {
+      expect(() => parseId(input)).toThrow(NotFoundError)
+    },
+  )
 })
 
 describe('generateId', () => {

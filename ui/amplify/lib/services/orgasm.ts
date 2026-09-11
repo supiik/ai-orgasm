@@ -23,7 +23,13 @@ import {
   type SongRatingItem,
 } from '../repositories/songRating'
 import { findAllRankingsByTenant, saveRanking, type PlaylistRankingItem } from '../repositories/playlistRanking'
-import { requirePlaylistItem as requirePlaylistItemById, toPlaylistResponse as basePlaylistResponse, type PlaylistResponse } from './playlist'
+import { memoize } from '../memo'
+import {
+  requirePlaylistItem as requirePlaylistItemById,
+  toPlaylistResponse as basePlaylistResponse,
+  toPlaylistResponses,
+  type PlaylistResponse,
+} from './playlist'
 
 // ---------------------------------------------------------------------------
 // DTOs — ported verbatim from backend-dynamo's com.orgasm.dynamo.orgasm.* records
@@ -177,8 +183,7 @@ export async function findPlaylistsByContributor(
     .filter((item) => item.leadContributorId === parsedContributorId)
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
-  const content = await Promise.all(paged.map((item) => basePlaylistResponse(tenantId, item)))
-  return { content, totalElements: all.length }
+  return { content: await toPlaylistResponses(tenantId, paged), totalElements: all.length }
 }
 
 export async function nominateSong(
@@ -232,10 +237,12 @@ export async function findNominations(
 export async function findNominationsBySong(tenantId: number, songId: string): Promise<SongNominationResponse[]> {
   const songDbId = parseId(songId)
   const items = (await findNominationsBySongId(songDbId)).filter((item) => !item.deletedAt)
+  const lookupPlaylist = memoize((id: bigint) => findPlaylistById(tenantId, id))
+  const lookupContributor = memoize((id: bigint) => findContributorById(tenantId, id))
   return Promise.all(
     items.map(async (item) => {
-      const playlist = await findPlaylistById(tenantId, item.playlistId)
-      const nominatedBy = await findContributorById(tenantId, item.nominatedById)
+      const playlist = await lookupPlaylist(item.playlistId)
+      const nominatedBy = await lookupContributor(item.nominatedById)
       return {
         id: formatId('nom', item.id),
         playlistId: formatId('play', item.playlistId),
@@ -445,10 +452,14 @@ export async function getRankings(tenantId: number): Promise<RankingResponse[]> 
     .filter((item) => !item.deletedAt)
     .sort((a, b) => (a.playlistId < b.playlistId ? -1 : a.playlistId > b.playlistId ? 1 : a.rankPosition - b.rankPosition))
 
+  // Every ranking row for a playlist shares that playlist, and contributors recur across
+  // playlists — this is the tenant-wide unbounded list, so the memo matters most here.
+  const lookupPlaylist = memoize((id: bigint) => findPlaylistById(tenantId, id))
+  const lookupContributor = memoize((id: bigint) => findContributorById(tenantId, id))
   return Promise.all(
     rankings.map(async (item) => {
-      const playlist = await findPlaylistById(tenantId, item.playlistId)
-      const contributor = await findContributorById(tenantId, item.contributorId)
+      const playlist = await lookupPlaylist(item.playlistId)
+      const contributor = await lookupContributor(item.contributorId)
       return {
         playlistId: formatId('play', item.playlistId),
         playlistName: playlist?.name,
@@ -522,9 +533,10 @@ export async function submitRatings(
 export async function getSongRatings(tenantId: number, playlistId: string): Promise<SongRatingResponse[]> {
   const playlistDbId = parseId(playlistId)
   const items = (await findSongRatingsByPlaylistId(playlistDbId)).filter((item) => !item.deletedAt)
+  const lookupContributor = memoize((id: bigint) => findContributorById(tenantId, id))
   return Promise.all(
     items.map(async (item) => {
-      const contributor = await findContributorById(tenantId, item.contributorId)
+      const contributor = await lookupContributor(item.contributorId)
       return {
         nominationId: formatId('nom', item.nominationId),
         contributorId: formatId('cont', item.contributorId),

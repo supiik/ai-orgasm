@@ -94,11 +94,32 @@ export interface PageRequest {
   size: number
 }
 
-/** Builds a page request from page/size query params, or undefined ("unpaged") if size is absent. */
+/**
+ * Upper bound on `size`, so one request can't ask for an arbitrarily large response body.
+ * Note this does NOT bound the read cost: the repositories page through a whole partition before
+ * slicing in memory, so `size` only caps what is serialized back. See CLAUDE.md "Known gaps".
+ */
+export const MAX_PAGE_SIZE = 100
+
+/**
+ * Builds a page request from page/size query params, or undefined ("unpaged") if size is absent.
+ * Rejects non-numeric/negative input rather than letting `Number()` yield NaN and silently
+ * produce an empty page.
+ */
 export function pageable(event: APIGatewayProxyEventV2): PageRequest | undefined {
-  const size = queryParam(event, 'size')
-  if (!size) return undefined
-  return { page: Number(queryParam(event, 'page') ?? '0'), size: Number(size) }
+  const sizeParam = queryParam(event, 'size')
+  if (!sizeParam) return undefined
+
+  const size = Number(sizeParam)
+  if (!Number.isInteger(size) || size < 1) {
+    throw new ValidationError(['size: must be a positive integer'])
+  }
+  const page = Number(queryParam(event, 'page') ?? '0')
+  if (!Number.isInteger(page) || page < 0) {
+    throw new ValidationError(['page: must be a non-negative integer'])
+  }
+
+  return { page, size: Math.min(size, MAX_PAGE_SIZE) }
 }
 
 /** Shapes a paged result to match the OpenAPI spec's Page schemas (content/totalElements/totalPages/number/size). */

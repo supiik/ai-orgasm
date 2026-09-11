@@ -322,7 +322,7 @@ to the right handler; DynamoDB calls will fail without a real/local table behind
 amazon/dynamodb-local:2.5.4` instance and pre-create the tables to exercise that path too).
 
 For the **deployed** TypeScript API, `npx ampx sandbox` (run from `ui/`) deploys a real, isolated,
-per-developer AWS stack (all 9 tables, the Cognito User Pool, all 34 functions) — no image to
+per-developer AWS stack (all 9 tables, the Cognito User Pool, all 33 functions) — no image to
 build/push first, since every function bundles straight from its own `handler.ts`. See
 "TypeScript Lambda API via Amplify Gen 2" for how to run its tests against DynamoDB Local instead.
 
@@ -408,7 +408,7 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 
 ### TypeScript Lambda API via Amplify Gen 2
 
-`ui/amplify/` is the actual deployed Lambda API: 34 AWS Lambda functions written in TypeScript,
+`ui/amplify/` is the actual deployed Lambda API: 33 AWS Lambda functions written in TypeScript,
 using Amplify Gen 2's native `defineFunction` — one `resource.ts` + `handler.ts` per function, no
 CDK escape hatch, no container image, no Docker anywhere in the pipeline. It supersedes an earlier
 design (and, before that, AWS SAM) that packaged the **Java** `lambda`/`backend-dynamo` modules
@@ -480,18 +480,37 @@ frontend root is `ui/`.
   - **No `DynamoTenantContext`-equivalent.** Handlers pass `tenantId: number` as an explicit
     parameter through every service/repository call instead of an implicit thread-local — more
     idiomatic for Node than replicating Java's `ThreadLocal` pattern.
-- **`backend.ts`** — imports all 34 `*Fn` resources, passes them into `defineBackend({ auth,
+- **`backend.ts`** — imports all 33 `*Fn` resources, passes them into `defineBackend({ auth,
   helloFn, createPlaylistFn, ... })`, builds the 9 DynamoDB tables (`tables.ts`'s `createTables` —
   unchanged from the earlier design: raw CDK `dynamodb.Table` L2 constructs, **not** Gen 2's
   `defineData`/AppSync GraphQL model; this schema is hand-rolled pk/sk + GSIs, unrelated to
   GraphQL and predates it), then loops `functions.ts`'s `fnSpecs` array to grant each function's
-  underlying Lambda (`backend.<name>Fn.resources.lambda`) read/write on exactly the tables it
-  touches, add its Function URL (`AuthType.NONE`), and inject the table names + Cognito User
-  Pool/Client ids as environment variables (via a CDK-concrete-`Function` cast, since
-  `FunctionResources.lambda`'s `IFunction` type doesn't expose `addEnvironment`).
-- **`functions.ts`**'s `fnSpecs` array (name/tables/methods/corsHeaders) lost its Java-specific
-  `handlerClass` field in the rewrite — every function now has its own `resource.ts`/`handler.ts`
-  instead of sharing one image + `CMD` override.
+  underlying Lambda (`backend.<name>Fn.resources.lambda`) **read** on every table in its `tables`
+  list and read+write only on the subset in `writes` (least privilege — `list-*`/`get-*` functions
+  hold no write grant at all), add its Function URL (`AuthType.NONE`), and inject the table names
+  + Cognito User Pool/Client ids as environment variables (via a CDK-concrete-`Function` cast,
+  since `FunctionResources.lambda`'s `IFunction` type doesn't expose `addEnvironment`).
+  Functions flagged `publiclyReachable` (the two no-token endpoints, `hello` and
+  `list-organizations`) additionally get a reserved-concurrency cap, set on the underlying
+  `CfnFunction` — the one thing bounding how much Lambda an unauthenticated flood can burn, since
+  Function URLs can't sit behind WAF or an API Gateway throttle. Three deploy-time env vars tune
+  this, all read in `backend.ts` and all safe to leave unset: `PUBLIC_FN_RESERVED_CONCURRENCY`
+  (default `5`; `0` disables — AWS needs 100 unreserved in the account, so a low account limit
+  fails the deploy), `ALLOWED_ORIGINS` (comma-separated CORS origins; default `*` because the
+  Amplify Hosting origin is branch-dependent — pin it for production in the Console build env),
+  and `ID_GENERATOR_SECRET` (16 hex chars keying `lib/idGenerator.ts`'s id scrambling; default
+  all-zero, which makes the external id a plain reversible transform of the DB id).
+- **`functions.ts`**'s `fnSpecs` array (name/tables/writes/methods/corsHeaders/publiclyReachable)
+  lost its Java-specific `handlerClass` field in the rewrite — every function now has its own
+  `resource.ts`/`handler.ts` instead of sharing one image + `CMD` override. Note `tables` must
+  include `contributors` for every `authenticated-with-contributor` function even when its body
+  never reads it — `withAuth`'s `findContributorByCognitoSub` does.
+- **`register-contributor` is not deployed.** The Java `POST /api/v1/register` port exists as
+  `lib/services/registration.ts`'s `register()` (kept, with tests, for parity) but has no
+  `functions/` entry since the 2026-09-11 security review: it was an unauthenticated, unlimited
+  DynamoDB write that nothing in the UI called — Cognito sign-up goes through `link-contributor`,
+  which has a verified identity and the `allowedDomain` gate. So the deployed count is **33**
+  functions, not the 34 the Java reference implementation has.
 - **`amplify.yml`'s `backend` phase is now just** `npm install && npx ampx pipeline-deploy
   --branch $AWS_BRANCH --app-id $AWS_APP_ID` — no Maven, no Docker, no ECR, no custom Amplify
   Console Build image required. This is the actual fix for the Docker build failure that started
@@ -516,18 +535,22 @@ frontend root is `ui/`.
   behind `RUN_DYNAMO_IT=true` (skipped by default — this repo has no Testcontainers-for-Node
   equivalent wired up, so the container isn't started automatically); see the test file's own
   header comment for the `docker run` + table-creation steps it expects before running it.
-- **Known gaps (from the 2026-09-11 security review), not yet addressed.** Recorded so they aren't
-  rediscovered as new: every Function URL is `AuthType.NONE` + `allowedOrigins: ['*']` with no WAF,
-  no per-function reserved concurrency, and no billing alarm — so an unauthenticated flood bills
-  Lambda time before the JWT check and can exhaust account-wide concurrency. `register-contributor`
-  is a public, unrate-limited **write**. The public `hello` endpoint calls `listPlaylists`, and
-  `queryAllPages` reads a whole partition before slicing in memory, so every `list-*` costs O(tenant
-  size) reads regardless of `size` (and `toPlaylistResponse` adds an N+1 `GetItem` per row).
-  `backend.ts` grants `grantReadWriteData` even to read-only functions. `ID_GENERATOR_SECRET` is
-  read by `lib/idGenerator.ts` but never set in `sharedEnv`, so id obfuscation runs with the
-  all-zero default key. `parseId` throws on a malformed id, surfacing as 500 rather than 400/404.
-  The same body-supplied-actor flaw fixed here is still present in `backend`'s `OrgasmController`
-  (mitigated only by Keycloak + the nginx proxy) and in the frozen Java reference modules.
+- **Read-path cost model, and the memo helper.** `queryAllPages` (`repositories/base.ts`) reads a
+  whole partition/GSI before the service slices it in memory, so `size` bounds only the response
+  body (capped at `MAX_PAGE_SIZE = 100` in `lib/http.ts`), not the read cost — every `list-*`
+  is O(tenant size) RCUs. Real DynamoDB cursor paging would fix that but can't produce the
+  `totalElements`/`totalPages` the OpenAPI page contract promises, so it's a deliberate trade-off
+  at this scale, not an oversight. What *was* fixed: the per-row "lookup-at-read" hydration
+  (`leadContributorName`, ranking names, etc.) was N+1 `GetItem`s; `lib/memo.ts`'s `memoize`
+  collapses that to one per distinct id within a request. Use `toPlaylistResponses` (batch) rather
+  than mapping `toPlaylistResponse` over a list, and wrap any new per-row lookup in `memoize` —
+  keep it request-scoped, never module-level (Lambda reuses execution environments; a
+  module-level cache would serve stale rows across invocations).
+- **Known gaps (from the 2026-09-11 security review), still open.** No billing alarm/budget is
+  defined in the stack — reserved concurrency bounds the burn rate but nothing alerts on spend.
+  The body-supplied-actor flaw fixed in the TS API is still present in `backend`'s
+  `OrgasmController` (mitigated only by Keycloak + the nginx proxy) and, by design, in the frozen
+  Java reference modules.
 
 ### API versioning
 

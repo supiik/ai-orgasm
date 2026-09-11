@@ -1,10 +1,6 @@
 import { withAuth } from '../../lib/http'
-import { listPlaylists } from '../../lib/services/playlist'
 
-// Public health check — DynamoTenantContext.get() defaults to tenant 1 in the Java source when
-// unset (no auth to derive it from here either); mirrored explicitly since 'public' mode never
-// resolves a tenant.
-export const handler = withAuth('public', 200, async () => {
-  const { totalElements } = await listPlaylists(1, {}, { page: 0, size: 10 })
-  return { message: 'Hello from Lambda!', totalPlaylists: totalElements }
-})
+// Public health check. Deliberately touches no table and holds no IAM grant: it previously
+// reported a playlist count, which meant every unauthenticated request read the whole tenant-1
+// partition (queryAllPages) plus an N+1 lookup per row, and leaked that count to anyone.
+export const handler = withAuth('public', 200, async () => ({ message: 'Hello from Lambda!' }))
