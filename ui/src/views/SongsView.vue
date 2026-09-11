@@ -91,7 +91,11 @@ async function submitForm() {
   saving.value = true
   formError.value = null
   try {
-    const releaseYear = form.value.releaseYear.trim() ? Number(form.value.releaseYear) : undefined
+    // Vue's v-model on <input type="number"> casts the bound value to a JS number once
+    // non-empty, despite form.releaseYear being typed as string — so it can't be assumed to
+    // have .trim(). String(...) normalizes both cases before the emptiness check.
+    const releaseYearRaw = String(form.value.releaseYear).trim()
+    const releaseYear = releaseYearRaw ? Number(releaseYearRaw) : undefined
     const payload = {
       artist: form.value.artist.trim(),
       name: form.value.name.trim(),
