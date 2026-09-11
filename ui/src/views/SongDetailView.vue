@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type SongResponse } from '@orgasm/backend-client'
 import { api, type SongNomination } from '@/api'
+import { parseReleaseYear } from '@/lib/releaseYear'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -71,11 +72,7 @@ async function submitEdit() {
   saving.value = true
   formError.value = null
   try {
-    // Vue's v-model on <input type="number"> casts the bound value to a JS number once
-    // non-empty, despite form.releaseYear being typed as string — so it can't be assumed to
-    // have .trim(). String(...) normalizes both cases before the emptiness check.
-    const releaseYearRaw = String(form.value.releaseYear).trim()
-    const releaseYear = releaseYearRaw ? Number(releaseYearRaw) : undefined
+    const releaseYear = parseReleaseYear(form.value.releaseYear)
     const { data } = await api.songs().update(id, {
       artist: form.value.artist.trim(),
       name: form.value.name.trim(),

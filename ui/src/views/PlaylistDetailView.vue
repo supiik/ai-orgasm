@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api, type GuessEntry, type SongRatingEntry } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { canOpenPlaylist, canStartGuessing, canPublish } from '@/lib/playlistPermissions'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -478,15 +479,15 @@ function statusClass(s: NominationStatus | undefined) {
         <span v-else>{{ playlist?.name }}</span>
       </h1>
       <div class="ml-auto flex gap-2">
-        <Button v-if="playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
+        <Button v-if="canOpenPlaylist(playlist?.status)" variant="outline" size="sm" @click="showOpen">
           <Play class="h-4 w-4" />
           Open for nominations
         </Button>
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.Open && (deadlinePassed || allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
+        <Button v-if="canStartGuessing(playlist?.status, isLead, deadlinePassed, allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
           <Headphones class="h-4 w-4" />
           Start guessing
         </Button>
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" :disabled="publishing" @click="publish">
+        <Button v-if="canPublish(playlist?.status, isLead)" variant="outline" size="sm" :disabled="publishing" @click="publish">
           <BookOpen class="h-4 w-4" />
           {{ publishing ? 'Publishing…' : 'Publish' }}
         </Button>

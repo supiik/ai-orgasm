@@ -36,7 +36,8 @@ async function doFetch(input: string, init: RequestInit | undefined): Promise<Re
   })
 }
 
-async function authorizedFetch(input: string, init?: RequestInit): Promise<Response> {
+/** Exported for testing — see api-lambda.test.ts for the 401-retry regression coverage. */
+export async function authorizedFetch(input: string, init?: RequestInit): Promise<Response> {
   let res = await doFetch(input, init)
   if (res.status === 401) {
     const { useAuthStore } = await import('@/stores/auth')
