@@ -4,6 +4,6 @@ import { openPlaylist, type OpenPlaylistRequest } from '../../lib/services/orgas
 export const handler = withAuth('authenticated-with-contributor', 200, async (event, ctx) => {
   const playlistId = pathSegment(event, 1)
   const request = await parseBody<OpenPlaylistRequest>(event)
-  requireFields({ contributorId: request.contributorId, deadline: request.deadline })
-  return openPlaylist(ctx.tenantId!, playlistId, request)
+  requireFields({ deadline: request.deadline })
+  return openPlaylist(ctx.tenantId!, playlistId, ctx.contributorId!, request)
 })

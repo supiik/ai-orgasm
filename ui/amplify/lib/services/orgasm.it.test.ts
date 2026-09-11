@@ -1,4 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest'
+// Safe as a static import — idGenerator.ts has no dependency on dynamodb.ts, so it does not
+// trip the module-load-order constraint the dynamic imports below exist for.
+import { parseId } from '../idGenerator'
 
 /**
  * Exercises the full Orgasm workflow end-to-end against real DynamoDB Local, across all 8
@@ -56,31 +59,29 @@ describeIt('Orgasm full workflow (DynamoDB Local)', () => {
 
     const playlist = await createPlaylist(TENANT_ID, { name: 'Test Mix', ratingType: 'BEST_SONG' })
 
-    const opened = await orgasm.openPlaylist(TENANT_ID, playlist.id, {
-      contributorId: lead.id,
+    const opened = await orgasm.openPlaylist(TENANT_ID, playlist.id, parseId(lead.id), {
       deadline: new Date(Date.now() + 3_600_000).toISOString(),
     })
     expect(opened.status).toBe('OPEN')
     expect(opened.leadContributorId).toBe(lead.id)
     expect(opened.leadContributorName).toBe('Lead')
 
-    const nomination1 = await orgasm.nominateSong(TENANT_ID, playlist.id, { contributorId: guesser1.id, songId: song1.id })
-    const nomination2 = await orgasm.nominateSong(TENANT_ID, playlist.id, { contributorId: guesser2.id, songId: song2.id })
+    const nomination1 = await orgasm.nominateSong(TENANT_ID, playlist.id, parseId(guesser1.id), { songId: song1.id })
+    const nomination2 = await orgasm.nominateSong(TENANT_ID, playlist.id, parseId(guesser2.id), { songId: song2.id })
     expect(nomination1.status).toBe('PENDING')
 
     expect((await orgasm.findNominations(TENANT_ID, playlist.id, undefined)).content).toHaveLength(2)
     expect(await orgasm.findNominationsBySong(TENANT_ID, song1.id)).toHaveLength(1)
 
-    await orgasm.approveNomination(TENANT_ID, nomination1.id, { reviewerId: lead.id })
-    await orgasm.approveNomination(TENANT_ID, nomination2.id, { reviewerId: lead.id })
+    await orgasm.approveNomination(TENANT_ID, nomination1.id, parseId(lead.id))
+    await orgasm.approveNomination(TENANT_ID, nomination2.id, parseId(lead.id))
 
-    const guessingStarted = await orgasm.startGuessing(TENANT_ID, playlist.id, { contributorId: lead.id })
+    const guessingStarted = await orgasm.startGuessing(TENANT_ID, playlist.id, parseId(lead.id))
     expect(guessingStarted.status).toBe('GUESSING')
     expect(guessingStarted.guessingDeadline).toBeDefined()
 
     // guesser1 gets both right
-    await orgasm.submitGuesses(TENANT_ID, playlist.id, {
-      contributorId: guesser1.id,
+    await orgasm.submitGuesses(TENANT_ID, playlist.id, parseId(guesser1.id), {
       guesses: [
         { nominationId: nomination1.id, guessedContributorId: guesser1.id },
         { nominationId: nomination2.id, guessedContributorId: guesser2.id },
@@ -88,8 +89,7 @@ describeIt('Orgasm full workflow (DynamoDB Local)', () => {
     })
 
     // guesser2 gets both wrong
-    await orgasm.submitGuesses(TENANT_ID, playlist.id, {
-      contributorId: guesser2.id,
+    await orgasm.submitGuesses(TENANT_ID, playlist.id, parseId(guesser2.id), {
       guesses: [
         { nominationId: nomination1.id, guessedContributorId: guesser2.id },
         { nominationId: nomination2.id, guessedContributorId: guesser1.id },
@@ -98,7 +98,7 @@ describeIt('Orgasm full workflow (DynamoDB Local)', () => {
 
     expect(await orgasm.getGuesses(playlist.id)).toHaveLength(4)
 
-    const published = await orgasm.publishPlaylist(TENANT_ID, playlist.id, { contributorId: lead.id })
+    const published = await orgasm.publishPlaylist(TENANT_ID, playlist.id, parseId(lead.id))
     expect(published.status).toBe('PUBLISHED')
 
     const rankings = await orgasm.getRankings(TENANT_ID)
@@ -110,8 +110,7 @@ describeIt('Orgasm full workflow (DynamoDB Local)', () => {
     expect(byContributor.get(guesser2.id)?.rankPosition).toBe(2)
 
     // guesser1 rates guesser2's nomination (not their own) with the single BEST_SONG point
-    await orgasm.submitRatings(TENANT_ID, playlist.id, {
-      contributorId: guesser1.id,
+    await orgasm.submitRatings(TENANT_ID, playlist.id, parseId(guesser1.id), {
       ratings: [{ nominationId: nomination2.id, points: 1 }],
     })
 

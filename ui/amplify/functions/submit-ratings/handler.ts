@@ -4,7 +4,7 @@ import { submitRatings, type SubmitRatingsRequest } from '../../lib/services/org
 export const handler = withAuth('authenticated-with-contributor', 204, async (event, ctx) => {
   const playlistId = pathSegment(event, 1)
   const request = await parseBody<SubmitRatingsRequest>(event)
-  requireFields({ contributorId: request.contributorId })
-  await submitRatings(ctx.tenantId!, playlistId, request)
+  requireFields({ ratings: request.ratings })
+  await submitRatings(ctx.tenantId!, playlistId, ctx.contributorId!, request)
   return null
 })

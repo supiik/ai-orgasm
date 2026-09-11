@@ -456,6 +456,18 @@ frontend root is `ui/`.
     `ConflictError`→409) to status codes, the same table `BaseHandler`'s catch chain used. Also
     has `pathSegment`/`queryParam`/`pageable`/`pageBody`, ported 1:1 — Function URLs still have no
     route templating (unchanged from the Java design, see below).
+  - **The acting contributor always comes from `ctx.contributorId`, never from the request body —
+    a deliberate deviation from the Java source.** `OrgasmService.java` and its DTOs take the
+    actor as a `contributorId`/`reviewerId` field on the request record; every TS workflow service
+    takes it as an explicit `actorId: bigint` parameter that only `withAuth` can supply. The Java
+    shape is a broken-access-control bug: the "only the lead contributor can review/start
+    guessing/publish" checks compared the playlist's lead against that same caller-supplied value,
+    so a caller could read `leadContributorId` off `GET /playlists/{id}` and send it back to pass
+    them, as well as nominate/guess/rate as any other contributor (both `submitGuesses` and
+    `submitRatings` delete the target's existing rows before re-creating them). When porting
+    anything else from the Java reference implementation, drop the actor field the same way —
+    do not restore it for parity. The frozen Java modules still carry the flaw by design, and so
+    does `backend`'s `OrgasmController` (see "Known gaps" below).
   - `lib/repositories/*.ts` — one per entity, mirrors each `XDynamoRepository.java` exactly: same
     pk/sk scheme (`partitionKey(tenantId, ENTITY_TYPE)`), same GSI query patterns, and the same
     load-full-item-then-`PutCommand`-with-`ConditionExpression` optimistic-locking pattern
@@ -504,6 +516,18 @@ frontend root is `ui/`.
   behind `RUN_DYNAMO_IT=true` (skipped by default — this repo has no Testcontainers-for-Node
   equivalent wired up, so the container isn't started automatically); see the test file's own
   header comment for the `docker run` + table-creation steps it expects before running it.
+- **Known gaps (from the 2026-09-11 security review), not yet addressed.** Recorded so they aren't
+  rediscovered as new: every Function URL is `AuthType.NONE` + `allowedOrigins: ['*']` with no WAF,
+  no per-function reserved concurrency, and no billing alarm — so an unauthenticated flood bills
+  Lambda time before the JWT check and can exhaust account-wide concurrency. `register-contributor`
+  is a public, unrate-limited **write**. The public `hello` endpoint calls `listPlaylists`, and
+  `queryAllPages` reads a whole partition before slicing in memory, so every `list-*` costs O(tenant
+  size) reads regardless of `size` (and `toPlaylistResponse` adds an N+1 `GetItem` per row).
+  `backend.ts` grants `grantReadWriteData` even to read-only functions. `ID_GENERATOR_SECRET` is
+  read by `lib/idGenerator.ts` but never set in `sharedEnv`, so id obfuscation runs with the
+  all-zero default key. `parseId` throws on a malformed id, surfacing as 500 rather than 400/404.
+  The same body-supplied-actor flaw fixed here is still present in `backend`'s `OrgasmController`
+  (mitigated only by Keycloak + the nginx proxy) and in the frozen Java reference modules.
 
 ### API versioning
 

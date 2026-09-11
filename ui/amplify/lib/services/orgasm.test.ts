@@ -67,6 +67,7 @@ import {
   startGuessing,
   submitGuesses,
   submitRatings,
+  type OpenPlaylistRequest,
 } from './orgasm'
 
 const TENANT_ID = 1
@@ -169,7 +170,7 @@ describe('openPlaylist', () => {
     vi.mocked(playlistRepo.savePlaylist).mockImplementation(async (item) => item)
 
     const deadline = new Date(Date.now() + 60_000).toISOString()
-    const result = await openPlaylist(TENANT_ID, playIdStr(1), { contributorId: contId(2), deadline })
+    const result = await openPlaylist(TENANT_ID, playIdStr(1), 2n, { deadline })
 
     expect(result.status).toBe('OPEN')
     const saved = vi.mocked(playlistRepo.savePlaylist).mock.calls[0][0]
@@ -182,17 +183,22 @@ describe('openPlaylist', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'OPEN'))
 
     await expect(
-      openPlaylist(TENANT_ID, playIdStr(1), { contributorId: contId(2), deadline: new Date().toISOString() }),
+      openPlaylist(TENANT_ID, playIdStr(1), 2n, { deadline: new Date().toISOString() }),
     ).rejects.toThrow(/NEW/)
   })
 
-  it('throws when contributor missing', async () => {
+  // Regression guard: the lead comes from the authenticated actor only. This previously read
+  // `contributorId` off the request body, which let any caller install anyone as lead — and made
+  // the lead-contributor checks on review/start-guessing/publish self-authorizing.
+  it('ignores a contributorId smuggled into the request body', async () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'NEW'))
-    vi.mocked(contributorRepo.findContributorById).mockResolvedValue(undefined)
+    vi.mocked(contributorRepo.findContributorById).mockResolvedValue(contributor(2))
+    vi.mocked(playlistRepo.savePlaylist).mockImplementation(async (item) => item)
 
-    await expect(
-      openPlaylist(TENANT_ID, playIdStr(1), { contributorId: contId(2), deadline: new Date().toISOString() }),
-    ).rejects.toThrow(/Contributor not found/)
+    const body = { deadline: new Date(Date.now() + 60_000).toISOString(), contributorId: contId(99) }
+    await openPlaylist(TENANT_ID, playIdStr(1), 2n, body as OpenPlaylistRequest)
+
+    expect(vi.mocked(playlistRepo.savePlaylist).mock.calls[0][0].leadContributorId).toBe(2n)
   })
 })
 
@@ -204,7 +210,7 @@ describe('nominateSong', () => {
     vi.mocked(nominationRepo.existsNominationForPlaylistAndSong).mockResolvedValue(false)
     vi.mocked(nominationRepo.saveNomination).mockImplementation(async (item) => item)
 
-    const response = await nominateSong(TENANT_ID, playIdStr(1), { contributorId: contId(2), songId: songIdStr(3) })
+    const response = await nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) })
 
     expect(response.status).toBe('PENDING')
     expect(response.playlistId).toBe(playIdStr(1))
@@ -214,7 +220,7 @@ describe('nominateSong', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'NEW'))
 
     await expect(
-      nominateSong(TENANT_ID, playIdStr(1), { contributorId: contId(2), songId: songIdStr(3) }),
+      nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) }),
     ).rejects.toThrow(/OPEN/)
   })
 
@@ -224,7 +230,7 @@ describe('nominateSong', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(p)
 
     await expect(
-      nominateSong(TENANT_ID, playIdStr(1), { contributorId: contId(2), songId: songIdStr(3) }),
+      nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) }),
     ).rejects.toThrow(/deadline/)
   })
 
@@ -235,7 +241,7 @@ describe('nominateSong', () => {
     vi.mocked(nominationRepo.existsNominationForPlaylistAndSong).mockResolvedValue(true)
 
     await expect(
-      nominateSong(TENANT_ID, playIdStr(1), { contributorId: contId(2), songId: songIdStr(3) }),
+      nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) }),
     ).rejects.toThrow(/already been nominated/)
   })
 })
@@ -249,7 +255,7 @@ describe('approve/declineNomination', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(p)
     vi.mocked(nominationRepo.saveNomination).mockImplementation(async (item) => item)
 
-    const response = await approveNomination(TENANT_ID, nomIdStr(10), { reviewerId: contId(2) })
+    const response = await approveNomination(TENANT_ID, nomIdStr(10), 2n)
 
     expect(response.status).toBe('APPROVED')
   })
@@ -257,7 +263,7 @@ describe('approve/declineNomination', () => {
   it('throws declining when not pending', async () => {
     vi.mocked(nominationRepo.findNominationById).mockResolvedValue(nomination(10, 1, 3, 2, 'APPROVED'))
 
-    await expect(declineNomination(TENANT_ID, nomIdStr(10), { reviewerId: contId(2) })).rejects.toThrow(/pending/)
+    await expect(declineNomination(TENANT_ID, nomIdStr(10), 2n)).rejects.toThrow(/pending/)
   })
 
   it('throws when reviewer is not lead', async () => {
@@ -267,7 +273,7 @@ describe('approve/declineNomination', () => {
     vi.mocked(nominationRepo.findNominationById).mockResolvedValue(nom)
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(p)
 
-    await expect(approveNomination(TENANT_ID, nomIdStr(10), { reviewerId: contId(2) })).rejects.toThrow(/lead contributor/)
+    await expect(approveNomination(TENANT_ID, nomIdStr(10), 2n)).rejects.toThrow(/lead contributor/)
   })
 })
 
@@ -280,7 +286,7 @@ describe('startGuessing', () => {
     vi.mocked(nominationRepo.declinePendingNominations).mockResolvedValue(0)
     vi.mocked(playlistRepo.savePlaylist).mockImplementation(async (item) => item)
 
-    await startGuessing(TENANT_ID, playIdStr(1), { contributorId: contId(2) })
+    await startGuessing(TENANT_ID, playIdStr(1), 2n)
 
     const saved = vi.mocked(playlistRepo.savePlaylist).mock.calls[0][0]
     expect(saved.status).toBe('GUESSING')
@@ -294,7 +300,7 @@ describe('startGuessing', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(p)
     vi.mocked(nominationRepo.findNominationsByPlaylistId).mockResolvedValue([nomination(10, 1, 3, 2, 'PENDING')])
 
-    await expect(startGuessing(TENANT_ID, playIdStr(1), { contributorId: contId(2) })).rejects.toThrow()
+    await expect(startGuessing(TENANT_ID, playIdStr(1), 2n)).rejects.toThrow()
   })
 
   it('throws when not lead contributor', async () => {
@@ -302,7 +308,7 @@ describe('startGuessing', () => {
     p.leadContributorId = 99n
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(p)
 
-    await expect(startGuessing(TENANT_ID, playIdStr(1), { contributorId: contId(2) })).rejects.toThrow(/lead contributor/)
+    await expect(startGuessing(TENANT_ID, playIdStr(1), 2n)).rejects.toThrow(/lead contributor/)
   })
 })
 
@@ -313,8 +319,7 @@ describe('submitGuesses', () => {
     vi.mocked(nominationRepo.findNominationById).mockResolvedValue(nomination(10, 1, 3, 5, 'APPROVED'))
     vi.mocked(guessSubmissionRepo.existsGuessSubmission).mockResolvedValue(false)
 
-    await submitGuesses(TENANT_ID, playIdStr(1), {
-      contributorId: contId(2),
+    await submitGuesses(TENANT_ID, playIdStr(1), 2n, {
       guesses: [{ nominationId: nomIdStr(10), guessedContributorId: contId(5) }],
     })
 
@@ -326,7 +331,7 @@ describe('submitGuesses', () => {
   it('throws when not GUESSING', async () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'OPEN'))
 
-    await expect(submitGuesses(TENANT_ID, playIdStr(1), { contributorId: contId(2), guesses: [] })).rejects.toThrow(/GUESSING/)
+    await expect(submitGuesses(TENANT_ID, playIdStr(1), 2n, { guesses: [] })).rejects.toThrow(/GUESSING/)
   })
 })
 
@@ -348,7 +353,7 @@ describe('publishPlaylist / ranking computation', () => {
     vi.mocked(guessRepo.findGuessesByPlaylistId).mockResolvedValue([g1, g2, g3, g4])
     vi.mocked(playlistRankingRepo.saveRanking).mockImplementation(async (item) => item)
 
-    await publishPlaylist(TENANT_ID, playIdStr(1), { contributorId: contId(2) })
+    await publishPlaylist(TENANT_ID, playIdStr(1), 2n)
 
     expect(playlistRankingRepo.saveRanking).toHaveBeenCalledTimes(2)
     const saves = vi.mocked(playlistRankingRepo.saveRanking).mock.calls.map((c) => c[0])
@@ -364,7 +369,7 @@ describe('publishPlaylist / ranking computation', () => {
   it('throws when not GUESSING', async () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'OPEN'))
 
-    await expect(publishPlaylist(TENANT_ID, playIdStr(1), { contributorId: contId(2) })).rejects.toThrow(/GUESSING/)
+    await expect(publishPlaylist(TENANT_ID, playIdStr(1), 2n)).rejects.toThrow(/GUESSING/)
   })
 })
 
@@ -378,8 +383,7 @@ describe('submitRatings', () => {
       nomination(Number(id), 1, 3, 999, 'APPROVED'),
     )
 
-    await submitRatings(TENANT_ID, playIdStr(1), {
-      contributorId: contId(2),
+    await submitRatings(TENANT_ID, playIdStr(1), 2n, {
       ratings: [
         { nominationId: nomIdStr(10), points: 1 },
         { nominationId: nomIdStr(11), points: 2 },
@@ -398,8 +402,7 @@ describe('submitRatings', () => {
     vi.mocked(contributorRepo.findContributorById).mockResolvedValue(contributor(2))
 
     await expect(
-      submitRatings(TENANT_ID, playIdStr(1), {
-        contributorId: contId(2),
+      submitRatings(TENANT_ID, playIdStr(1), 2n, {
         ratings: [
           { nominationId: nomIdStr(10), points: 1 },
           { nominationId: nomIdStr(11), points: 1 },
@@ -418,8 +421,7 @@ describe('submitRatings', () => {
     vi.mocked(nominationRepo.findNominationById).mockResolvedValue(nomination(10, 1, 3, 2, 'APPROVED'))
 
     await expect(
-      submitRatings(TENANT_ID, playIdStr(1), {
-        contributorId: contId(2),
+      submitRatings(TENANT_ID, playIdStr(1), 2n, {
         ratings: [{ nominationId: nomIdStr(10), points: 1 }],
       }),
     ).rejects.toThrow(/own nomination/)
@@ -429,7 +431,7 @@ describe('submitRatings', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'GUESSING'))
 
     await expect(
-      submitRatings(TENANT_ID, playIdStr(1), { contributorId: contId(2), ratings: [{ nominationId: nomIdStr(10), points: 1 }] }),
+      submitRatings(TENANT_ID, playIdStr(1), 2n, { ratings: [{ nominationId: nomIdStr(10), points: 1 }] }),
     ).rejects.toThrow(/PUBLISHED/)
   })
 })

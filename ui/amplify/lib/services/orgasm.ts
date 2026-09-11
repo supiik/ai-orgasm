@@ -29,18 +29,18 @@ import { requirePlaylistItem as requirePlaylistItemById, toPlaylistResponse as b
 // DTOs — ported verbatim from backend-dynamo's com.orgasm.dynamo.orgasm.* records
 // ---------------------------------------------------------------------------
 
+/**
+ * The acting contributor is NEVER taken from the request body — every workflow method receives it
+ * as `actorId`, resolved by `withAuth` from the caller's verified Cognito token. Trusting a
+ * body-supplied id made the "only the lead contributor can ..." checks below self-authorizing:
+ * a caller could read `leadContributorId` off the playlist and send it back to pass them.
+ */
 export interface OpenPlaylistRequest {
-  contributorId: string
   deadline: string
 }
 
 export interface NominateSongRequest {
-  contributorId: string
   songId: string
-}
-
-export interface ReviewNominationRequest {
-  reviewerId: string
 }
 
 export interface NominationResponse {
@@ -63,17 +63,12 @@ export interface SongNominationResponse {
   status: NominationStatus
 }
 
-export interface StartGuessingRequest {
-  contributorId: string
-}
-
 export interface GuessSelection {
   nominationId: string
   guessedContributorId: string
 }
 
 export interface SubmitGuessesRequest {
-  contributorId: string
   guesses?: GuessSelection[]
 }
 
@@ -81,10 +76,6 @@ export interface GuessResponse {
   nominationId: string
   guesserId: string
   guessedContributorId: string
-}
-
-export interface PublishPlaylistRequest {
-  contributorId: string
 }
 
 export interface RankingResponse {
@@ -104,7 +95,6 @@ export interface RatingEntry {
 }
 
 export interface SubmitRatingsRequest {
-  contributorId: string
   ratings: RatingEntry[]
 }
 
@@ -125,11 +115,6 @@ async function requirePlaylist(tenantId: number, playlistId: string): Promise<Pl
 
 async function requirePlaylistByDbId(tenantId: number, playlistDbId: bigint): Promise<PlaylistItem> {
   return requirePlaylistItemById(tenantId, formatId('play', playlistDbId))
-}
-
-async function requireContributor(tenantId: number, contributorId: bigint): Promise<void> {
-  const item = await findContributorById(tenantId, contributorId)
-  if (!item || item.deletedAt) throw new NotFoundError(`Contributor not found: ${contributorId}`)
 }
 
 async function requireSong(tenantId: number, songId: bigint): Promise<void> {
@@ -164,15 +149,17 @@ function toNominationResponse(item: NominationItem): NominationResponse {
 // Public workflow methods — one per OrgasmController endpoint
 // ---------------------------------------------------------------------------
 
-export async function openPlaylist(tenantId: number, playlistId: string, request: OpenPlaylistRequest): Promise<PlaylistResponse> {
+export async function openPlaylist(
+  tenantId: number,
+  playlistId: string,
+  actorId: bigint,
+  request: OpenPlaylistRequest,
+): Promise<PlaylistResponse> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'NEW') throw new ConflictError('Playlist must be NEW to open')
 
-  const contributorId = parseId(request.contributorId)
-  await requireContributor(tenantId, contributorId)
-
   playlist.deadline = request.deadline
-  playlist.leadContributorId = contributorId
+  playlist.leadContributorId = actorId
   playlist.status = 'OPEN'
   playlist.updatedAt = new Date().toISOString()
 
@@ -194,7 +181,12 @@ export async function findPlaylistsByContributor(
   return { content, totalElements: all.length }
 }
 
-export async function nominateSong(tenantId: number, playlistId: string, request: NominateSongRequest): Promise<NominationResponse> {
+export async function nominateSong(
+  tenantId: number,
+  playlistId: string,
+  actorId: bigint,
+  request: NominateSongRequest,
+): Promise<NominationResponse> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'OPEN') throw new ConflictError('Playlist must be OPEN to nominate a song')
   if (playlist.deadline && new Date() > new Date(playlist.deadline)) {
@@ -203,8 +195,6 @@ export async function nominateSong(tenantId: number, playlistId: string, request
 
   const songId = parseId(request.songId)
   await requireSong(tenantId, songId)
-  const contributorId = parseId(request.contributorId)
-  await requireContributor(tenantId, contributorId)
 
   const playlistDbId = parseId(playlistId)
   if (await existsNominationForPlaylistAndSong(playlistDbId, songId)) {
@@ -220,7 +210,7 @@ export async function nominateSong(tenantId: number, playlistId: string, request
     tenantId,
     playlistId: playlistDbId,
     songId,
-    nominatedById: contributorId,
+    nominatedById: actorId,
     status: 'PENDING',
     createdAt: now,
     updatedAt: now,
@@ -261,15 +251,14 @@ export async function findNominationsBySong(tenantId: number, songId: string): P
 async function reviewNomination(
   tenantId: number,
   nominationId: string,
-  reviewerId: string,
+  actorId: bigint,
   newStatus: NominationStatus,
 ): Promise<NominationResponse> {
   const nomination = await requireNomination(tenantId, nominationId)
   if (nomination.status !== 'PENDING') throw new ConflictError('Nomination is not pending')
 
   const playlist = await requirePlaylistByDbId(tenantId, nomination.playlistId)
-  const reviewerDbId = parseId(reviewerId)
-  if (!isLeadContributor(playlist, reviewerDbId)) {
+  if (!isLeadContributor(playlist, actorId)) {
     throw new ConflictError('Only the lead contributor can review nominations')
   }
 
@@ -278,20 +267,19 @@ async function reviewNomination(
   return toNominationResponse(await saveNomination(nomination))
 }
 
-export function approveNomination(tenantId: number, nominationId: string, request: ReviewNominationRequest) {
-  return reviewNomination(tenantId, nominationId, request.reviewerId, 'APPROVED')
+export function approveNomination(tenantId: number, nominationId: string, actorId: bigint) {
+  return reviewNomination(tenantId, nominationId, actorId, 'APPROVED')
 }
 
-export function declineNomination(tenantId: number, nominationId: string, request: ReviewNominationRequest) {
-  return reviewNomination(tenantId, nominationId, request.reviewerId, 'DECLINED')
+export function declineNomination(tenantId: number, nominationId: string, actorId: bigint) {
+  return reviewNomination(tenantId, nominationId, actorId, 'DECLINED')
 }
 
-export async function startGuessing(tenantId: number, playlistId: string, request: StartGuessingRequest): Promise<PlaylistResponse> {
+export async function startGuessing(tenantId: number, playlistId: string, actorId: bigint): Promise<PlaylistResponse> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'OPEN') throw new ConflictError('Playlist must be OPEN to start guessing')
 
-  const contributorId = parseId(request.contributorId)
-  if (!isLeadContributor(playlist, contributorId)) {
+  if (!isLeadContributor(playlist, actorId)) {
     throw new ConflictError('Only the lead contributor can start guessing')
   }
 
@@ -315,15 +303,17 @@ export async function startGuessing(tenantId: number, playlistId: string, reques
   return basePlaylistResponse(tenantId, await savePlaylist(playlist))
 }
 
-export async function submitGuesses(tenantId: number, playlistId: string, request: SubmitGuessesRequest): Promise<void> {
+export async function submitGuesses(
+  tenantId: number,
+  playlistId: string,
+  actorId: bigint,
+  request: SubmitGuessesRequest,
+): Promise<void> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'GUESSING') throw new ConflictError('Playlist must be GUESSING to submit guesses')
 
-  const contributorId = parseId(request.contributorId)
-  await requireContributor(tenantId, contributorId)
-
   const playlistDbId = parseId(playlistId)
-  await deleteGuessesByPlaylistAndGuesser(playlistDbId, contributorId)
+  await deleteGuessesByPlaylistAndGuesser(playlistDbId, actorId)
 
   const now = new Date().toISOString()
   if (request.guesses) {
@@ -341,7 +331,7 @@ export async function submitGuesses(tenantId: number, playlistId: string, reques
         tenantId,
         playlistId: playlistDbId,
         nominationId: nominationDbId,
-        guesserId: contributorId,
+        guesserId: actorId,
         guessedContributorId,
         createdAt: now,
       }
@@ -349,7 +339,7 @@ export async function submitGuesses(tenantId: number, playlistId: string, reques
     }
   }
 
-  if (!(await existsGuessSubmission(playlistDbId, contributorId))) {
+  if (!(await existsGuessSubmission(playlistDbId, actorId))) {
     const id = generateId()
     const submission: GuessSubmissionItem = {
       pk: `${tenantId}#GUESS_SUBMISSION`,
@@ -357,7 +347,7 @@ export async function submitGuesses(tenantId: number, playlistId: string, reques
       id,
       tenantId,
       playlistId: playlistDbId,
-      contributorId,
+      contributorId: actorId,
       createdAt: now,
       updatedAt: now,
     }
@@ -375,12 +365,11 @@ export async function getGuesses(playlistId: string): Promise<GuessResponse[]> {
   }))
 }
 
-export async function publishPlaylist(tenantId: number, playlistId: string, request: PublishPlaylistRequest): Promise<PlaylistResponse> {
+export async function publishPlaylist(tenantId: number, playlistId: string, actorId: bigint): Promise<PlaylistResponse> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'GUESSING') throw new ConflictError('Playlist must be GUESSING to publish')
 
-  const contributorId = parseId(request.contributorId)
-  if (!isLeadContributor(playlist, contributorId)) {
+  if (!isLeadContributor(playlist, actorId)) {
     throw new ConflictError('Only the lead contributor can publish')
   }
 
@@ -489,24 +478,27 @@ function validateRatings(ratingType: string, ratings: RatingEntry[]): void {
   }
 }
 
-export async function submitRatings(tenantId: number, playlistId: string, request: SubmitRatingsRequest): Promise<void> {
+export async function submitRatings(
+  tenantId: number,
+  playlistId: string,
+  actorId: bigint,
+  request: SubmitRatingsRequest,
+): Promise<void> {
   const playlist = await requirePlaylist(tenantId, playlistId)
   if (playlist.status !== 'PUBLISHED') throw new ConflictError('Playlist must be PUBLISHED to submit ratings')
   if (!playlist.ratingType) throw new ConflictError('Playlist has no rating type configured')
 
-  const contributorId = parseId(request.contributorId)
-  await requireContributor(tenantId, contributorId)
   validateRatings(playlist.ratingType, request.ratings)
 
   const playlistDbId = parseId(playlistId)
-  await deleteSongRatingsByPlaylistAndContributor(playlistDbId, contributorId)
+  await deleteSongRatingsByPlaylistAndContributor(playlistDbId, actorId)
 
   const now = new Date().toISOString()
   for (const entry of request.ratings) {
     const nominationDbId = parseId(entry.nominationId)
     const nomination = await findNominationById(tenantId, nominationDbId)
     if (!nomination) throw new NotFoundError(`Nomination not found: ${entry.nominationId}`)
-    if (nomination.nominatedById === contributorId) {
+    if (nomination.nominatedById === actorId) {
       throw new ConflictError('Cannot rate your own nomination')
     }
 
@@ -517,7 +509,7 @@ export async function submitRatings(tenantId: number, playlistId: string, reques
       id,
       tenantId,
       playlistId: playlistDbId,
-      contributorId,
+      contributorId: actorId,
       nominationId: nominationDbId,
       points: entry.points,
       createdAt: now,

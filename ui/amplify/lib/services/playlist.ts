@@ -6,17 +6,19 @@ import { findContributorById } from '../repositories/contributor'
 
 export type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
 
+// `status` is deliberately absent from both request types: it may only advance through the
+// workflow endpoints (open / start-guessing / publish), which enforce the legal transitions and
+// the lead-contributor checks. Accepting it here let any caller set PUBLISHED directly and skip
+// both — including the ranking computation that publishing is supposed to trigger.
 export interface CreatePlaylistRequest {
   name: string
   description?: string
-  status?: PlaylistStatus
   ratingType?: RatingType
 }
 
 export interface UpdatePlaylistRequest {
   name: string
   description?: string
-  status?: PlaylistStatus
 }
 
 export interface PlaylistResponse {
@@ -67,7 +69,7 @@ export async function createPlaylist(tenantId: number, request: CreatePlaylistRe
     tenantId,
     name: request.name,
     description: request.description,
-    status: request.status ?? 'NEW',
+    status: 'NEW',
     ratingType: request.ratingType,
     createdAt: now,
     updatedAt: now,
@@ -103,7 +105,6 @@ export async function updatePlaylist(tenantId: number, id: string, request: Upda
   const existing = await requirePlaylistItem(tenantId, id)
   existing.name = request.name
   if (request.description !== undefined) existing.description = request.description
-  if (request.status !== undefined) existing.status = request.status
   existing.updatedAt = new Date().toISOString()
   return toPlaylistResponse(tenantId, await savePlaylist(existing))
 }
