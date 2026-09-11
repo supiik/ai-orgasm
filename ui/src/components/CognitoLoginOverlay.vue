@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import '@/amplify'
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue'
 import '@aws-amplify/ui-vue/styles.css'
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/button'
 // via Amplify Gen 2").
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const contributor = ref<LambdaContributorResponse | null>(null)
 const checkingLink = ref(false)
@@ -80,6 +82,7 @@ async function completeLink() {
       name: linkName.value,
     })
     onContributorResolved(linked)
+    router.push({ name: 'home' })
   } catch (e) {
     linkError.value = e instanceof Error ? e.message : 'Failed to link account'
   } finally {
