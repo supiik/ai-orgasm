@@ -1,27 +1,10 @@
 version: 1
-# Requires the Amplify Console's Build image setting switched to a Docker-capable image
-# (e.g. public.ecr.aws/codebuild/amazonlinux-x86_64-standard:5.0) — the default Amplify build
-# image has no Docker daemon. See CLAUDE.md "Cognito auth for the Lambda API" / deployment.
+# The Lambda API is TypeScript, deployed natively via Amplify Gen 2's `defineFunction` — no
+# Docker, no ECR, no Maven/JVM here. See CLAUDE.md "Amplify Gen 2 backend" for the architecture.
 backend:
   phases:
-    preBuild:
-      commands:
-        - nohup /usr/local/bin/dockerd-entrypoint.sh &
-        - timeout 15 sh -c "until docker info > /dev/null 2>&1; do sleep 1; done"
-        - sudo dnf install -y java-25-amazon-corretto-devel
     build:
       commands:
-        # Build the Lambda fat jar (default, non-native profile) and push its container image
-        # to ECR once — every Lambda function references this same pushed image with a
-        # different CMD override (see ui/amplify/backend.ts), not a rebuild per function.
-        - ./mvnw --batch-mode --no-transfer-progress -pl lambda -am -DskipTests package
-        - export LAMBDA_ECR_REPO="orgasm-lambda-${AWS_BRANCH}"
-        - export LAMBDA_IMAGE_TAG="${AWS_COMMIT_ID}"
-        - export ECR_REGISTRY="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com"
-        - aws ecr create-repository --repository-name "$LAMBDA_ECR_REPO" --region "$AWS_REGION" 2>/dev/null || true
-        - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$ECR_REGISTRY"
-        - docker build -f lambda/Dockerfile -t "$ECR_REGISTRY/$LAMBDA_ECR_REPO:$LAMBDA_IMAGE_TAG" .
-        - docker push "$ECR_REGISTRY/$LAMBDA_ECR_REPO:$LAMBDA_IMAGE_TAG"
         - (cd ui && npm install)
         - (cd ui && npx ampx pipeline-deploy --branch "$AWS_BRANCH" --app-id "$AWS_APP_ID")
 frontend:
