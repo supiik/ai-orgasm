@@ -2,6 +2,7 @@ import { NotFoundError } from '../errors'
 import { formatId, generateId, parseId } from '../idGenerator'
 import type { PageRequest } from '../http'
 import { findAllPlaylistsByTenant, findPlaylistById, savePlaylist, type PlaylistItem, type PlaylistStatus } from '../repositories/playlist'
+import { findContributorById } from '../repositories/contributor'
 
 export type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
 
@@ -34,10 +35,11 @@ export interface PlaylistResponse {
   updatedAt: string
 }
 
-// leadContributorName/leadContributorAvatarUrl are deliberately left unset here — that
-// lookup-at-read hydration only happens in the Orgasm workflow (openPlaylist,
-// findPlaylistsByContributor), mirroring PlaylistMapper.toResponse/OrgasmService.java exactly.
-export function toPlaylistResponse(item: PlaylistItem): PlaylistResponse {
+// leadContributorName/leadContributorAvatarUrl are hydrated via a lookup-at-read GetItem,
+// matching backend-core's PlaylistMapper (which always resolves the JPA-lazy leadContributor
+// relation) — every read path returns the name, not just the Orgasm workflow methods.
+export async function toPlaylistResponse(tenantId: number, item: PlaylistItem): Promise<PlaylistResponse> {
+  const lead = item.leadContributorId !== undefined ? await findContributorById(tenantId, item.leadContributorId) : undefined
   return {
     id: formatId('play', item.id),
     name: item.name,
@@ -45,6 +47,8 @@ export function toPlaylistResponse(item: PlaylistItem): PlaylistResponse {
     status: item.status,
     ratingType: item.ratingType as RatingType | undefined,
     leadContributorId: item.leadContributorId ? formatId('cont', item.leadContributorId) : undefined,
+    leadContributorName: lead?.name,
+    leadContributorAvatarUrl: lead?.avatarUrl,
     deadline: item.deadline,
     guessingDeadline: item.guessingDeadline,
     version: item.version,
@@ -68,12 +72,12 @@ export async function createPlaylist(tenantId: number, request: CreatePlaylistRe
     createdAt: now,
     updatedAt: now,
   }
-  return toPlaylistResponse(await savePlaylist(item))
+  return toPlaylistResponse(tenantId, await savePlaylist(item))
 }
 
 export async function getPlaylistById(tenantId: number, id: string): Promise<PlaylistResponse | undefined> {
   const item = await findPlaylistById(tenantId, parseId(id))
-  return item && !item.deletedAt ? toPlaylistResponse(item) : undefined
+  return item && !item.deletedAt ? toPlaylistResponse(tenantId, item) : undefined
 }
 
 export async function requirePlaylistItem(tenantId: number, id: string): Promise<PlaylistItem> {
@@ -92,7 +96,7 @@ export async function listPlaylists(
     .filter((item) => !filter.name || item.name?.toLowerCase().includes(filter.name.toLowerCase()))
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
-  return { content: paged.map(toPlaylistResponse), totalElements: all.length }
+  return { content: await Promise.all(paged.map((item) => toPlaylistResponse(tenantId, item))), totalElements: all.length }
 }
 
 export async function updatePlaylist(tenantId: number, id: string, request: UpdatePlaylistRequest): Promise<PlaylistResponse> {
@@ -101,7 +105,7 @@ export async function updatePlaylist(tenantId: number, id: string, request: Upda
   if (request.description !== undefined) existing.description = request.description
   if (request.status !== undefined) existing.status = request.status
   existing.updatedAt = new Date().toISOString()
-  return toPlaylistResponse(await savePlaylist(existing))
+  return toPlaylistResponse(tenantId, await savePlaylist(existing))
 }
 
 export async function deletePlaylist(tenantId: number, id: string): Promise<void> {

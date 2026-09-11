@@ -147,14 +147,6 @@ function isLeadContributor(playlist: PlaylistItem, contributorDbId: bigint): boo
   return playlist.leadContributorId !== undefined && playlist.leadContributorId === contributorDbId
 }
 
-async function toOrgasmPlaylistResponse(tenantId: number, playlist: PlaylistItem): Promise<PlaylistResponse> {
-  const base = basePlaylistResponse(playlist)
-  if (playlist.leadContributorId === undefined) return base
-  const lead = await findContributorById(tenantId, playlist.leadContributorId)
-  if (!lead) return base
-  return { ...base, leadContributorName: lead.name, leadContributorAvatarUrl: lead.avatarUrl }
-}
-
 function toNominationResponse(item: NominationItem): NominationResponse {
   return {
     id: formatId('nom', item.id),
@@ -184,7 +176,7 @@ export async function openPlaylist(tenantId: number, playlistId: string, request
   playlist.status = 'OPEN'
   playlist.updatedAt = new Date().toISOString()
 
-  return toOrgasmPlaylistResponse(tenantId, await savePlaylist(playlist))
+  return basePlaylistResponse(tenantId, await savePlaylist(playlist))
 }
 
 export async function findPlaylistsByContributor(
@@ -198,7 +190,7 @@ export async function findPlaylistsByContributor(
     .filter((item) => item.leadContributorId === parsedContributorId)
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
-  const content = await Promise.all(paged.map((item) => toOrgasmPlaylistResponse(tenantId, item)))
+  const content = await Promise.all(paged.map((item) => basePlaylistResponse(tenantId, item)))
   return { content, totalElements: all.length }
 }
 
@@ -320,7 +312,7 @@ export async function startGuessing(tenantId: number, playlistId: string, reques
   playlist.status = 'GUESSING'
   playlist.updatedAt = nowIso
 
-  return toOrgasmPlaylistResponse(tenantId, await savePlaylist(playlist))
+  return basePlaylistResponse(tenantId, await savePlaylist(playlist))
 }
 
 export async function submitGuesses(tenantId: number, playlistId: string, request: SubmitGuessesRequest): Promise<void> {
@@ -398,7 +390,7 @@ export async function publishPlaylist(tenantId: number, playlistId: string, requ
 
   await saveRankingsForPlaylist(tenantId, parseId(playlistId))
 
-  return toOrgasmPlaylistResponse(tenantId, saved)
+  return basePlaylistResponse(tenantId, saved)
 }
 
 /** Standard competition ranking: ties share a rank, the next rank skips accordingly. */
