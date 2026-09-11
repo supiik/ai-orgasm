@@ -14,6 +14,7 @@ useTokenRefresh()
 
 const authStore = useAuthStore()
 const isMock = authMode === 'mock'
+const appVersion = __APP_VERSION__
 </script>
 
 <template>
@@ -133,7 +134,7 @@ const isMock = authMode === 'mock'
 
       <footer class="shrink-0 border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>Orgasm</span>
-        <span>v1.0.0-SNAPSHOT</span>
+        <span>v{{ appVersion }}</span>
       </footer>
     </div>
 
