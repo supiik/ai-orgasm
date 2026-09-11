@@ -470,7 +470,7 @@ function statusClass(s: NominationStatus | undefined) {
         <span v-else>{{ playlist?.name }}</span>
       </h1>
       <div class="ml-auto flex gap-2">
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
+        <Button v-if="playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
           <Play class="h-4 w-4" />
           Open for nominations
         </Button>
