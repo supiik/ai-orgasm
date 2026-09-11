@@ -358,6 +358,14 @@ function showNominate(contributorId = '') {
   nominateOpen.value = true
 }
 
+// The dialog never lets you pick a contributor — it's always either you (the generic
+// "Nominate" button) or whoever's row you clicked "Nominate for" on, both already fixed by the
+// time the dialog opens. This just resolves a display name for that already-decided contributor.
+const nominateContributorName = computed(() => {
+  if (nominateForm.value.contributorId === myId.value) return authStore.currentContributor?.name ?? ''
+  return allContributors.value.find(c => c.id === nominateForm.value.contributorId)?.name ?? ''
+})
+
 async function submitNominate() {
   if (!nominateForm.value.contributorId || !nominateForm.value.artist.trim() || !nominateForm.value.name.trim()) {
     nominateError.value = 'Contributor, artist, and song name are required.'
@@ -771,8 +779,10 @@ function statusClass(s: NominationStatus | undefined) {
       <DialogHeader><DialogTitle>Nominate a song</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitNominate">
         <div class="space-y-1.5">
-          <Label>Contributor <span class="text-destructive">*</span></Label>
-          <ContributorSelect v-model="nominateForm.contributorId" :contributors="eligibleContributors" placeholder="Select contributor…" />
+          <Label>Nominating as</Label>
+          <div class="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
+            {{ nominateContributorName || '—' }}
+          </div>
         </div>
         <div class="border-t border-border pt-4 space-y-3">
           <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Song</p>
