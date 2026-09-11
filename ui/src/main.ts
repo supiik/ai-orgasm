@@ -5,6 +5,21 @@ import App from './App.vue'
 import router from './router'
 import { authMode } from './authMode'
 
+// TEMPORARY diagnostic: surface otherwise-invisible runtime errors on-page (this env has no
+// browser console access during debugging). Remove once the Cognito blank-screen issue is found.
+function showDebugBanner(msg: string) {
+  const el = document.createElement('pre')
+  el.style.cssText =
+    'position:fixed;inset:0;z-index:99999;background:#fff;color:#c00;padding:16px;overflow:auto;font-size:12px;white-space:pre-wrap;margin:0;'
+  el.textContent = msg
+  document.body.appendChild(el)
+}
+window.addEventListener('error', (e) => showDebugBanner(`[window error] ${e.error?.stack ?? e.message}`))
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = e.reason
+  showDebugBanner(`[unhandled rejection] ${reason?.stack ?? String(reason)}`)
+})
+
 async function bootstrap() {
   if (authMode === 'mock') {
     const { worker } = await import('./mocks/browser')
@@ -19,6 +34,7 @@ async function bootstrap() {
   }
 
   const app = createApp(App)
+  app.config.errorHandler = (err) => showDebugBanner(`[vue error] ${err instanceof Error ? (err.stack ?? err.message) : String(err)}`)
   app.use(createPinia())
   app.use(router)
 
@@ -28,4 +44,4 @@ async function bootstrap() {
   app.mount('#app')
 }
 
-bootstrap()
+bootstrap().catch((e) => showDebugBanner(`[bootstrap error] ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`))
