@@ -2,6 +2,7 @@
 import { DialogPortal, DialogOverlay, DialogContent, DialogClose, DialogTitle } from 'radix-vue'
 import { X } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { useI18n } from 'vue-i18n'
 
 // A side drawer built on the same radix-vue Dialog primitives as `ui/dialog`. The slide-in is a
 // plain CSS transition keyed off radix's data-state attribute — this project has no
@@ -9,6 +10,8 @@ import { cn } from '@/lib/utils'
 const props = withDefaults(defineProps<{ side?: 'left' | 'right'; title: string; class?: string }>(), {
   side: 'left',
 })
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -27,7 +30,7 @@ const props = withDefaults(defineProps<{ side?: 'left' | 'right'; title: string;
       <slot />
       <DialogClose
         class="absolute right-3 top-3 rounded-sm p-1 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring"
-        aria-label="Close menu"
+        :aria-label="t('app.closeMenu')"
       >
         <X class="h-4 w-4" />
       </DialogClose>

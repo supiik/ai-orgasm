@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type ContributorResponse, type PlaylistResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
@@ -12,6 +13,7 @@ import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t, d } = useI18n()
 
 const id = route.params.id as string
 const contributor = ref<ContributorResponse | null>(null)
@@ -30,7 +32,7 @@ async function load() {
     contributor.value = contRes.data
     playlists.value = plRes.data.content ?? []
   } catch {
-    error.value = 'Contributor not found.'
+    error.value = t('contributors.notFound')
   } finally {
     loading.value = false
   }
@@ -40,7 +42,7 @@ onMounted(load)
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  return d(new Date(iso), 'dateTime')
 }
 
 // ── Edit dialog ───────────────────────────────────────────────────────────────
@@ -62,7 +64,7 @@ function openEdit() {
 
 async function submitEdit() {
   if (!form.value.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('common.nameRequired')
     return
   }
   saving.value = true
@@ -76,7 +78,7 @@ async function submitEdit() {
     contributor.value = data
     dialogOpen.value = false
   } catch {
-    formError.value = 'Failed to save. Please try again.'
+    formError.value = t('common.saveFailed')
   } finally {
     saving.value = false
   }
@@ -102,7 +104,7 @@ async function submitEdit() {
       </h1>
       <Button v-if="contributor" variant="outline" size="sm" class="ml-auto" @click="openEdit">
         <Pencil class="h-4 w-4" />
-        Edit
+        {{ t('common.edit') }}
       </Button>
     </div>
 
@@ -111,43 +113,43 @@ async function submitEdit() {
     <template v-if="contributor">
       <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">ID</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.id') }}</dt>
           <dd>{{ contributor.id }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Name</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.name') }}</dt>
           <dd class="font-medium">{{ contributor.name }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Email</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.email') }}</dt>
           <dd class="text-muted-foreground">{{ contributor.email ?? '—' }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Avatar URL</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.avatarUrl') }}</dt>
           <dd class="text-muted-foreground truncate">
             <a v-if="contributor.avatarUrl" :href="contributor.avatarUrl" target="_blank" rel="noopener" class="underline underline-offset-2">{{ contributor.avatarUrl }}</a>
             <span v-else>—</span>
           </dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Created</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.created') }}</dt>
           <dd>{{ formatDate(contributor.createdAt) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Updated</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.updated') }}</dt>
           <dd>{{ formatDate(contributor.updatedAt) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Version</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.version') }}</dt>
           <dd class="text-muted-foreground">{{ contributor.version }}</dd>
         </div>
       </dl>
 
       <!-- Playlists section -->
       <section>
-        <h2 class="text-lg font-semibold mb-3">Led playlists</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ t('contributors.ledPlaylists') }}</h2>
         <div v-if="playlists.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
-          No playlists led by this contributor.
+          {{ t('contributors.noLedPlaylists') }}
         </div>
         <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>a:nth-child(even)]:bg-muted/40">
           <RouterLink
@@ -172,26 +174,26 @@ async function submitEdit() {
   <Dialog v-model:open="dialogOpen">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Edit contributor</DialogTitle>
+        <DialogTitle>{{ t('contributors.editTitle') }}</DialogTitle>
       </DialogHeader>
       <form class="space-y-4" @submit.prevent="submitEdit">
         <div class="space-y-1.5">
-          <Label for="name">Name <span class="text-destructive">*</span></Label>
-          <Input id="name" v-model="form.name" placeholder="Full name" autofocus />
+          <Label for="name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
+          <Input id="name" v-model="form.name" :placeholder="t('fields.fullName')" autofocus />
         </div>
         <div class="space-y-1.5">
-          <Label for="email">Email</Label>
-          <Input id="email" v-model="form.email" placeholder="contact@example.com" type="email" />
+          <Label for="email">{{ t('common.email') }}</Label>
+          <Input id="email" v-model="form.email" :placeholder="t('fields.emailPlaceholder')" type="email" />
         </div>
         <div class="space-y-1.5">
-          <Label for="avatarUrl">Avatar URL</Label>
-          <Input id="avatarUrl" v-model="form.avatarUrl" placeholder="https://example.com/avatar.jpg" type="url" />
+          <Label for="avatarUrl">{{ t('common.avatarUrl') }}</Label>
+          <Input id="avatarUrl" v-model="form.avatarUrl" :placeholder="t('fields.avatarUrlPlaceholder')" type="url" />
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>
       <DialogFooter>
-        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">Cancel</Button>
-        <Button :disabled="saving" @click="submitEdit">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="saving" @click="submitEdit">{{ saving ? t('common.saving') : t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

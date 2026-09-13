@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Menu } from 'lucide-vue-next'
 import { useTokenRefresh } from '@/composables/useTokenRefresh'
 import { useAuthStore } from '@/stores/auth'
@@ -13,7 +14,8 @@ import CognitoLoginOverlay from '@/components/CognitoLoginOverlay.vue'
 
 useTokenRefresh()
 
-const APP_TITLE = 'ORGAnized Spotify Mediabuilding'
+const { t } = useI18n()
+const APP_TITLE = computed(() => t('app.title'))
 
 // Mobile nav drawer (< md). Closed on every route change, not just link clicks, so back/forward
 // navigation and programmatic pushes (e.g. row clicks in a table) never leave it hanging open.
@@ -51,9 +53,9 @@ const loginRequired = computed(() =>
   <!-- Session expired overlay -->
   <div v-if="authStore.sessionExpired" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="bg-card rounded-lg border border-border p-6 shadow-lg max-w-sm text-center space-y-4">
-      <h2 class="text-lg font-semibold">Session Expired</h2>
-      <p class="text-sm text-muted-foreground">Your session has expired. Please log in again.</p>
-      <Button @click="authStore.reauthenticate()">Log in</Button>
+      <h2 class="text-lg font-semibold">{{ t('session.expiredTitle') }}</h2>
+      <p class="text-sm text-muted-foreground">{{ t('session.expiredBody') }}</p>
+      <Button @click="authStore.reauthenticate()">{{ t('session.login') }}</Button>
     </div>
   </div>
 
@@ -81,7 +83,7 @@ const loginRequired = computed(() =>
     <div class="flex flex-1 flex-col overflow-hidden min-w-0">
       <!-- Top bar (mobile only) -->
       <header class="md:hidden h-14 shrink-0 flex items-center gap-2 px-2 border-b border-border">
-        <Button variant="ghost" size="icon" aria-label="Open menu" @click="mobileNavOpen = true">
+        <Button variant="ghost" size="icon" :aria-label="t('app.openMenu')" @click="mobileNavOpen = true">
           <Menu class="h-5 w-5" />
         </Button>
         <span class="font-semibold text-sm tracking-wide truncate">{{ APP_TITLE }}</span>
@@ -92,7 +94,7 @@ const loginRequired = computed(() =>
       </main>
 
       <footer class="shrink-0 border-t border-border px-4 md:px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>Orgasm</span>
+        <span>{{ t('app.brand') }}</span>
         <span>v{{ appVersion }}</span>
       </footer>
     </div>
