@@ -5,5 +5,5 @@ export const handler = withAuth('authenticated-with-contributor', 200, async (ev
   const id = pathSegment(event, 0)
   const request = await parseBody<UpdatePlaylistRequest>(event)
   requireFields({ name: request.name })
-  return updatePlaylist(ctx.tenantId!, id, request)
+  return updatePlaylist(ctx.tenantId!, id, ctx.contributorId!, request)
 })

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { RouterView, RouterLink } from 'vue-router'
 import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
@@ -15,14 +16,23 @@ useTokenRefresh()
 const authStore = useAuthStore()
 const isMock = authMode === 'mock'
 const appVersion = __APP_VERSION__
+
+// While a login overlay is up, the routed view must not mount: it would fetch on mount, get a
+// 401, latch onto its "not found" error state and never refetch once the user signs in — so a
+// deep link opened before login (e.g. a shared /playlists/{id} URL) showed "Playlist not found."
+// with no action buttons. Gating <RouterView> on the same condition as the overlays means the
+// view mounts (and loads) only once there is a session to load with.
+const loginRequired = computed(() =>
+  (isMock && !authStore.isAuthenticated) || (authMode === 'cognito' && !authStore.currentContributor),
+)
 </script>
 
 <template>
   <!-- Mock login overlay -->
-  <MockLoginOverlay v-if="isMock && !authStore.isAuthenticated" />
+  <MockLoginOverlay v-if="loginRequired && isMock" />
 
   <!-- Cognito login/link overlay — stays visible through "signed in but not yet linked" -->
-  <CognitoLoginOverlay v-if="authMode === 'cognito' && !authStore.currentContributor" />
+  <CognitoLoginOverlay v-if="loginRequired && authMode === 'cognito'" />
 
   <!-- Session expired overlay -->
   <div v-if="authStore.sessionExpired" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -129,7 +139,7 @@ const appVersion = __APP_VERSION__
     <!-- Content area -->
     <div class="flex flex-1 flex-col overflow-hidden">
       <main class="flex-1 overflow-y-auto p-6">
-        <RouterView />
+        <RouterView v-if="!loginRequired" />
       </main>
 
       <footer class="shrink-0 border-t border-border px-6 py-3 flex items-center justify-between text-xs text-muted-foreground">

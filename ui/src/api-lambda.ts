@@ -42,9 +42,10 @@ export async function authorizedFetch(input: string, init?: RequestInit): Promis
   if (res.status === 401) {
     const { useAuthStore } = await import('@/stores/auth')
     const authStore = useAuthStore()
-    // Underlying views mount (and fire requests) even while CognitoLoginOverlay is showing on
-    // top — a 401 before the user has ever signed in is expected, not an expired session, so
-    // only the isAuthenticated branch below is a real candidate for retry/session-expiry.
+    // App.vue keeps the routed view unmounted while CognitoLoginOverlay is up, but the overlay
+    // itself calls getCurrentContributor() before sign-in completes — a 401 before the user has
+    // ever signed in is expected, not an expired session, so only the isAuthenticated branch
+    // below is a real candidate for retry/session-expiry.
     if (authStore.isAuthenticated) {
       // The very first authenticated request right after sign-in can 401 once even though the
       // session is valid — fetchAuthSession() here and the Authenticator's own internal sign-in

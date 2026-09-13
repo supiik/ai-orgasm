@@ -122,7 +122,7 @@ class PlaylistControllerTest {
 
         mvc.perform(put("/api/v1/playlists/play-0001")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null, null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated"));
     }
@@ -134,7 +134,7 @@ class PlaylistControllerTest {
 
         mvc.perform(put("/api/v1/playlists/play-9999")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null, null))))
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("X", null, null, null, null))))
                 .andExpect(status().isNotFound());
     }
 

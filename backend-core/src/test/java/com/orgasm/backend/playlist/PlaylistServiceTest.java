@@ -132,7 +132,7 @@ class PlaylistServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse() {
-        var request = new UpdatePlaylistRequest("New", "new desc", null);
+        var request = new UpdatePlaylistRequest("New", "new desc", null, null, null);
         var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null, null);
         var saved = new Playlist(DB_ID, null, "New", "new desc", PlaylistStatus.OPEN, null, null, null, null);
         var expected = response(USER_ID, "New");
@@ -163,7 +163,7 @@ class PlaylistServiceTest {
     void update_throwsNotFound_whenMissing() {
         when(repository.findById(DB_ID)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.update(USER_ID, new UpdatePlaylistRequest("X", null, null)))
+        assertThatThrownBy(() -> service.update(USER_ID, new UpdatePlaylistRequest("X", null, null, null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining(USER_ID);
     }

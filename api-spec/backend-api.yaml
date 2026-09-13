@@ -930,6 +930,12 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PlaylistStatus'
+        deadline:
+          type: string
+          format: date-time
+        guessingDeadline:
+          type: string
+          format: date-time
 
     PlaylistResponse:
       type: object

@@ -480,6 +480,14 @@ frontend root is `ui/`.
   - **No `DynamoTenantContext`-equivalent.** Handlers pass `tenantId: number` as an explicit
     parameter through every service/repository call instead of an implicit thread-local — more
     idiomatic for Node than replicating Java's `ThreadLocal` pattern.
+  - **Deadlines are editable after the fact, but gated.** `open-playlist` / `start-guessing`
+    stamp `deadline` / `guessingDeadline`; `update-playlist` additionally accepts either field
+    (added 2026-09-13 so a lead can extend a deadline that has passed) and
+    `services/playlist.ts`'s `updatePlaylist` enforces lead-only + phase-matched (`deadline`
+    only while `OPEN`, `guessingDeadline` only while `GUESSING`) → 409 otherwise. The Spring
+    `backend` mirrors the fields on its `UpdatePlaylistRequest` (MapStruct null-ignore, no
+    gating — same body-actor caveat as the rest of `OrgasmController`), and the Edit dialog in
+    `PlaylistDetailView.vue` shows the matching date input only when the API would accept it.
 - **`backend.ts`** — imports all 33 `*Fn` resources, passes them into `defineBackend({ auth,
   helloFn, createPlaylistFn, ... })`, builds the 9 DynamoDB tables (`tables.ts`'s `createTables` —
   unchanged from the earlier design: raw CDK `dynamodb.Table` L2 constructs, **not** Gen 2's
