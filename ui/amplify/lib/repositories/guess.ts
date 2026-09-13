@@ -1,6 +1,6 @@
 import { DeleteCommand } from '@aws-sdk/lib-dynamodb'
 import { ddb } from '../dynamodb'
-import { partitionKey, putItemNoVersion, queryIndex } from './base'
+import { partitionKey, putItemNoVersion, queryByPartitionKey, queryIndex } from './base'
 
 const TABLE = () => process.env.DYNAMODB_TABLE_GUESSES ?? ''
 const ENTITY_TYPE = 'GUESS'
@@ -25,6 +25,11 @@ export function guessKey(tenantId: number, id: bigint) {
 /** byPlaylist GSI: playlistId (HASH) + id (RANGE). */
 export function findGuessesByPlaylistId(playlistId: bigint): Promise<GuessItem[]> {
   return queryIndex<GuessItem>(TABLE(), 'byPlaylist', 'playlistId = :playlistId', { ':playlistId': playlistId })
+}
+
+/** Whole tenant partition — only the admin export reads at this scope. */
+export function findAllGuessesByTenant(tenantId: number): Promise<GuessItem[]> {
+  return queryByPartitionKey<GuessItem>(TABLE(), partitionKey(tenantId, ENTITY_TYPE))
 }
 
 export function saveGuess(item: GuessItem): Promise<GuessItem> {

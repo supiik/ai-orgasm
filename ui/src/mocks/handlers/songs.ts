@@ -16,7 +16,7 @@ interface SongResponse {
 
 const nextId = () => `song-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
-const db: SongResponse[] = [
+export const db: SongResponse[] = [
   { id: 'song-0af3b7c2d1e8f905', artist: 'Radiohead', name: 'Creep', album: 'Pablo Honey', releaseYear: 1993, url: 'https://www.youtube.com/watch?v=XFkzRNyygfk', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
   { id: 'song-9b2c5e3a7f1d4680', artist: 'Nirvana', name: 'Smells Like Teen Spirit', album: 'Nevermind', releaseYear: 1991, url: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
   { id: 'song-c4d7a8e2f3b16509', artist: 'Oasis', name: 'Wonderwall', album: null, releaseYear: null, url: null, version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },

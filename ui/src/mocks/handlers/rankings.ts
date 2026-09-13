@@ -13,7 +13,7 @@ export interface RankingRow {
   totalGuesses: number
 }
 
-function computeRankings(): RankingRow[] {
+export function computeRankings(): RankingRow[] {
   const published = playlistsDb.filter(p => p.status === 'PUBLISHED')
   const rows: RankingRow[] = []
 

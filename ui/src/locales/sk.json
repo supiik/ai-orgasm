@@ -273,6 +273,10 @@
     "linked": "Prepojený",
     "pending": "Čaká na registráciu",
     "adding": "Pridáva sa…",
-    "add": "Pridať"
+    "add": "Pridať",
+    "exportData": "Exportovať údaje",
+    "exporting": "Exportuje sa…",
+    "exportHint": "Export stiahne všetko, čo je pre túto organizáciu uložené — členov, skladby, playlisty, nominácie, tipy, hodnotenia a poradia vrátane vymazaných záznamov — ako jeden súbor JSON.",
+    "exportFailed": "Export zlyhal: {message}"
   }
 }

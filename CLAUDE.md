@@ -394,7 +394,7 @@ to the right handler; DynamoDB calls will fail without a real/local table behind
 amazon/dynamodb-local:2.5.4` instance and pre-create the tables to exercise that path too).
 
 For the **deployed** TypeScript API, `npx ampx sandbox` (run from `ui/`) deploys a real, isolated,
-per-developer AWS stack (all 9 tables, the Cognito User Pool, all 39 functions) — no image to
+per-developer AWS stack (all 9 tables, the Cognito User Pool, all 40 functions) — no image to
 build/push first, since every function bundles straight from its own `handler.ts`. See
 "TypeScript Lambda API via Amplify Gen 2" for how to run its tests against DynamoDB Local instead.
 
@@ -480,7 +480,7 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 
 ### TypeScript Lambda API via Amplify Gen 2
 
-`ui/amplify/` is the actual deployed Lambda API: 39 AWS Lambda functions written in TypeScript,
+`ui/amplify/` is the actual deployed Lambda API: 40 AWS Lambda functions written in TypeScript,
 using Amplify Gen 2's native `defineFunction` — one `resource.ts` + `handler.ts` per function, no
 CDK escape hatch, no container image, no Docker anywhere in the pipeline. It supersedes an earlier
 design (and, before that, AWS SAM) that packaged the **Java** `lambda`/`backend-dynamo` modules
@@ -560,7 +560,7 @@ frontend root is `ui/`.
     `backend` mirrors the fields on its `UpdatePlaylistRequest` (MapStruct null-ignore, no
     gating — same body-actor caveat as the rest of `OrgasmController`), and the Edit dialog in
     `PlaylistDetailView.vue` shows the matching date input only when the API would accept it.
-- **`backend.ts`** — imports all 39 `*Fn` resources, passes them into `defineBackend({ auth,
+- **`backend.ts`** — imports all 40 `*Fn` resources, passes them into `defineBackend({ auth,
   helloFn, createPlaylistFn, ... })`, builds the 9 DynamoDB tables (`tables.ts`'s `createTables` —
   unchanged from the earlier design: raw CDK `dynamodb.Table` L2 constructs, **not** Gen 2's
   `defineData`/AppSync GraphQL model; this schema is hand-rolled pk/sk + GSIs, unrelated to
@@ -591,8 +591,8 @@ frontend root is `ui/`.
   `lib/services/registration.ts`'s `register()` (kept, with tests, for parity) but has no
   `functions/` entry since the 2026-09-11 security review: it was an unauthenticated, unlimited
   DynamoDB write that nothing in the UI called — Cognito sign-up goes through `link-contributor`,
-  which has a verified identity and the `allowedDomain` gate. So the deployed count is **39**
-  functions: the Java reference implementation's 34, minus this one, plus the five `admin-*`
+  which has a verified identity and the `allowedDomain` gate. So the deployed count is **40**
+  functions: the Java reference implementation's 34, minus this one, plus the six `admin-*`
   functions below and `search-songs` (none of which have a Java counterpart).
 - **Song catalogue search (`search-songs`, `lib/songSearch/`).** Added 2026-09-13 so the two
   "create a song" forms (the Songs page dialog and the nominate dialog in `PlaylistDetailView`)
@@ -663,6 +663,32 @@ frontend root is `ui/`.
   administration" button), otherwise nobody could create the first organization to link into.
   `main.ts` awaits `authStore.load()` *before* `app.use(router)` so any future guard can read the
   store during the initial navigation.
+- **Organization data export (`admin-export-organization`, `lib/services/export.ts`).** Added
+  2026-09-13 for the "customer is leaving and wants all their data" case. `GET /{id}/export`,
+  `admin` AuthMode only — it is the platform admin (Cognito `admins` group) who hands the data
+  over, and the document contains every member's email and every playlist ever run, more than
+  any single contributor can see through the regular endpoints. One JSON document with a
+  self-describing envelope (`format: orgasm-organization-export`, `formatVersion: 1`,
+  `exportedAt`, `organization`, `counts`) and one array per entity: `contributors`, `songs`,
+  `playlists`, `nominations`, `guessSubmissions`, `guesses`, `songRatings`,
+  `playlistRankings`. Rows use the same prefixed external ids as the REST responses for keys
+  and foreign keys (Guess/GuessSubmission/SongRating/PlaylistRanking have no id in any REST
+  response, so the export mints `guess-`/`gsub-`/`rate-`/`rank-` with the same encoding);
+  `pk`/`sk`/`version`/`tenantId`/`cognitoSub` are dropped; **soft-deleted rows are included**
+  with their `deletedAt` (it's "whole history", not the live view); each section is sorted
+  oldest-first so two exports diff cleanly. It reads the eight tenant partitions directly via
+  new `findAll*ByTenant` repository functions (`nomination`, `guess`, `guessSubmission`,
+  `songRating` — the GSI-only repositories didn't have one) fanned out with `Promise.all`,
+  and its `resource.ts` sets `timeoutSeconds: 30` since that is O(tenant size). No S3, no
+  async job: the Lambda returns the document and the browser saves it. UI: an `Export data`
+  button next to `Add member` in `AdminView.vue` (`saveJsonFile` — the same
+  Blob + `<a download>` pattern as `GuessingView.vue`'s CSV; file name
+  `<slug>-export-<yyyy-mm-dd>.json`), `api.admin().exportOrganization(id)` on both clients,
+  MSW's `mocks/handlers/admin.ts` builds the same envelope from the mock stores (org 1 only;
+  no `deletedAt` rows exist there), i18n under `admin.export*`, Vitest
+  `services/export.test.ts`, Playwright download assertion in `e2e/admin.spec.ts`. Not
+  implemented on the Spring/MariaDB `backend` (no admin endpoints there at all — same as the
+  rest of Administration).
 - **`amplify.yml`'s `backend` phase is now just** `npm install && npx ampx pipeline-deploy
   --branch $AWS_BRANCH --app-id $AWS_APP_ID` — no Maven, no Docker, no ECR, no custom Amplify
   Console Build image required. This is the actual fix for the Docker build failure that started

@@ -1,4 +1,4 @@
-import { getItem, partitionKey, queryIndex, saveItem } from './base'
+import { getItem, partitionKey, queryByPartitionKey, queryIndex, saveItem } from './base'
 
 const TABLE = () => process.env.DYNAMODB_TABLE_GUESS_SUBMISSIONS ?? ''
 const ENTITY_TYPE = 'GUESS_SUBMISSION'
@@ -35,6 +35,11 @@ export async function existsGuessSubmission(playlistId: bigint, contributorId: b
     { ':playlistId': playlistId, ':contributorId': contributorId },
   )
   return items.length > 0
+}
+
+/** Whole tenant partition (includes soft-deleted rows) — only the admin export reads at this scope. */
+export function findAllGuessSubmissionsByTenant(tenantId: number): Promise<GuessSubmissionItem[]> {
+  return queryByPartitionKey<GuessSubmissionItem>(TABLE(), partitionKey(tenantId, ENTITY_TYPE))
 }
 
 export function saveGuessSubmission(item: GuessSubmissionItem): Promise<GuessSubmissionItem> {

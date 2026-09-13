@@ -183,6 +183,17 @@ export type CreateOrganizationRequest = { slug: string; name: string; allowedDom
 export type UpdateOrganizationRequest = { name: string; allowedDomain?: string }
 export type AdminContributor = ContributorResponse & { linked: boolean }
 export type AddOrganizationContributorRequest = { name: string; email: string; avatarUrl?: string }
+/**
+ * `admin-export-organization`'s document (ui/amplify/lib/services/export.ts). The UI only
+ * downloads it as a file, so it's typed by its envelope; the per-entity sections are opaque here.
+ */
+export type OrganizationExport = {
+  format: string
+  formatVersion: number
+  exportedAt: string
+  organization: AdminOrganization
+  counts: Record<string, number>
+} & Record<string, unknown>
 
 /** Surfaces the API's own `error`/`errors` message (slug taken, domain mismatch…) instead of a bare status. */
 export async function throwApiError(res: Response): Promise<never> {
@@ -205,6 +216,7 @@ const adminClient = {
   updateOrganization: (id: number, body: UpdateOrganizationRequest) => adminReq<AdminOrganization>(`/organizations/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   listContributors:   (organizationId: number) => adminReq<AdminContributor[]>(`/organizations/${organizationId}/contributors`),
   addContributor:     (organizationId: number, body: AddOrganizationContributorRequest) => adminReq<AdminContributor>(`/organizations/${organizationId}/contributors`, { method: 'POST', body: JSON.stringify(body) }),
+  exportOrganization: (organizationId: number) => adminReq<OrganizationExport>(`/organizations/${organizationId}/export`),
 }
 
 export const api = {

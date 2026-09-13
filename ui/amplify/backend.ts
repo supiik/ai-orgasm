@@ -43,6 +43,7 @@ import { adminCreateOrganizationFn } from './functions/admin-create-organization
 import { adminUpdateOrganizationFn } from './functions/admin-update-organization/resource'
 import { adminListOrgContributorsFn } from './functions/admin-list-org-contributors/resource'
 import { adminAddOrgContributorFn } from './functions/admin-add-org-contributor/resource'
+import { adminExportOrganizationFn } from './functions/admin-export-organization/resource'
 
 const backend = defineBackend({
   auth,
@@ -85,6 +86,7 @@ const backend = defineBackend({
   adminUpdateOrganizationFn,
   adminListOrgContributorsFn,
   adminAddOrgContributorFn,
+  adminExportOrganizationFn,
 })
 
 // Per-branch env name: `ampx pipeline-deploy --branch <name>` sets AWS_BRANCH in the Amplify
@@ -187,6 +189,7 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'admin-update-organization': backend.adminUpdateOrganizationFn,
   'admin-list-org-contributors': backend.adminListOrgContributorsFn,
   'admin-add-org-contributor': backend.adminAddOrgContributorFn,
+  'admin-export-organization': backend.adminExportOrganizationFn,
 }
 
 const functionUrls: Record<string, string> = {}

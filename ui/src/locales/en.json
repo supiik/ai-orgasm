@@ -273,6 +273,10 @@
     "linked": "Linked",
     "pending": "Pending sign-up",
     "adding": "Adding…",
-    "add": "Add"
+    "add": "Add",
+    "exportData": "Export data",
+    "exporting": "Exporting…",
+    "exportHint": "Export downloads everything stored for this organization — members, songs, playlists, nominations, guesses, ratings and rankings, including deleted records — as one JSON file.",
+    "exportFailed": "Export failed: {message}"
   }
 }
