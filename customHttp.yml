@@ -1,0 +1,18 @@
+# Amplify Hosting custom response headers (read from the repo root, next to amplify.yml).
+# Amplify applies these over its defaults and clears its CDN cache on every deploy, so the
+# `s-maxage` here only ever serves the current deployment.
+customHeaders:
+  # Everything, notably index.html and every SPA route that rewrites to it: the browser may
+  # keep a copy but must revalidate it on each page load, so a new deploy is picked up on the
+  # next full navigation. (Amplify's default is `max-age=0` without `must-revalidate`.)
+  - pattern: '**/*'
+    headers:
+      - key: Cache-Control
+        value: 'public, max-age=0, must-revalidate, s-maxage=31536000'
+  # Vite's build output is content-hashed (index-CRdFzEhy.js), so a given URL never changes
+  # meaning — cache it forever and skip the revalidation round-trip per chunk on every load.
+  # Ordered last: when several patterns match, the later one wins for the same header.
+  - pattern: '/assets/*'
+    headers:
+      - key: Cache-Control
+        value: 'public, max-age=31536000, immutable'

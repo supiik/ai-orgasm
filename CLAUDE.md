@@ -254,6 +254,23 @@ Phone-width shell behaviour is covered by `e2e/mobile.spec.ts` (`test.use({ view
 desktop specs in `home.spec.ts` keep clicking sidebar links directly, which works because the
 closed drawer is not mounted, so there is only one `Songs` link in the DOM at desktop width.
 
+### Stale-deploy recovery (lazy route chunks)
+
+Every route except Home is lazy-loaded and Vite content-hashes the chunks; Amplify Hosting keeps
+only the latest deployment. So a tab opened *before* a deploy holds a main bundle whose
+`import('./SongsView-<oldhash>.js')` now 404s — the first click on an unvisited route fails with
+`Failed to fetch dynamically imported module` and nothing happens until a hard refresh.
+`src/staleChunkRecovery.ts` (installed in `main.ts` before `app.use(router)`) handles this the
+way Vite/Vue Router document it: `router.onError` + the `vite:preloadError` window event → one
+full `window.location.assign(to.fullPath)` to the route the user wanted, which loads the new
+`index.html`. A `sessionStorage` timestamp limits it to one reload per 10 s so a genuinely broken
+chunk surfaces the error instead of looping. Tests in `staleChunkRecovery.test.ts` (jsdom).
+
+`customHttp.yml` at the repo root (Amplify Hosting custom headers, applied over its defaults)
+makes `/assets/*` `immutable, max-age=1y` (safe — hashed names) and keeps everything else,
+i.e. `index.html`, on `max-age=0, must-revalidate`. Later patterns win, so the assets rule is
+last. This is the belt; the runtime recovery above is what actually fixes an already-open tab.
+
 ### Internationalization (vue-i18n)
 
 The UI is localized with **vue-i18n v11** (Composition API only, `legacy: false`) plus

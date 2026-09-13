@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import { i18n } from './i18n'
 import { authMode } from './authMode'
+import { installStaleChunkRecovery } from './staleChunkRecovery'
 
 async function bootstrap() {
   if (authMode === 'mock') {
@@ -27,6 +28,9 @@ async function bootstrap() {
   const { useAuthStore } = await import('@/stores/auth')
   await useAuthStore().load()
 
+  // Must be installed before the initial navigation so even a deep link into a route whose
+  // chunk vanished with the last deploy recovers.
+  installStaleChunkRecovery(router)
   app.use(router)
   app.use(i18n)
 
