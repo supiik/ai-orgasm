@@ -6,5 +6,6 @@ import { songHandlers } from './songs'
 import { rankingHandlers } from './rankings'
 import { songRatingHandlers } from './songRatings'
 import { organizationHandlers } from './organizations'
+import { adminHandlers } from './admin'
 
-export const handlers = [...healthHandlers, ...contributorHandlers, ...playlistHandlers, ...nominationHandlers, ...songHandlers, ...rankingHandlers, ...songRatingHandlers, ...organizationHandlers]
+export const handlers = [...healthHandlers, ...contributorHandlers, ...playlistHandlers, ...nominationHandlers, ...songHandlers, ...rankingHandlers, ...songRatingHandlers, ...organizationHandlers, ...adminHandlers]

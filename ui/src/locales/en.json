@@ -14,7 +14,8 @@
     "stats": "Stats",
     "switchUser": "Switch User",
     "logout": "Logout",
-    "language": "Language"
+    "language": "Language",
+    "admin": "Administration"
   },
   "theme": {
     "light": "Light",
@@ -232,6 +233,37 @@
     "linking": "Linking…",
     "continue": "Continue",
     "checkLinkFailed": "Failed to check linked account",
-    "linkFailed": "Failed to link account"
+    "linkFailed": "Failed to link account",
+    "goToAdmin": "Go to administration"
+  },
+  "admin": {
+    "title": "Administration",
+    "forbidden": "You are not an administrator. Ask an administrator to add your account to the admins group.",
+    "organizations": "Organizations",
+    "newOrganization": "New organization",
+    "editOrganization": "Edit organization",
+    "slug": "Slug",
+    "slugHint": "Lowercase letters, digits and hyphens; cannot be changed later.",
+    "slugPlaceholder": "my-org",
+    "allowedDomain": "Allowed email domain",
+    "allowedDomainHint": "Optional. When set, only addresses at this domain can join this organization.",
+    "allowedDomainPlaceholder": "example.com",
+    "unrestricted": "Unrestricted",
+    "organizationsEmpty": "No organizations yet. Create the first one to let users sign up.",
+    "organizationsLoadFailed": "Failed to load organizations.",
+    "slugRequired": "Slug is required.",
+    "members": "Members",
+    "membersOf": "Members of {name}",
+    "selectOrganization": "Select an organization to see its members.",
+    "membersEmpty": "No members yet.",
+    "membersLoadFailed": "Failed to load members.",
+    "addMember": "Add member",
+    "addMemberHint": "If this email already has an account it is linked right away; otherwise the account is linked when they sign up with it.",
+    "emailRequired": "Email is required.",
+    "status": "Status",
+    "linked": "Linked",
+    "pending": "Pending sign-up",
+    "adding": "Adding…",
+    "add": "Add"
   }
 }

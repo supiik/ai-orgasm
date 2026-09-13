@@ -69,10 +69,10 @@ export async function getCurrentContributor(): Promise<LambdaContributorResponse
   return res.json()
 }
 
-/** Public endpoint — no auth needed, may be called before the user signs in. */
+/** Requires a signed-in Cognito session (no linked Contributor needed) — call it after sign-in, not on mount. */
 export async function listOrganizations(): Promise<OrganizationResponse[]> {
   if (!ORGANIZATIONS_URL) throw new Error('amplify_outputs.json custom.functionUrls["list-organizations"] is not configured')
-  const res = await fetch(ORGANIZATIONS_URL)
+  const res = await authorizedFetch(ORGANIZATIONS_URL)
   if (!res.ok) throw new Error(`Failed to load organizations: ${res.status}`)
   return res.json()
 }

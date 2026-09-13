@@ -37,6 +37,11 @@ import { listSongRatingsFn } from './functions/list-song-ratings/resource'
 import { publishPlaylistFn } from './functions/publish-playlist/resource'
 import { linkContributorFn } from './functions/link-contributor/resource'
 import { getCurrentContributorFn } from './functions/get-current-contributor/resource'
+import { adminListOrganizationsFn } from './functions/admin-list-organizations/resource'
+import { adminCreateOrganizationFn } from './functions/admin-create-organization/resource'
+import { adminUpdateOrganizationFn } from './functions/admin-update-organization/resource'
+import { adminListOrgContributorsFn } from './functions/admin-list-org-contributors/resource'
+import { adminAddOrgContributorFn } from './functions/admin-add-org-contributor/resource'
 
 const backend = defineBackend({
   auth,
@@ -73,6 +78,11 @@ const backend = defineBackend({
   publishPlaylistFn,
   linkContributorFn,
   getCurrentContributorFn,
+  adminListOrganizationsFn,
+  adminCreateOrganizationFn,
+  adminUpdateOrganizationFn,
+  adminListOrgContributorsFn,
+  adminAddOrgContributorFn,
 })
 
 // Per-branch env name: `ampx pipeline-deploy --branch <name>` sets AWS_BRANCH in the Amplify
@@ -165,6 +175,11 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'publish-playlist': backend.publishPlaylistFn,
   'link-contributor': backend.linkContributorFn,
   'get-current-contributor': backend.getCurrentContributorFn,
+  'admin-list-organizations': backend.adminListOrganizationsFn,
+  'admin-create-organization': backend.adminCreateOrganizationFn,
+  'admin-update-organization': backend.adminUpdateOrganizationFn,
+  'admin-list-org-contributors': backend.adminListOrgContributorsFn,
+  'admin-add-org-contributor': backend.adminAddOrgContributorFn,
 }
 
 const functionUrls: Record<string, string> = {}
@@ -182,6 +197,10 @@ for (const spec of fnSpecs) {
   for (const tableKey of spec.tables) {
     if (writes.has(tableKey)) tables[tableKey].grantReadWriteData(fn)
     else tables[tableKey].grantReadData(fn)
+  }
+
+  if (spec.userPoolActions?.length) {
+    userPool.grant(fn, ...spec.userPoolActions)
   }
 
   if (spec.publiclyReachable && publicReservedConcurrency > 0) {

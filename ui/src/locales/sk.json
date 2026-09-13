@@ -14,7 +14,8 @@
     "stats": "Štatistiky",
     "switchUser": "Prepnúť používateľa",
     "logout": "Odhlásiť sa",
-    "language": "Jazyk"
+    "language": "Jazyk",
+    "admin": "Administrácia"
   },
   "theme": {
     "light": "Svetlý",
@@ -232,6 +233,37 @@
     "linking": "Prepája sa…",
     "continue": "Pokračovať",
     "checkLinkFailed": "Nepodarilo sa overiť prepojený účet",
-    "linkFailed": "Účet sa nepodarilo prepojiť"
+    "linkFailed": "Účet sa nepodarilo prepojiť",
+    "goToAdmin": "Prejsť do administrácie"
+  },
+  "admin": {
+    "title": "Administrácia",
+    "forbidden": "Nie ste administrátor. Požiadajte administrátora, aby pridal váš účet do skupiny admins.",
+    "organizations": "Organizácie",
+    "newOrganization": "Nová organizácia",
+    "editOrganization": "Upraviť organizáciu",
+    "slug": "Slug",
+    "slugHint": "Malé písmená, číslice a pomlčky; neskôr sa nedá zmeniť.",
+    "slugPlaceholder": "moja-organizacia",
+    "allowedDomain": "Povolená e-mailová doména",
+    "allowedDomainHint": "Voliteľné. Ak je nastavená, do organizácie sa môžu pridať iba adresy z tejto domény.",
+    "allowedDomainPlaceholder": "priklad.sk",
+    "unrestricted": "Bez obmedzenia",
+    "organizationsEmpty": "Zatiaľ žiadne organizácie. Vytvorte prvú, aby sa používatelia mohli registrovať.",
+    "organizationsLoadFailed": "Organizácie sa nepodarilo načítať.",
+    "slugRequired": "Slug je povinný.",
+    "members": "Členovia",
+    "membersOf": "Členovia organizácie {name}",
+    "selectOrganization": "Vyberte organizáciu a zobrazia sa jej členovia.",
+    "membersEmpty": "Zatiaľ žiadni členovia.",
+    "membersLoadFailed": "Členov sa nepodarilo načítať.",
+    "addMember": "Pridať člena",
+    "addMemberHint": "Ak tento e-mail už má účet, prepojí sa okamžite; inak sa účet prepojí pri registrácii s týmto e-mailom.",
+    "emailRequired": "E-mail je povinný.",
+    "status": "Stav",
+    "linked": "Prepojený",
+    "pending": "Čaká na registráciu",
+    "adding": "Pridáva sa…",
+    "add": "Pridať"
   }
 }

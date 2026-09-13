@@ -20,6 +20,10 @@ export const db: ContributorResponse[] = [
 
 let mockCurrentContributorId: string | null = null
 
+/** Mock-mode stand-in for Cognito's `admins` group: only the first seeded contributor (Thom) is an admin. */
+const MOCK_ADMIN_IDS = new Set(['cont-1a2b3c4d5e6f7089'])
+export function isMockAdmin(id: string): boolean { return MOCK_ADMIN_IDS.has(id) }
+
 export function setMockCurrentContributor(id: string) { mockCurrentContributorId = id }
 export function clearMockCurrentContributor() { mockCurrentContributorId = null }
 

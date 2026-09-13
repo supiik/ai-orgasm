@@ -21,11 +21,14 @@ async function bootstrap() {
 
   const app = createApp(App)
   app.use(createPinia())
-  app.use(router)
-  app.use(i18n)
 
+  // Resolve the session before installing the router: `app.use(router)` kicks off the initial
+  // navigation, and the /admin guard reads the auth store during it.
   const { useAuthStore } = await import('@/stores/auth')
   await useAuthStore().load()
+
+  app.use(router)
+  app.use(i18n)
 
   app.mount('#app')
 }

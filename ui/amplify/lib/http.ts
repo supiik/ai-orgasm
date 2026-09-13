@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2, Context } from 'aws-lambda'
-import { verifyRequest } from './auth'
-import { ConflictError, NotFoundError, NotLinkedError, UnauthorizedError, ValidationError } from './errors'
+import { ADMIN_GROUP, verifyRequest } from './auth'
+import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, UnauthorizedError, ValidationError } from './errors'
 import { Fields, addLogContext, log, runWithLogContext } from './logger'
 import { REQUEST_ID_HEADER, newSpanId, resolveRequestId, resolveTrace } from './tracing'
 import { findContributorByCognitoSub } from './repositories/contributor'
@@ -9,9 +9,11 @@ import { findContributorByCognitoSub } from './repositories/contributor'
  * Port of BaseHandler.java's AuthMode. 'public': no token check. 'authenticated': valid token
  * required, no Contributor lookup (only the link function — a brand-new Cognito user may have
  * no Contributor yet). 'authenticated-with-contributor': valid token AND a linked Contributor —
- * the default for ~30 of the 34 functions.
+ * the default for ~30 of the 34 functions. 'admin' (no Java counterpart): valid token whose
+ * `cognito:groups` claim contains ADMIN_GROUP — cross-tenant, so no Contributor/tenant is
+ * resolved; the admin-* functions take the organization explicitly.
  */
-export type AuthMode = 'public' | 'authenticated' | 'authenticated-with-contributor'
+export type AuthMode = 'public' | 'authenticated' | 'authenticated-with-contributor' | 'admin'
 
 export interface AuthContext {
   cognitoSub?: string
@@ -28,6 +30,16 @@ async function authenticate(mode: AuthMode, event: APIGatewayProxyEventV2): Prom
 
   const claims = await verifyRequest(event.headers)
   const ctx: AuthContext = { cognitoSub: claims.sub, cognitoEmail: claims.email }
+
+  if (mode === 'admin') {
+    if (!claims.groups.includes(ADMIN_GROUP)) {
+      throw new ForbiddenError('Administrator group membership required')
+    }
+    // Admin actions have no Contributor id to attribute them to; the opaque Cognito subject is
+    // the only audit handle (the same `user.id` = JWT `sub` convention `backend` uses).
+    addLogContext({ [Fields.USER_ID]: claims.sub, [Fields.USER_ROLES]: ['admin'] })
+    return ctx
+  }
 
   if (mode === 'authenticated-with-contributor') {
     const contributor = await findContributorByCognitoSub(claims.sub)
@@ -101,6 +113,7 @@ async function handle(
     if (e instanceof ValidationError) return rejected(400, { errors: e.errors })
     if (e instanceof UnauthorizedError) return rejected(401, { error: e.message })
     if (e instanceof NotLinkedError) return rejected(403, { error: e.message })
+    if (e instanceof ForbiddenError) return rejected(403, { error: e.message })
     if (e instanceof NotFoundError) return rejected(404, { error: e.message })
     if (e instanceof ConflictError) return rejected(409, { error: e.message })
     log.error('Unhandled error', e)

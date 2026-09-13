@@ -8,7 +8,11 @@ import type {
   NominateSongRequest, ReviewNominationRequest, SubmitGuessesRequest,
   NominationResponse, NominationPage,
 } from '@orgasm/backend-client'
-import type { GuessEntry, RankingEntry, SongRatingEntry, SongNomination } from './api-backend'
+import { throwApiError } from './api-backend'
+import type {
+  GuessEntry, RankingEntry, SongRatingEntry, SongNomination,
+  AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest,
+} from './api-backend'
 
 // Lambda-backed mirror of api-backend.ts's `api` object — same method names/shapes, so the view
 // files that call `api.playlists().list(...)` etc. need no changes regardless of which one
@@ -156,6 +160,25 @@ const songRatingsClient = {
   },
 }
 
+// Each admin-* function is its own Function URL; the `{id}`/`contributors` segments match what
+// ui/amplify/functions/admin-*/handler.ts reads via pathSegment().
+async function adminReq<T>(name: string, path: string, init?: RequestInit): Promise<{ data: T }> {
+  const res = await authorizedFetch(`${functionUrl(name)}${path}`, {
+    ...init,
+    headers: { ...(init?.body ? { 'Content-Type': 'application/json' } : {}), ...init?.headers },
+  })
+  if (!res.ok) await throwApiError(res)
+  return { data: await res.json() }
+}
+
+const adminClient = {
+  listOrganizations:  () => adminReq<AdminOrganization[]>('admin-list-organizations', ''),
+  createOrganization: (body: CreateOrganizationRequest) => adminReq<AdminOrganization>('admin-create-organization', '', { method: 'POST', body: JSON.stringify(body) }),
+  updateOrganization: (id: number, body: UpdateOrganizationRequest) => adminReq<AdminOrganization>('admin-update-organization', `/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  listContributors:   (organizationId: number) => adminReq<AdminContributor[]>('admin-list-org-contributors', `/${organizationId}/contributors`),
+  addContributor:     (organizationId: number, body: AddOrganizationContributorRequest) => adminReq<AdminContributor>('admin-add-org-contributor', `/${organizationId}/contributors`, { method: 'POST', body: JSON.stringify(body) }),
+}
+
 export const api = {
   contributors: () => contributorClient,
   playlists:    () => playlistClient,
@@ -164,4 +187,5 @@ export const api = {
   guesses:      () => guessesClient,
   rankings:     () => rankingsClient,
   songRatings:  () => songRatingsClient,
+  admin:        () => adminClient,
 }

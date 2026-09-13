@@ -4,4 +4,7 @@ import { api as lambdaApi } from './api-lambda'
 
 export const api = authMode === 'cognito' ? lambdaApi : backendApi
 
-export type { GuessEntry, RankingEntry, SongRatingEntry, SongNomination } from './api-backend'
+export type {
+  GuessEntry, RankingEntry, SongRatingEntry, SongNomination,
+  AdminOrganization, AdminContributor, CreateOrganizationRequest, UpdateOrganizationRequest, AddOrganizationContributorRequest,
+} from './api-backend'
