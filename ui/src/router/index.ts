@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -59,14 +58,10 @@ const router = createRouter({
   ],
 })
 
-// Cosmetic only — the real gate is the Lambda API's `admin` AuthMode (403 without the Cognito
-// `admins` group). A signed-in non-admin is bounced home; an unauthenticated deep link is let
-// through because the login overlay covers the page until there is a session to judge, and
-// AdminView itself renders a "forbidden" state if that session turns out not to be an admin.
-router.beforeEach((to) => {
-  if (!to.meta.requiresAdmin) return true
-  const authStore = useAuthStore()
-  return authStore.isAuthenticated && !authStore.isAdmin ? { name: 'home' } : true
-})
+// No redirect on purpose: AdminView renders a "you are not an administrator" explanation for a
+// signed-in non-admin, which is more useful than a silent bounce home (the usual cause is simply
+// that the account hasn't been added to the Cognito `admins` group yet, or hasn't re-signed-in
+// since). The real gate is the Lambda API's `admin` AuthMode (403 without the group); `meta.
+// requiresAdmin` is kept so a guard can be added if a route ever needs one.
 
 export default router

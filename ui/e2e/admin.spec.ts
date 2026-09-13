@@ -70,12 +70,14 @@ test.describe('administration (regular user)', () => {
     })
   })
 
-  test('hides the sidebar link and bounces /admin home', async ({ page }) => {
+  test('hides the sidebar link and explains instead of bouncing on /admin', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Recent Songs' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Administration' })).toHaveCount(0)
 
     await page.goto('/admin')
-    await expect(page).toHaveURL('/')
+    await expect(page).toHaveURL('/admin')
+    await expect(page.getByText('You are not an administrator.', { exact: false })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'New organization' })).toHaveCount(0)
   })
 })

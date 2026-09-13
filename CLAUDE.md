@@ -607,12 +607,14 @@ frontend root is `ui/`.
   Keycloak: never), the `/admin` route + `SidebarNav` link (`AdminView.vue`, i18n under
   `admin.*`), `api.admin()` on both `api-lambda.ts` (Function URLs) and `api-backend.ts`
   (`/api/v1/admin/**` — exists only so MSW's `mocks/handlers/admin.ts` can serve dev/e2e; the
-  Spring backend has **no** admin endpoints), and `e2e/admin.spec.ts`. The router guard and
-  `v-if`s are cosmetic — the 403 is the gate. One deliberate hole in `App.vue`'s overlay gating: a
+  Spring backend has **no** admin endpoints), and `e2e/admin.spec.ts`. There is deliberately no
+  router redirect: a signed-in non-admin opening `/admin` sees AdminView's "not an administrator"
+  explanation (the usual cause being a token issued before the group was assigned — re-sign-in
+  fixes it); the `v-if`s are cosmetic — the 403 is the gate. One deliberate hole in `App.vue`'s overlay gating: a
   Cognito admin with no linked Contributor may still open `/admin` (the overlay's "Go to
   administration" button), otherwise nobody could create the first organization to link into.
-  `main.ts` awaits `authStore.load()` *before* `app.use(router)` since the guard reads the store
-  during the initial navigation.
+  `main.ts` awaits `authStore.load()` *before* `app.use(router)` so any future guard can read the
+  store during the initial navigation.
 - **`amplify.yml`'s `backend` phase is now just** `npm install && npx ampx pipeline-deploy
   --branch $AWS_BRANCH --app-id $AWS_APP_ID` — no Maven, no Docker, no ECR, no custom Amplify
   Console Build image required. This is the actual fix for the Docker build failure that started
