@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { type SongPage, type SongResponse } from '@orgasm/backend-client'
 import { api, type SongSearchHit } from '@/api'
 import { parseReleaseYear } from '@/lib/releaseYear'
-import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
 import SongSearch from '@/components/SongSearch.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -52,33 +52,19 @@ function formatDate(iso: string) {
   return d(new Date(iso), 'date')
 }
 
-// ── Create / Edit dialog ──────────────────────────────────────────────────────
-
-type DialogMode = 'create' | 'edit'
+// ── Edit dialog ──────────────────────────────────────────────────────────────
+// Deliberately edit-only: a song only exists as somebody's nomination, so it is created from the
+// "Nominate a song" dialog on an open playlist (PlaylistDetailView), never as a detached record.
 
 const dialogOpen = ref(false)
-const dialogMode = ref<DialogMode>('create')
 const editingId = ref<string | null>(null)
 const form = ref({ artist: '', name: '', album: '', releaseYear: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
-const dialogTitle = computed(() => dialogMode.value === 'create' ? t('songs.new') : t('songs.editTitle'))
-const submitLabel = computed(() => {
-  if (saving.value) return dialogMode.value === 'create' ? t('common.creating') : t('common.saving')
-  return dialogMode.value === 'create' ? t('common.create') : t('common.save')
-})
-
-function openCreate() {
-  dialogMode.value = 'create'
-  editingId.value = null
-  form.value = { artist: '', name: '', album: '', releaseYear: '' }
-  formError.value = null
-  dialogOpen.value = true
-}
+const submitLabel = computed(() => saving.value ? t('common.saving') : t('common.save'))
 
 function openEdit(song: SongResponse) {
-  dialogMode.value = 'edit'
   editingId.value = song.id!
   form.value = {
     artist: song.artist ?? '',
@@ -119,16 +105,11 @@ async function submitForm() {
       album: form.value.album.trim() || undefined,
       releaseYear,
     }
-    if (dialogMode.value === 'create') {
-      await api.songs().create(payload)
-      page.value === 0 ? fetchPage(0) : (page.value = 0)
-    } else {
-      await api.songs().update(editingId.value!, payload)
-      fetchPage(page.value)
-    }
+    await api.songs().update(editingId.value!, payload)
+    fetchPage(page.value)
     dialogOpen.value = false
   } catch {
-    formError.value = dialogMode.value === 'create' ? t('songs.createFailed') : t('songs.saveFailed')
+    formError.value = t('songs.saveFailed')
   } finally {
     saving.value = false
   }
@@ -138,15 +119,15 @@ async function submitForm() {
 <template>
   <div class="space-y-4">
 
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">{{ t('songs.title') }}</h1>
-      <div class="flex items-center gap-2">
-        <NameFilter v-model="nameFilter" />
-        <Button @click="openCreate">
-          <Plus class="h-4 w-4" />
-          {{ t('songs.new') }}
-        </Button>
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold">{{ t('songs.title') }}</h1>
+        <p class="text-sm text-muted-foreground">
+          {{ t('songs.addViaNomination') }}
+          <RouterLink to="/playlists" class="underline underline-offset-2 hover:text-foreground">{{ t('nav.playlists') }}</RouterLink>
+        </p>
       </div>
+      <NameFilter v-model="nameFilter" />
     </div>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
@@ -221,11 +202,11 @@ async function submitForm() {
 
   </div>
 
-  <!-- Create / Edit dialog -->
+  <!-- Edit dialog -->
   <Dialog v-model:open="dialogOpen">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>{{ dialogTitle }}</DialogTitle>
+        <DialogTitle>{{ t('songs.editTitle') }}</DialogTitle>
       </DialogHeader>
 
       <form class="space-y-4" @submit.prevent="submitForm">

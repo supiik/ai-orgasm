@@ -156,11 +156,10 @@
   },
   "songs": {
     "title": "Songs",
-    "new": "New song",
+    "addViaNomination": "Songs are added by nominating them in an open playlist — see",
     "editTitle": "Edit song",
     "empty": "No songs found.",
     "loadFailed": "Failed to load songs.",
-    "createFailed": "Failed to create song. Please try again.",
     "saveFailed": "Failed to save song. Please try again.",
     "count": "no songs | {n} song | {n} songs",
     "notFound": "Song not found.",

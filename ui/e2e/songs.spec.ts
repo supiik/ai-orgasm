@@ -144,6 +144,14 @@ test.describe('songs API (via MSW)', () => {
     await expect(rows).toHaveCount(3)
   })
 
+  test('songs cannot be created detached — only via a playlist nomination', async ({ page }) => {
+    await page.goto('/songs')
+    await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /new song/i })).toHaveCount(0)
+    await page.getByRole('main').getByRole('link', { name: 'Playlists' }).click()
+    await expect(page).toHaveURL('/playlists')
+  })
+
   test('navigates to song detail on row click', async ({ page }) => {
     await page.goto('/songs')
     await expect(page.getByText('Radiohead')).toBeVisible()

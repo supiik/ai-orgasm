@@ -156,11 +156,10 @@
   },
   "songs": {
     "title": "Skladby",
-    "new": "Nová skladba",
+    "addViaNomination": "Skladby pribúdajú nominovaním v otvorenom playliste — pozri",
     "editTitle": "Upraviť skladbu",
     "empty": "Nenašli sa žiadne skladby.",
     "loadFailed": "Skladby sa nepodarilo načítať.",
-    "createFailed": "Skladbu sa nepodarilo vytvoriť. Skúste to znova.",
     "saveFailed": "Skladbu sa nepodarilo uložiť. Skúste to znova.",
     "count": "žiadne skladby | {n} skladba | {n} skladby | {n} skladieb",
     "notFound": "Skladba sa nenašla.",
