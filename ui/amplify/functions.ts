@@ -131,4 +131,7 @@ export const fnSpecs: FnSpec[] = [
   { name: 'admin-add-org-contributor', description: 'Admin: add a contributor to an organization, linking an existing Cognito account by email',
     tables: ['organizations', 'contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'],
     userPoolActions: ['cognito-idp:ListUsers'] },
+  { name: 'admin-export-organization', description: "Admin: export an organization's complete data (all entities, incl. soft-deleted) as one JSON document",
+    tables: ['organizations', 'contributors', 'songs', 'playlists', 'nominations', 'guesses', 'guessSubmissions', 'songRatings', 'playlistRankings'],
+    methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
 ]

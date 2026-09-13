@@ -52,6 +52,27 @@ test.describe('administration (admin user)', () => {
     await expect(member.getByText('Pending sign-up')).toBeVisible()
   })
 
+  test('exports the selected organization as a JSON file', async ({ page }) => {
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'Members of Default Organization' })).toBeVisible()
+
+    const downloadPromise = page.waitForEvent('download')
+    await page.getByRole('button', { name: 'Export data' }).click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toMatch(/^default-export-\d{4}-\d{2}-\d{2}\.json$/)
+
+    const doc = JSON.parse(await (await download.createReadStream()).toArray().then(chunks => Buffer.concat(chunks).toString()))
+    expect(doc.format).toBe('orgasm-organization-export')
+    expect(doc.organization).toMatchObject({ id: 1, slug: 'default' })
+    // Seeded data lands in the right sections, cross-referenced by the same ids the API uses
+    expect(doc.counts.contributors).toBeGreaterThan(0)
+    expect(doc.contributors.some((c: { name: string }) => c.name === 'Thom Yorke')).toBe(true)
+    expect(doc.songs.some((s: { name: string }) => s.name === 'Creep')).toBe(true)
+    expect(doc.playlists.length).toBe(doc.counts.playlists)
+    expect(doc.guesses.length).toBeGreaterThan(0)
+    for (const g of doc.guesses) expect(doc.playlists.some((p: { id: string }) => p.id === g.playlistId)).toBe(true)
+  })
+
   test('rejects a duplicate slug with the API message', async ({ page }) => {
     await page.goto('/admin')
     await page.getByRole('button', { name: 'New organization' }).click()

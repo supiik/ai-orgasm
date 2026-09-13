@@ -1,6 +1,10 @@
 import { http, HttpResponse } from 'msw'
 import { db } from './contributors'
 import { organizationsDb } from './organizations'
+import { db as songsDb } from './songs'
+import { guessesDb, nominationsDb, playlistsDb } from './db'
+import { songRatingsDb } from './songRatings'
+import { computeRankings } from './rankings'
 
 // Mock of the Lambda admin-* functions (ui/amplify/lib/services/admin.ts) at the REST paths
 // api-backend.ts's admin client uses. Mirrors the service's validation so AdminView's error
@@ -101,5 +105,40 @@ export const adminHandlers = [
     db.push(created)
     membership.set(created.id, id)
     return HttpResponse.json({ ...created, linked: cognitoAccounts.has(email) }, { status: 201 })
+  }),
+
+  // Mirrors ui/amplify/lib/services/export.ts's envelope over the mock stores. Every seeded row
+  // belongs to org 1, so any other organization exports as empty sections. The mock stores hold
+  // response shapes (no soft-deleted rows, no internal ids), so this is the same document minus
+  // the `deletedAt` history the real export carries.
+  http.get('/api/v1/admin/organizations/:id/export', ({ params }) => {
+    const id = Number(params.id)
+    const org = organizationsDb.find(o => o.id === id)
+    if (!org) return error(404, `Organization not found: ${params.id}`)
+    const strip = <T extends { version?: number }>({ version: _version, ...row }: T) => row
+    const contributors = db.filter(c => membership.get(c.id) === id).map(strip)
+    const contributorIds = new Set(contributors.map(c => c.id))
+    const mine = id === 1
+    const sections = {
+      contributors,
+      songs: mine ? songsDb.map(strip) : [],
+      playlists: mine ? playlistsDb.map(({ leadContributorName: _n, leadContributorAvatarUrl: _a, ...p }) => strip(p)) : [],
+      nominations: mine ? nominationsDb.map(strip) : [],
+      guessSubmissions: mine ? [...new Set(guessesDb.map(g => `${g.playlistId}|${g.guesserId}`))].map(key => {
+        const [playlistId, contributorId] = key.split('|')
+        return { playlistId, contributorId }
+      }) : [],
+      guesses: mine ? guessesDb : [],
+      songRatings: mine ? songRatingsDb.filter(r => contributorIds.has(r.contributorId)) : [],
+      playlistRankings: mine ? computeRankings().map(({ playlistName: _p, contributorName: _c, contributorAvatarUrl: _a, ...r }) => r) : [],
+    }
+    return HttpResponse.json({
+      format: 'orgasm-organization-export',
+      formatVersion: 1,
+      exportedAt: new Date().toISOString(),
+      organization: toAdminOrg(org),
+      ...sections,
+      counts: Object.fromEntries(Object.entries(sections).map(([k, rows]) => [k, rows.length])),
+    })
   }),
 ]

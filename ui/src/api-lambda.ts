@@ -11,7 +11,7 @@ import type {
 import { throwApiError } from './api-backend'
 import type {
   GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
-  AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest,
+  AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest, OrganizationExport,
 } from './api-backend'
 
 // Lambda-backed mirror of api-backend.ts's `api` object — same method names/shapes, so the view
@@ -182,6 +182,7 @@ const adminClient = {
   updateOrganization: (id: number, body: UpdateOrganizationRequest) => adminReq<AdminOrganization>('admin-update-organization', `/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   listContributors:   (organizationId: number) => adminReq<AdminContributor[]>('admin-list-org-contributors', `/${organizationId}/contributors`),
   addContributor:     (organizationId: number, body: AddOrganizationContributorRequest) => adminReq<AdminContributor>('admin-add-org-contributor', `/${organizationId}/contributors`, { method: 'POST', body: JSON.stringify(body) }),
+  exportOrganization: (organizationId: number) => adminReq<OrganizationExport>('admin-export-organization', `/${organizationId}/export`),
 }
 
 export const api = {

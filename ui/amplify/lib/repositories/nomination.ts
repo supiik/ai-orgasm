@@ -34,6 +34,11 @@ export function findNominationsByPlaylistId(playlistId: bigint): Promise<Nominat
   return queryIndex<NominationItem>(TABLE(), 'byPlaylist', 'playlistId = :playlistId', { ':playlistId': playlistId })
 }
 
+/** Whole tenant partition (includes soft-deleted rows) — only the admin export reads at this scope. */
+export function findAllNominationsByTenant(tenantId: number): Promise<NominationItem[]> {
+  return queryByPartitionKey<NominationItem>(TABLE(), partitionKey(tenantId, ENTITY_TYPE))
+}
+
 export async function existsNominationForPlaylistAndSong(playlistId: bigint, songId: bigint): Promise<boolean> {
   const items = await queryIndex<NominationItem>(TABLE(), 'byPlaylist', 'playlistId = :playlistId AND songId = :songId', {
     ':playlistId': playlistId,

@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { api, type AdminOrganization, type AdminContributor } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { Plus, Pencil, UserPlus, ShieldOff } from 'lucide-vue-next'
+import { Plus, Pencil, UserPlus, ShieldOff, Download } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -161,6 +161,43 @@ async function submitMemberForm() {
   }
 }
 
+// ── Export ──────────────────────────────────────────────────────────────────
+
+const exporting = ref(false)
+const exportError = ref<string | null>(null)
+
+/**
+ * Downloads the selected organization's complete data as one JSON file (a customer who is
+ * leaving wants their whole history). The API assembles the document (admin-only,
+ * `admin-export-organization`); the browser just saves it — no server-side storage involved.
+ */
+async function exportSelectedOrg() {
+  if (!selectedOrg.value) return
+  exporting.value = true
+  exportError.value = null
+  try {
+    const { data } = await api.admin().exportOrganization(selectedOrg.value.id)
+    const stamp = data.exportedAt.slice(0, 10)
+    saveJsonFile(`${selectedOrg.value.slug}-export-${stamp}.json`, data)
+  } catch (e) {
+    exportError.value = e instanceof Error ? e.message : String(e)
+  } finally {
+    exporting.value = false
+  }
+}
+
+function saveJsonFile(filename: string, payload: unknown) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  document.body.appendChild(anchor)
+  anchor.click()
+  document.body.removeChild(anchor)
+  URL.revokeObjectURL(url)
+}
+
 function formatDate(iso: string) {
   return d(new Date(iso), 'date')
 }
@@ -244,13 +281,21 @@ function formatDate(iso: string) {
           <h2 class="text-lg font-medium">
             {{ selectedOrg ? t('admin.membersOf', { name: selectedOrg.name }) : t('admin.members') }}
           </h2>
-          <Button v-if="selectedOrg" variant="outline" @click="openAddMember">
-            <UserPlus class="h-4 w-4" />
-            {{ t('admin.addMember') }}
-          </Button>
+          <div v-if="selectedOrg" class="flex items-center gap-2">
+            <Button variant="outline" :disabled="exporting" @click="exportSelectedOrg">
+              <Download class="h-4 w-4" />
+              {{ exporting ? t('admin.exporting') : t('admin.exportData') }}
+            </Button>
+            <Button variant="outline" @click="openAddMember">
+              <UserPlus class="h-4 w-4" />
+              {{ t('admin.addMember') }}
+            </Button>
+          </div>
         </div>
         <p v-if="!selectedOrg" class="text-sm text-muted-foreground">{{ t('admin.selectOrganization') }}</p>
         <template v-else>
+          <p class="text-xs text-muted-foreground">{{ t('admin.exportHint') }}</p>
+          <div v-if="exportError" class="text-sm text-destructive">{{ t('admin.exportFailed', { message: exportError }) }}</div>
           <div v-if="membersError" class="text-sm text-destructive">{{ membersError }}</div>
           <div class="rounded-md border border-border">
             <Table>
