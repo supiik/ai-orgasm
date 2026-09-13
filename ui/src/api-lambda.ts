@@ -73,13 +73,15 @@ async function req<T>(name: string, path: string, init?: RequestInit): Promise<{
   return { data: await res.json() }
 }
 
+// Hand-encoded rather than URLSearchParams: that serialises a space as '+', which Lambda
+// Function URLs deliver verbatim in queryStringParameters (only %XX escapes are decoded), so a
+// filter like "smells like" would reach the service as "smells+like" and match nothing.
 function pageQuery(page?: number, size?: number, name?: string): string {
-  const params = new URLSearchParams()
-  if (page !== undefined) params.set('page', String(page))
-  if (size !== undefined) params.set('size', String(size))
-  if (name) params.set('name', name)
-  const qs = params.toString()
-  return qs ? `?${qs}` : ''
+  const parts: string[] = []
+  if (page !== undefined) parts.push(`page=${page}`)
+  if (size !== undefined) parts.push(`size=${size}`)
+  if (name) parts.push(`name=${encodeURIComponent(name)}`)
+  return parts.length ? `?${parts.join('&')}` : ''
 }
 
 // Note: `sort` is accepted for signature parity with api-backend.ts but not applied — the

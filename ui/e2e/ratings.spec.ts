@@ -38,6 +38,6 @@ test.describe('song ratings', () => {
     await expect(page.getByText('Your ratings are saved.')).toBeVisible()
     await expect(starButtons(page, 'Creep').first().locator('svg')).toHaveClass(/fill-yellow-500/)
     await expect(starButtons(page, 'Smells Like Teen Spirit').first().locator('svg')).not.toHaveClass(/fill-yellow-500/)
-    await expect(page.locator('span.rounded-full', { hasText: 'Thom Yorke' })).toHaveText(/Thom Yorkes*1/)
+    await expect(page.locator('span.rounded-full', { hasText: 'Thom Yorke' })).toHaveText(/Thom Yorke\s*1/)
   })
 })

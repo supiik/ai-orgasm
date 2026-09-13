@@ -11,13 +11,15 @@ const model = defineModel<string>({ default: '' })
 const local = ref(model.value)
 let timer: ReturnType<typeof setTimeout> | undefined
 
+// The emitted value is trimmed so a trailing space ("creep ") never becomes part of the
+// server-side substring match; `local` keeps the raw text so typing isn't disturbed.
 watch(local, (val) => {
   clearTimeout(timer)
-  timer = setTimeout(() => { model.value = val }, 300)
+  timer = setTimeout(() => { model.value = val.trim() }, 300)
 })
 
 watch(model, (val) => {
-  if (val !== local.value) local.value = val
+  if (val !== local.value.trim()) local.value = val
 })
 </script>
 

@@ -237,6 +237,8 @@ Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in
 
 **Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. Each API-level spec's `beforeEach` calls `waitForMsw(page)` (`e2e/helpers.ts`), which loads `/` and waits for `navigator.serviceWorker.controller` before any fetch is made — don't wait on a specific API response instead (the specs used to wait for a `/api/health` call that `HomeView` no longer makes, and silently timed out for months).
 
+**Name filters:** `NameFilter.vue` debounces 300 ms and emits the value **trimmed** (a trailing space must not become part of the substring match). The list views keep a monotonic `requestSeq` in `fetchPage` and drop any response that isn't for the latest request — otherwise a slow request for `"c"` (Lambda cold start) can land after the fast one for `"creep"` and overwrite it.
+
 ### App shell and mobile navigation
 
 `App.vue` owns the layout only; the nav links + user/theme/logout footer live in
@@ -689,6 +691,12 @@ frontend root is `ui/`.
   `services/export.test.ts`, Playwright download assertion in `e2e/admin.spec.ts`. Not
   implemented on the Spring/MariaDB `backend` (no admin endpoints there at all — same as the
   rest of Administration).
+- **Query strings: encode spaces as `%20`, never `+`.** Function URLs decode `%XX` escapes in
+  `queryStringParameters` but pass a literal `+` through unchanged, so `URLSearchParams` (which
+  serialises a space as `+`) would deliver `name=smells+like` to the service. `api-lambda.ts`'s
+  `pageQuery` therefore hand-encodes with `encodeURIComponent`, and the three `list*` services
+  `trim()` the filter defensively. (The Spring backend decodes `+` as a space, which is why the
+  bug only showed on the deployed API.)
 - **`amplify.yml`'s `backend` phase is now just** `npm install && npx ampx pipeline-deploy
   --branch $AWS_BRANCH --app-id $AWS_APP_ID` — no Maven, no Docker, no ECR, no custom Amplify
   Console Build image required. This is the actual fix for the Docker build failure that started

@@ -124,6 +124,26 @@ test.describe('songs API (via MSW)', () => {
     expect(body.content).toHaveLength(0)
   })
 
+  test('name filter ignores surrounding whitespace and multi-word queries survive', async ({ page }) => {
+    await page.goto('/songs')
+    const rows = page.locator('table tbody tr')
+    await expect(rows).toHaveCount(3)
+
+    const filter = page.getByPlaceholder('Filter by name…')
+    // Trailing space typed mid-thought must not turn "creep" into a zero-result query.
+    await filter.fill('creep ')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('Creep')
+
+    // A space inside the query is part of the match, not a separator.
+    await filter.fill('smells like')
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('Smells Like Teen Spirit')
+
+    await filter.fill('')
+    await expect(rows).toHaveCount(3)
+  })
+
   test('navigates to song detail on row click', async ({ page }) => {
     await page.goto('/songs')
     await expect(page.getByText('Radiohead')).toBeVisible()

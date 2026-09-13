@@ -74,9 +74,10 @@ export async function listSongs(
   filter: { name?: string },
   page: PageRequest | undefined,
 ): Promise<{ content: SongResponse[]; totalElements: number }> {
+  const needle = filter.name?.trim().toLowerCase()
   const all = (await findAllSongsByTenant(tenantId))
     .filter((item) => !item.deletedAt)
-    .filter((item) => !filter.name || item.name?.toLowerCase().includes(filter.name.toLowerCase()))
+    .filter((item) => !needle || item.name?.toLowerCase().includes(needle))
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
   return { content: paged.map(toSongResponse), totalElements: all.length }

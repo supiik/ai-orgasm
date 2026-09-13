@@ -23,16 +23,23 @@ const data = ref<ContributorPage | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+// Monotonic request counter: a slow response for an earlier filter must not overwrite the
+// result of a later one (typing "c", then "creep" — the "c" request may finish last).
+let requestSeq = 0
+
 async function fetchPage(p: number) {
+  const seq = ++requestSeq
   loading.value = true
   error.value = null
   try {
     const { data: body } = await api.contributors().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
+    if (seq !== requestSeq) return
     data.value = body
   } catch {
+    if (seq !== requestSeq) return
     error.value = t('contributors.loadFailed')
   } finally {
-    loading.value = false
+    if (seq === requestSeq) loading.value = false
   }
 }
 
