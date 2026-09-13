@@ -10,7 +10,7 @@ import type {
 } from '@orgasm/backend-client'
 import { throwApiError } from './api-backend'
 import type {
-  GuessEntry, RankingEntry, SongRatingEntry, SongNomination,
+  GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
   AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest,
 } from './api-backend'
 
@@ -117,6 +117,11 @@ const nominationClient = {
 
 const songClient = {
   list:   (page?: number, size?: number, _sort?: string, name?: string) => req<SongPage>('list-songs', pageQuery(page, size, name)),
+  search: (q: string, limit?: number) => {
+    const params = new URLSearchParams({ q })
+    if (limit !== undefined) params.set('limit', String(limit))
+    return req<SongSearchHit[]>('search-songs', `?${params}`)
+  },
   get:    (id: string) => req<SongResponse>('get-song', `/${id}`),
   create: (body: CreateSongRequest) => req<SongResponse>('create-song', '', { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: UpdateSongRequest) => req<SongResponse>('update-song', `/${id}`, { method: 'PUT', body: JSON.stringify(body) }),

@@ -235,7 +235,7 @@ Node 22 is required (enforced via `engines` in `package.json`). Use [fnm](https:
 
 Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in mock mode (`VITE_MOCK=true`) as the web server before running tests — no manual setup needed.
 
-**Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. The `beforeEach` waits for `navigator.serviceWorker.controller` to be set before making any fetch calls.
+**Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. Each API-level spec's `beforeEach` calls `waitForMsw(page)` (`e2e/helpers.ts`), which loads `/` and waits for `navigator.serviceWorker.controller` before any fetch is made — don't wait on a specific API response instead (the specs used to wait for a `/api/health` call that `HomeView` no longer makes, and silently timed out for months).
 
 ### App shell and mobile navigation
 
@@ -394,7 +394,7 @@ to the right handler; DynamoDB calls will fail without a real/local table behind
 amazon/dynamodb-local:2.5.4` instance and pre-create the tables to exercise that path too).
 
 For the **deployed** TypeScript API, `npx ampx sandbox` (run from `ui/`) deploys a real, isolated,
-per-developer AWS stack (all 9 tables, the Cognito User Pool, all 38 functions) — no image to
+per-developer AWS stack (all 9 tables, the Cognito User Pool, all 39 functions) — no image to
 build/push first, since every function bundles straight from its own `handler.ts`. See
 "TypeScript Lambda API via Amplify Gen 2" for how to run its tests against DynamoDB Local instead.
 
@@ -480,7 +480,7 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 
 ### TypeScript Lambda API via Amplify Gen 2
 
-`ui/amplify/` is the actual deployed Lambda API: 38 AWS Lambda functions written in TypeScript,
+`ui/amplify/` is the actual deployed Lambda API: 39 AWS Lambda functions written in TypeScript,
 using Amplify Gen 2's native `defineFunction` — one `resource.ts` + `handler.ts` per function, no
 CDK escape hatch, no container image, no Docker anywhere in the pipeline. It supersedes an earlier
 design (and, before that, AWS SAM) that packaged the **Java** `lambda`/`backend-dynamo` modules
@@ -560,7 +560,7 @@ frontend root is `ui/`.
     `backend` mirrors the fields on its `UpdatePlaylistRequest` (MapStruct null-ignore, no
     gating — same body-actor caveat as the rest of `OrgasmController`), and the Edit dialog in
     `PlaylistDetailView.vue` shows the matching date input only when the API would accept it.
-- **`backend.ts`** — imports all 38 `*Fn` resources, passes them into `defineBackend({ auth,
+- **`backend.ts`** — imports all 39 `*Fn` resources, passes them into `defineBackend({ auth,
   helloFn, createPlaylistFn, ... })`, builds the 9 DynamoDB tables (`tables.ts`'s `createTables` —
   unchanged from the earlier design: raw CDK `dynamodb.Table` L2 constructs, **not** Gen 2's
   `defineData`/AppSync GraphQL model; this schema is hand-rolled pk/sk + GSIs, unrelated to
@@ -591,9 +591,40 @@ frontend root is `ui/`.
   `lib/services/registration.ts`'s `register()` (kept, with tests, for parity) but has no
   `functions/` entry since the 2026-09-11 security review: it was an unauthenticated, unlimited
   DynamoDB write that nothing in the UI called — Cognito sign-up goes through `link-contributor`,
-  which has a verified identity and the `allowedDomain` gate. So the deployed count is **38**
+  which has a verified identity and the `allowedDomain` gate. So the deployed count is **39**
   functions: the Java reference implementation's 34, minus this one, plus the five `admin-*`
-  functions below (which have no Java counterpart).
+  functions below and `search-songs` (none of which have a Java counterpart).
+- **Song catalogue search (`search-songs`, `lib/songSearch/`).** Added 2026-09-13 so the two
+  "create a song" forms (the Songs page dialog and the nominate dialog in `PlaylistDetailView`)
+  can pre-fill artist/title/album/year from a public database instead of being typed by hand.
+  Everything outside `lib/songSearch/` only ever sees the `SongSearchProvider` interface
+  (`provider.ts`: `search(query, limit) → SongSearchHit[]`); `index.ts` is a registry keyed by
+  the `SONG_SEARCH_PROVIDER` env var (default `musicbrainz`), so **swapping the catalogue is one
+  new file implementing the interface plus one registry entry** — `services/songSearch.ts`
+  (query validation, limit cap of 25) and the handler don't change. The one implementation is
+  `musicbrainz.ts` (MusicBrainz: open data, no API key). Things learned against the live API
+  that the class comments also record: (1) MusicBrainz **requires a descriptive `User-Agent`**
+  (`SONG_SEARCH_USER_AGENT`, default names this repo) and throttles at ~1 req/s per IP with
+  503s — which is why the lookup is a Lambda (browsers can't set `User-Agent`) with
+  `reservedConcurrency: 2` in `functions.ts` (a new optional `FnSpec` field; still switched off
+  together with the public caps by `PUBLIC_FN_RESERVED_CONCURRENCY=0`), a 15 s
+  `timeoutSeconds` in its `resource.ts`, and one `Retry-After`-aware retry; (2) the recording
+  index has **no popularity signal** — every live take/bootleg/cover is its own row scoring
+  100 — so the provider fetches the 100-row maximum, boosts artist+title splits and
+  all-terms-in-title in the Lucene query, keeps `status:official` only, dedupes by artist+title,
+  ranks plain titles above `(remix|live|…)` variants and then by release count, and picks the
+  earliest plain official album for the `album` field. "artist title" queries land the
+  original first; title-only queries usually do now but remain a coin toss among hundreds of
+  equally-scored covers when the original isn't in the fetched page — hence the "search by
+  artist and title" hint in the UI. `UpstreamError` → **502** is the new `withAuth` mapping
+  for a failed/timed-out provider call. UI: `components/SongSearch.vue` (debounced, drops
+  stale responses, keyboard-navigable; emits the chosen hit — the parent fills the form and
+  the fields stay editable), `api.songs().search(q, limit)` on both clients (`api-backend.ts`
+  hits `/api/v1/songs/search`, which the Spring backend does **not** implement — it exists so
+  MSW's `mocks/handlers/songs.ts` can serve dev/e2e with a canned catalogue, the same
+  arrangement as the admin endpoints), i18n under `songSearch.*`, `e2e/song-search.spec.ts`.
+  The edit-song dialog deliberately has no lookup. Tests: `lib/songSearch/*.test.ts` and
+  `services/songSearch.test.ts` (fetch mocked; no live MusicBrainz calls in the suite).
 - **Administration (`admin` AuthMode, Cognito `admins` group).** Added 2026-09-13 so
   organizations and manual memberships no longer have to be written straight into DynamoDB.
   `auth/resource.ts` declares `groups: ['admins']`; nobody is in it after a deploy — an operator

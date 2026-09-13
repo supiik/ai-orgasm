@@ -43,3 +43,11 @@ export class ConflictError extends Error {
     this.name = 'ConflictError'
   }
 }
+
+/** An external service this request depends on (e.g. the song-search catalogue) failed or timed out. */
+export class UpstreamError extends Error {
+  constructor(message = 'Upstream service unavailable') {
+    super(message)
+    this.name = 'UpstreamError'
+  }
+}

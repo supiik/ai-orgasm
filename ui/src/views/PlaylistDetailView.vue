@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
-import { api, type GuessEntry, type SongRatingEntry } from '@/api'
+import { api, type GuessEntry, type SongRatingEntry, type SongSearchHit } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { canOpenPlaylist, canStartGuessing, canPublish } from '@/lib/playlistPermissions'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star } from 'lucide-vue-next'
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 import ContributorSelect from '@/components/ContributorSelect.vue'
 import SongUrlBadge from '@/components/SongUrlBadge.vue'
+import SongSearch from '@/components/SongSearch.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -392,6 +393,17 @@ const nominateContributorName = computed(() => {
   if (nominateForm.value.contributorId === myId.value) return authStore.currentContributor?.name ?? ''
   return allContributors.value.find(c => c.id === nominateForm.value.contributorId)?.name ?? ''
 })
+
+function applySearchHit(hit: SongSearchHit) {
+  nominateForm.value = {
+    ...nominateForm.value,
+    artist: hit.artist,
+    name: hit.name,
+    album: hit.album ?? '',
+    releaseYear: hit.releaseYear != null ? String(hit.releaseYear) : '',
+  }
+  nominateError.value = null
+}
 
 async function submitNominate() {
   if (!nominateForm.value.contributorId || !nominateForm.value.artist.trim() || !nominateForm.value.name.trim()) {
@@ -821,6 +833,10 @@ function statusClass(s: NominationStatus | undefined) {
         </div>
         <div class="border-t border-border pt-4 space-y-3">
           <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">{{ t('common.song') }}</p>
+          <div class="space-y-1.5">
+            <Label for="nom-search">{{ t('songSearch.label') }}</Label>
+            <SongSearch input-id="nom-search" @select="applySearchHit" />
+          </div>
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
               <Label for="nom-artist">{{ t('common.artist') }} <span class="text-destructive">*</span></Label>

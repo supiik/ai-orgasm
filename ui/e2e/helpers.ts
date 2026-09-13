@@ -12,3 +12,12 @@ export async function ensureLoggedIn(page: Page) {
     await page.getByText('Thom Yorke').click()
   }
 }
+
+/**
+ * Loads the app and waits until MSW's Service Worker controls the page, so browser-side
+ * `fetch` calls (the only kind MSW can intercept — see CLAUDE.md) are mocked from the first one.
+ */
+export async function waitForMsw(page: Page) {
+  await page.goto('/')
+  await page.waitForFunction(() => navigator.serviceWorker?.controller !== null)
+}

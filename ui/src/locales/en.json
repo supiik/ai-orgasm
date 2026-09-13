@@ -165,6 +165,15 @@
     "notNominated": "Not nominated in any playlist yet.",
     "nominatedBy": "nominated by"
   },
+  "songSearch": {
+    "label": "Look up a song",
+    "placeholder": "e.g. Radiohead Creep",
+    "hint": "Search by artist and title. Choosing a match fills in the fields below — you can still edit them.",
+    "searching": "Searching…",
+    "empty": "No matches found.",
+    "failed": "Song lookup is unavailable right now.",
+    "results": "Search results"
+  },
   "contributors": {
     "title": "Contributors",
     "new": "New contributor",
