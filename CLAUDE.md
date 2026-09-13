@@ -237,6 +237,23 @@ Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in
 
 **Important:** Playlist API tests use `page.evaluate()` (browser-side fetch) rather than Playwright's `request` fixture (Node.js fetch). MSW runs as a Service Worker in the browser, so requests must originate from the browser to be intercepted. The `beforeEach` waits for `navigator.serviceWorker.controller` to be set before making any fetch calls.
 
+### App shell and mobile navigation
+
+`App.vue` owns the layout only; the nav links + user/theme/logout footer live in
+`src/components/SidebarNav.vue`, rendered twice: inside the persistent `<aside>` (`hidden md:flex`)
+and inside a `Sheet` drawer (`src/components/ui/sheet/`, built on the same radix-vue `Dialog`
+primitives as `ui/dialog`) opened from a mobile-only top bar (`md:hidden`) with an `Open menu`
+hamburger. Add new nav entries to `SidebarNav.vue` once — never to `App.vue`. The drawer closes on
+every route change (`watch(route.fullPath)`) and when the viewport crosses the `md` breakpoint.
+
+The drawer's slide-in is a scoped CSS `@keyframes` on radix's `data-state` attribute — this
+project has no `tailwindcss-animate` plugin, so the `animate-in`/`slide-in-*` utilities used in
+`DialogContent.vue` are inert (Tailwind v4 ignores unknown classes; they do nothing).
+
+Phone-width shell behaviour is covered by `e2e/mobile.spec.ts` (`test.use({ viewport: 390×844 })`);
+desktop specs in `home.spec.ts` keep clicking sidebar links directly, which works because the
+closed drawer is not mounted, so there is only one `Songs` link in the DOM at desktop width.
+
 ### shadcn-vue components
 
 shadcn-vue is configured via `ui/components.json`. Add components with:
