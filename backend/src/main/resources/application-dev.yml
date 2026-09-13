@@ -15,6 +15,10 @@ management:
         include: "*"
 
 logging:
+  # Human-readable pattern layout locally; trace/span ids still appear via Boot's correlation pattern.
+  structured:
+    format:
+      console: ${LOG_FORMAT:}
   level:
     com.orgasm: DEBUG
     org.springframework.web: DEBUG

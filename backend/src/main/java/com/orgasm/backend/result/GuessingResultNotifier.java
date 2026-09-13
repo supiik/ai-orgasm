@@ -28,7 +28,7 @@ public class GuessingResultNotifier {
             try {
                 emailService.send(buildMessage(result));
             } catch (Exception e) {
-                log.warn("Failed to send result notification to {}: {}", nominator.getEmail(), e.getMessage());
+                log.warn("Failed to send result notification to contributor {}: {}", nominator.getId(), e.getMessage());
             }
         }
     }

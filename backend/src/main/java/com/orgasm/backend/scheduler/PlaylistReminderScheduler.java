@@ -5,10 +5,12 @@ import com.orgasm.backend.email.EmailMessage;
 import com.orgasm.backend.email.EmailService;
 import com.orgasm.backend.reminder.ReminderService;
 import com.orgasm.backend.reminder.ReminderService.PlaylistReminder;
+import com.orgasm.backend.logging.LogFields;
 import com.orgasm.backend.tenant.TenantContext;
 import com.orgasm.backend.tenant.TenantRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -25,7 +27,8 @@ public class PlaylistReminderScheduler {
     public void sendReminders() {
         tenantRepository.findAll().forEach(tenant -> {
             TenantContext.set(tenant.getId());
-            try {
+            // scheduled jobs run outside RequestLoggingFilter, so scope the tenant into the MDC here
+            try (var ignored = MDC.putCloseable(LogFields.TENANT_ID, String.valueOf(tenant.getId()))) {
                 var reminders = reminderService.findReminders();
                 log.info("Tenant {}: sending deadline reminders for {} playlist(s)", tenant.getSlug(), reminders.size());
                 for (PlaylistReminder reminder : reminders) {
@@ -33,7 +36,7 @@ public class PlaylistReminderScheduler {
                         try {
                             emailService.send(buildMessage(reminder, contributor));
                         } catch (Exception e) {
-                            log.warn("Failed to send reminder to {}: {}", contributor.getEmail(), e.getMessage());
+                            log.warn("Failed to send reminder to contributor {}: {}", contributor.getId(), e.getMessage());
                         }
                     }
                 }

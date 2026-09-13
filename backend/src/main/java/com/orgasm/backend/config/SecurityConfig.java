@@ -1,6 +1,7 @@
 package com.orgasm.backend.config;
 
 import com.orgasm.backend.filter.TenantResolverFilter;
+import com.orgasm.backend.logging.RequestLoggingFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -33,7 +34,9 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
-            .addFilterAfter(new TenantResolverFilter(), BearerTokenAuthenticationFilter.class);
+            .addFilterAfter(new TenantResolverFilter(), BearerTokenAuthenticationFilter.class)
+            // after the tenant filter so tenant + JWT subject are resolved when the MDC is populated
+            .addFilterAfter(new RequestLoggingFilter(), TenantResolverFilter.class);
         return http.build();
     }
 }

@@ -616,6 +616,64 @@ Both are declared in `SecurityConfig.permitAll()`. `TenantResolverFilter` alread
 
 The same gate is mirrored in the deployed TypeScript Cognito path (`ui/amplify/lib/services/registration.ts`'s `assertEmailAllowed`, used by both `register()` and `linkContributor()`) against `OrganizationItem.allowedDomain`, using the Cognito-verified email for `linkContributor`. **Not** ported to the frozen Java reference implementation (`backend-dynamo`'s `RegistrationService`/`LinkContributorService`) — that module tracks the original 34-endpoint parity snapshot the TS port was checked against, not every subsequent app-level feature.
 
+### Structured logging and correlation ids
+
+Both APIs emit one JSON object per line in **Elastic Common Schema** (ECS) shape, with the same
+field names, so `backend` and the Lambda functions land in one index with one set of
+dashboards/alerts and can be shipped as-is by any OTel/Fluent Bit/Datadog forwarder. Field names
+are dotted-ECS and emitted nested (`http.request.id` → `{"http":{"request":{"id":..}}}`); the
+canonical list is `backend/.../logging/LogFields.java` and `ui/amplify/lib/logger.ts`'s `Fields`
+— add new keys to both.
+
+| Field | Source |
+|-------|--------|
+| `trace.id` / `span.id` | Backend: Micrometer Tracing (OTel bridge) — W3C `traceparent` in/out, B3 accepted; a new trace when none is sent. Lambda: `traceparent` header → X-Ray `Root` (flattened to the 32-hex OTel form) → fresh random id (`lib/tracing.ts`). |
+| `http.request.id` | Inbound `X-Request-ID` if it matches `[A-Za-z0-9._-]{1,64}` (caller-controlled, so anything else is replaced, not trusted); else a UUID (backend) / the Lambda `awsRequestId`. Echoed back in the `X-Request-ID` response header, exposed via CORS on both sides. |
+| `http.request.method`, `url.path`, `http.response.status_code`, `event.duration` (ns), `faas.coldstart` (Lambda) | One `HTTP request completed` line per request from `RequestLoggingFilter` / `withAuth` (actuator paths at DEBUG). |
+| `tenant.id`, `user.id` | Opaque ids only: the `tenant_id` claim + JWT `sub` (backend), the Contributor's tenant + id (Lambda). Scheduled jobs scope `tenant.id` into the MDC themselves since they run outside the filter. |
+| `process.thread.name` / `process.thread.id` | Backend only. Thread id is emitted as a dotted top-level key because Boot's ECS formatter already owns the nested `process` object and `JsonWriter` rejects a second member of that name — Elasticsearch treats both spellings as the same field. It reads `Thread.currentThread()`, which is the logging thread only because the console appender is synchronous; don't put an `AsyncAppender` in front of it. |
+
+**Backend mechanics.** Spring Boot's built-in structured logging (`logging.structured.format.console=ecs`
+in `application.yml`; `LOG_FORMAT=` empty switches to the human-readable pattern, which the `dev`
+and `test` profiles do). `StructuredLogCustomizer` (registered via `logging.structured.json.customizer`,
+must keep its no-arg constructor) adds the thread id, re-emits Micrometer's `traceId`/`spanId` MDC
+keys as ECS `trace.id`/`span.id` (the raw keys are dropped via `logging.structured.json.exclude`),
+and applies `PiiMasker` to every string value. `RequestLoggingFilter` sits after
+`TenantResolverFilter` in the security chain and populates/clears the MDC per request; it uses
+the SLF4J fluent API (`log.atInfo().addKeyValue(..)`) for per-line fields — key-value pairs nest
+by dotted name exactly like MDC keys do. `StructuredLogCustomizerTest` drives Boot's real
+`StructuredLogEncoder` with the production properties and pins the wire format; extend it when
+adding fields. Note a `@SpringBootTest` can't verify the format: `LogbackLoggingSystem` skips
+re-initialisation once initialised in a JVM, so the first test context wins.
+
+`spring-boot-starter-opentelemetry` is on the classpath for the trace ids; **no exporter is
+configured by default** (`management.otlp.metrics.export.enabled=false`; the OTLP trace endpoint
+is unset). To ship telemetry set the standard Boot properties via environment, e.g.
+`MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT`, `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED`,
+`MANAGEMENT_OTLP_METRICS_EXPORT_URL`; `TRACING_SAMPLING_PROBABILITY` (default `1.0`) only affects
+export — every request gets a trace id in the logs regardless. `APP_ENV` → `service.environment`,
+`HOSTNAME` → `service.node.name`.
+
+**Lambda mechanics.** `lib/logger.ts` is the MDC equivalent on `AsyncLocalStorage`:
+`withAuth` wraps each invocation in `runWithLogContext({trace/request/method/path})`, adds
+`tenant.id`/`user.id` via `addLogContext` once the Contributor resolves, and everything logged
+inside (services, repositories) inherits it — keep it request-scoped, never module-level
+(execution environments are reused). Use `log.info/warn/error(message, fields?)` — never
+`console.log`, whose output the Node runtime prefixes; the logger writes straight to stdout and
+CloudWatch Logs Insights parses the JSON automatically. `LOG_LEVEL` (default `INFO`) and
+`APP_ENV` are injected by `backend.ts`. Expected client errors (4xx) log at WARN with
+`error.type`/`error.message` only; anything else logs at ERROR with a masked stack trace.
+
+**No PII in logs.** Log opaque ids, never emails, names, usernames, Cognito `sub`/`email`
+claims, client IPs, user agents, request bodies, Authorization headers or query strings (the
+list endpoints take a `name` filter — `url.path` is logged, `rawQueryString` deliberately is
+not). `PiiMasker` (Java) / `maskPii` (TS) scrub anything that looks like an email from every
+string in the output (message, MDC, key-value pairs, exception message, stack trace) as a
+safety net — it cannot recognise a bare personal name, so it is not a licence to log
+`Contributor` objects. `user.id` is the identity provider's opaque subject / the Contributor id;
+if that is ever deemed too identifying for the log retention in use, drop it from
+`RequestLoggingFilter`/`withAuth` and nothing else depends on it.
+
 ### CORS
 `WebConfig` allows `http://localhost:5173` (Vite dev server) for `/api/**` (all methods). For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.
 
@@ -751,5 +809,6 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | aws-cdk-lib | ^2.268.0 |
 | @aws-sdk/client-dynamodb, @aws-sdk/lib-dynamodb | ^3.1130.0 (`ui/package.json` dependencies) |
 | aws-jwt-verify | ^5.2.1 (`ui/package.json` dependencies) |
+| spring-boot-starter-opentelemetry | managed by the Spring Boot BOM (`backend/pom.xml`) — Micrometer Tracing OTel bridge + OTLP exporters, export off by default |
 
 All Java dependency versions are managed centrally in the root `pom.xml` `<properties>` block. Update versions there, not in individual module POMs. `node.version` and `frontend-maven-plugin.version` are also in the root `<properties>` block.

@@ -36,3 +36,8 @@ app:
     from: noreply@test.local
   id:
     secret: "0000000000000000"
+
+logging:
+  structured:
+    format:
+      console: ""

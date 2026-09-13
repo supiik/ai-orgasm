@@ -69,6 +69,19 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      # Only affects what gets exported; every request gets a trace id in the logs regardless.
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  # No collector is configured out of the box. To ship telemetry, set the standard Boot
+  # properties via environment, e.g.
+  #   MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT=http://otel-collector:4318/v1/traces
+  #   MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true
+  #   MANAGEMENT_OTLP_METRICS_EXPORT_URL=http://otel-collector:4318/v1/metrics
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 resilience4j:
   circuitbreaker:
@@ -87,3 +100,22 @@ logging:
   level:
     com.orgasm: DEBUG
     org.springframework.web: INFO
+  # One JSON object per line in Elastic Common Schema shape (@timestamp, log.level, message,
+  # service.*, process.thread.*, trace.id/span.id, error.*), plus every MDC key set by
+  # RequestLoggingFilter nested by its dotted name. Set LOG_FORMAT to an empty string for the
+  # human-readable pattern layout (the dev profile does this).
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}
+    ecs:
+      service:
+        environment: ${APP_ENV:local}
+        node-name: ${HOSTNAME:localhost}
+    json:
+      # Micrometer Tracing writes traceId/spanId to the MDC; StructuredLogCustomizer re-emits
+      # them as ECS trace.id/span.id, so drop the raw keys.
+      exclude: traceId,spanId
+      customizer: com.orgasm.backend.logging.StructuredLogCustomizer
+      stacktrace:
+        max-length: 8192
+        include-common-frames: false
