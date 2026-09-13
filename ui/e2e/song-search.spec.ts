@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test'
 import { mockLogin, waitForMsw } from './helpers'
 
 // The catalogue lookup (SongSearch.vue → `api.songs().search` → MSW's /api/v1/songs/search,
-// standing in for the `search-songs` Lambda + MusicBrainz) used by both "create a song" forms.
+// standing in for the `search-songs` Lambda + MusicBrainz) used by the nomination form — the only
+// place a song is created (SongsView's dialog is edit-only and deliberately has no lookup).
 
 test.describe('song catalogue search', () => {
   test.beforeEach(async ({ page }) => {
@@ -17,33 +18,34 @@ test.describe('song catalogue search', () => {
     expect(status).toBe(400)
   })
 
-  test('pre-fills the new-song form from a chosen hit, leaving the fields editable', async ({ page }) => {
-    await page.goto('/songs')
-    await page.getByRole('button', { name: 'New song' }).click()
+  test('pre-fills the nomination form from a chosen hit, leaving the fields editable', async ({ page }) => {
+    await page.goto('/playlists/play-2d3e4f5a6b7c8d90') // OPEN, deadline in the future
+    await page.getByRole('button', { name: 'Nominate song' }).click()
+    const dialog = page.getByRole('dialog')
 
-    const lookup = page.getByRole('combobox')
+    const lookup = dialog.getByRole('combobox')
     await lookup.fill('radiohead')
-    const results = page.getByRole('listbox', { name: 'Search results' })
+    const results = dialog.getByRole('listbox', { name: 'Search results' })
     await expect(results.getByRole('option')).toHaveCount(2)
     await results.getByRole('button', { name: /Karma Police/ }).click()
 
-    await expect(page.locator('#artist')).toHaveValue('Radiohead')
-    await expect(page.locator('#name')).toHaveValue('Karma Police')
-    await expect(page.locator('#album')).toHaveValue('OK Computer')
-    await expect(page.locator('#releaseYear')).toHaveValue('1997')
+    await expect(dialog.locator('#nom-artist')).toHaveValue('Radiohead')
+    await expect(dialog.locator('#nom-name')).toHaveValue('Karma Police')
+    await expect(dialog.locator('#nom-album')).toHaveValue('OK Computer')
+    await expect(dialog.locator('#nom-year')).toHaveValue('1997')
     await expect(lookup).toHaveValue('')
     await expect(results).toBeHidden()
 
-    await page.locator('#album').fill('OK Computer (Collector’s Edition)')
-    await page.getByRole('button', { name: 'Create', exact: true }).click()
-    await expect(page.getByRole('dialog')).toBeHidden()
-    await expect(page.locator('table tbody tr').filter({ hasText: 'Karma Police' })).toContainText('OK Computer (Collector’s Edition)')
+    await dialog.locator('#nom-album').fill('OK Computer (Collector’s Edition)')
+    await dialog.getByRole('button', { name: 'Nominate', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    await expect(page.getByText('Karma Police', { exact: true })).toBeVisible()
   })
 
   test('shows an empty state and an error state', async ({ page }) => {
-    await page.goto('/songs')
-    await page.getByRole('button', { name: 'New song' }).click()
-    const lookup = page.getByRole('combobox')
+    await page.goto('/playlists/play-2d3e4f5a6b7c8d90')
+    await page.getByRole('button', { name: 'Nominate song' }).click()
+    const lookup = page.getByRole('dialog').getByRole('combobox')
 
     await lookup.fill('nothing matches this')
     await expect(page.getByText('No matches found.')).toBeVisible()

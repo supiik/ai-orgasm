@@ -3,11 +3,10 @@ import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { type SongPage, type SongResponse } from '@orgasm/backend-client'
-import { api, type SongSearchHit } from '@/api'
+import { api } from '@/api'
 import { parseReleaseYear } from '@/lib/releaseYear'
 import { ChevronLeft, ChevronRight, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
-import SongSearch from '@/components/SongSearch.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -74,16 +73,6 @@ function openEdit(song: SongResponse) {
   }
   formError.value = null
   dialogOpen.value = true
-}
-
-function applySearchHit(hit: SongSearchHit) {
-  form.value = {
-    artist: hit.artist,
-    name: hit.name,
-    album: hit.album ?? '',
-    releaseYear: hit.releaseYear != null ? String(hit.releaseYear) : '',
-  }
-  formError.value = null
 }
 
 async function submitForm() {
@@ -210,13 +199,9 @@ async function submitForm() {
       </DialogHeader>
 
       <form class="space-y-4" @submit.prevent="submitForm">
-        <div v-if="dialogMode === 'create'" class="space-y-1.5 border-b border-border pb-4">
-          <Label for="song-search">{{ t('songSearch.label') }}</Label>
-          <SongSearch input-id="song-search" @select="applySearchHit" />
-        </div>
         <div class="space-y-1.5">
           <Label for="artist">{{ t('common.artist') }} <span class="text-destructive">*</span></Label>
-          <Input id="artist" v-model="form.artist" :placeholder="t('fields.artistName')" :autofocus="dialogMode === 'edit'" />
+          <Input id="artist" v-model="form.artist" :placeholder="t('fields.artistName')" autofocus />
         </div>
         <div class="space-y-1.5">
           <Label for="name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
