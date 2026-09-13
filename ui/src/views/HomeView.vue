@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type SongResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { Music } from 'lucide-vue-next'
 
 const router = useRouter()
+const { t } = useI18n()
 const songs = ref<SongResponse[]>([])
 const artworkMap = ref<Record<string, string>>({})
 const loading = ref(true)
@@ -41,7 +43,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-semibold">Recent Songs</h1>
+    <h1 class="text-2xl font-semibold">{{ t('home.title') }}</h1>
 
     <div v-if="loading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       <div v-for="i in 10" :key="i" class="space-y-2">
@@ -76,6 +78,6 @@ onMounted(async () => {
       </div>
     </div>
 
-    <p v-else class="text-muted-foreground">No songs yet.</p>
+    <p v-else class="text-muted-foreground">{{ t('home.empty') }}</p>
   </div>
 </template>

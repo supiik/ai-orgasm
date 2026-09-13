@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type SongPage, type SongResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { parseReleaseYear } from '@/lib/releaseYear'
@@ -13,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const router = useRouter()
+const { t, d } = useI18n()
 // ── Table ────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
@@ -29,7 +31,7 @@ async function fetchPage(p: number) {
     const { data: body } = await api.songs().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
     data.value = body
   } catch {
-    error.value = 'Failed to load songs.'
+    error.value = t('songs.loadFailed')
   } finally {
     loading.value = false
   }
@@ -39,7 +41,7 @@ watch(page, fetchPage, { immediate: true })
 watch(nameFilter, () => { page.value === 0 ? fetchPage(0) : (page.value = 0) })
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  return d(new Date(iso), 'date')
 }
 
 // ── Create / Edit dialog ──────────────────────────────────────────────────────
@@ -53,10 +55,10 @@ const form = ref({ artist: '', name: '', album: '', releaseYear: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
-const dialogTitle = computed(() => dialogMode.value === 'create' ? 'New song' : 'Edit song')
+const dialogTitle = computed(() => dialogMode.value === 'create' ? t('songs.new') : t('songs.editTitle'))
 const submitLabel = computed(() => {
-  if (saving.value) return dialogMode.value === 'create' ? 'Creating…' : 'Saving…'
-  return dialogMode.value === 'create' ? 'Create' : 'Save'
+  if (saving.value) return dialogMode.value === 'create' ? t('common.creating') : t('common.saving')
+  return dialogMode.value === 'create' ? t('common.create') : t('common.save')
 })
 
 function openCreate() {
@@ -82,11 +84,11 @@ function openEdit(song: SongResponse) {
 
 async function submitForm() {
   if (!form.value.artist.trim()) {
-    formError.value = 'Artist is required.'
+    formError.value = t('common.artistRequired')
     return
   }
   if (!form.value.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('common.nameRequired')
     return
   }
   saving.value = true
@@ -108,7 +110,7 @@ async function submitForm() {
     }
     dialogOpen.value = false
   } catch {
-    formError.value = `Failed to ${dialogMode.value === 'create' ? 'create' : 'save'} song. Please try again.`
+    formError.value = dialogMode.value === 'create' ? t('songs.createFailed') : t('songs.saveFailed')
   } finally {
     saving.value = false
   }
@@ -119,12 +121,12 @@ async function submitForm() {
   <div class="space-y-4">
 
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">Songs</h1>
+      <h1 class="text-2xl font-semibold">{{ t('songs.title') }}</h1>
       <div class="flex items-center gap-2">
-        <NameFilter v-model="nameFilter" placeholder="Filter by name…" />
+        <NameFilter v-model="nameFilter" />
         <Button @click="openCreate">
           <Plus class="h-4 w-4" />
-          New song
+          {{ t('songs.new') }}
         </Button>
       </div>
     </div>
@@ -135,12 +137,12 @@ async function submitForm() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-16">ID</TableHead>
-            <TableHead>Artist</TableHead>
-            <TableHead>Name</TableHead>
-            <TableHead>Album</TableHead>
-            <TableHead class="w-28">Year</TableHead>
-            <TableHead class="w-36">Created</TableHead>
+            <TableHead class="w-16">{{ t('common.id') }}</TableHead>
+            <TableHead>{{ t('common.artist') }}</TableHead>
+            <TableHead>{{ t('common.name') }}</TableHead>
+            <TableHead>{{ t('common.album') }}</TableHead>
+            <TableHead class="w-28">{{ t('common.year') }}</TableHead>
+            <TableHead class="w-36">{{ t('common.created') }}</TableHead>
             <TableHead class="w-12" />
           </TableRow>
         </TableHeader>
@@ -175,7 +177,7 @@ async function submitForm() {
           <template v-else>
             <TableRow>
               <TableCell colspan="7" class="text-center text-muted-foreground py-10">
-                No songs found.
+                {{ t('songs.empty') }}
               </TableCell>
             </TableRow>
           </template>
@@ -186,8 +188,8 @@ async function submitForm() {
     <!-- Pagination -->
     <div v-if="data && data.totalPages! > 1" class="flex items-center justify-between text-sm text-muted-foreground">
       <span>
-        {{ data.totalElements }} song{{ data.totalElements !== 1 ? 's' : '' }} —
-        page {{ data.number! + 1 }} of {{ data.totalPages }}
+        {{ t('songs.count', data.totalElements!) }} —
+        {{ t('common.pageOf', { page: data.number! + 1, total: data.totalPages }) }}
       </span>
       <div class="flex gap-1">
         <Button variant="outline" size="icon" :disabled="page === 0" @click="page--">
@@ -210,26 +212,26 @@ async function submitForm() {
 
       <form class="space-y-4" @submit.prevent="submitForm">
         <div class="space-y-1.5">
-          <Label for="artist">Artist <span class="text-destructive">*</span></Label>
-          <Input id="artist" v-model="form.artist" placeholder="Artist name" autofocus />
+          <Label for="artist">{{ t('common.artist') }} <span class="text-destructive">*</span></Label>
+          <Input id="artist" v-model="form.artist" :placeholder="t('fields.artistName')" autofocus />
         </div>
         <div class="space-y-1.5">
-          <Label for="name">Name <span class="text-destructive">*</span></Label>
-          <Input id="name" v-model="form.name" placeholder="Song title" />
+          <Label for="name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
+          <Input id="name" v-model="form.name" :placeholder="t('fields.songTitle')" />
         </div>
         <div class="space-y-1.5">
-          <Label for="album">Album</Label>
-          <Input id="album" v-model="form.album" placeholder="Album name" />
+          <Label for="album">{{ t('common.album') }}</Label>
+          <Input id="album" v-model="form.album" :placeholder="t('fields.albumName')" />
         </div>
         <div class="space-y-1.5">
-          <Label for="releaseYear">Release year</Label>
-          <Input id="releaseYear" v-model="form.releaseYear" type="number" placeholder="e.g. 1993" />
+          <Label for="releaseYear">{{ t('common.releaseYear') }}</Label>
+          <Input id="releaseYear" v-model="form.releaseYear" type="number" :placeholder="t('fields.yearExample')" />
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>
 
       <DialogFooter>
-        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">Cancel</Button>
+        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">{{ t('common.cancel') }}</Button>
         <Button :disabled="saving" @click="submitForm">{{ submitLabel }}</Button>
       </DialogFooter>
     </DialogContent>

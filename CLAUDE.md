@@ -254,6 +254,44 @@ Phone-width shell behaviour is covered by `e2e/mobile.spec.ts` (`test.use({ view
 desktop specs in `home.spec.ts` keep clicking sidebar links directly, which works because the
 closed drawer is not mounted, so there is only one `Songs` link in the DOM at desktop width.
 
+### Internationalization (vue-i18n)
+
+The UI is localized with **vue-i18n v11** (Composition API only, `legacy: false`) plus
+`@intlify/unplugin-vue-i18n`, which pre-compiles the catalogues so the runtime-only build ships.
+Setup lives in `src/i18n.ts`; the plugin is registered in `vite.config.ts` and `main.ts`.
+
+- **Catalogues:** `src/locales/<locale>.json` — `en.json` is the reference, `sk.json` mirrors it.
+  `src/locales/locales.test.ts` (Vitest) fails if any locale is missing/extra keys or uses
+  different `{placeholders}` than `en`. **Adding a language** = add `src/locales/xx.json` with the
+  same keys, append `'xx'` to `SUPPORTED_LOCALES` in `src/i18n.ts`, and add its native name under
+  `locale.xx` in every catalogue. The vite plugin's `include` is `src/locales/*.json` on purpose —
+  a `**` glob would try to parse `locales.test.ts` as a message file.
+- **Usage:** `const { t, d } = useI18n()` in `<script setup>`; `t('ns.key')`, plurals via
+  `t('songs.count', n)`, params via `t('common.pageOf', { page, total })`. Dates go through the
+  named formats `d(date, 'date')` / `d(date, 'dateTime')` (locale-aware; replaces the old
+  `toLocaleDateString(undefined, …)`). Enum-like labels are keyed by the API value:
+  `t(\`playlistStatus.${status}\`)`, `nominationStatus.*`, `ratingType.*`. `@` and `|` are
+  special in messages — write `{'@'}` in placeholders like e-mail examples.
+- **Plurals:** English uses vue-i18n's built-in `zero | one | other` rule; Slovak registers a
+  4-form rule in `src/i18n.ts` (`zero | one | few (2–4) | many (5+)`), so `sk.json` plural
+  messages have four `|`-separated forms.
+- **Persistence is a cookie, not localStorage:** `locale` cookie (1 year, `Path=/`,
+  `SameSite=Lax`, `Secure` on https) — chosen over the `theme` localStorage pattern so the
+  server side (nginx/backend) can read the choice later. Detection order: cookie → first
+  supported entry in `navigator.languages` (`sk-SK` → `sk`) → `en`. `setLocale()` also mirrors the
+  value onto `<html lang>`. `useLocale()` (`src/composables/useLocale.ts`) exposes a writable
+  `locale` computed for the switcher — a `Select` in `SidebarNav.vue` labelled `nav.language`.
+- **Amplify Authenticator:** `CognitoLoginOverlay.vue` feeds `translations` from
+  `@aws-amplify/ui-vue` into Amplify's `I18n` and follows the active locale; languages Amplify
+  doesn't ship (e.g. `sk`) fall back to English inside the widget only.
+- **Tests:** `src/i18n.test.ts` (cookie round-trip, detection order, Slovak plurals — needs the
+  `jsdom` dev dependency, opted in per-file via `// @vitest-environment jsdom`);
+  `e2e/i18n.spec.ts` (sidebar switch, cookie persists across reload, `test.use({ locale:
+  'sk-SK' })` detection, cookie-beats-browser-language). Playwright's default locale is `en-US`,
+  so all other specs keep asserting English strings.
+- `vite.config.ts` now also excludes `e2e/**` from Vitest — the Playwright specs share the
+  `*.spec.ts` suffix and were previously collected (and failed) by `npm run test:unit`.
+
 ### shadcn-vue components
 
 shadcn-vue is configured via `ui/components.json`. Add components with:
@@ -741,6 +779,7 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | Tailwind CSS | 4.x (via `@tailwindcss/vite` plugin) |
 | shadcn-vue | configured via `ui/components.json` |
 | MSW | 2.x |
+| vue-i18n | ^11.4 (+ `@intlify/unplugin-vue-i18n` ^11.2) |
 | Playwright | 1.x |
 | MapStruct | 1.6.3 |
 | frontend-maven-plugin | 1.15.1 (pinned in root POM as `frontend-maven-plugin.version`) |

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type SongResponse } from '@orgasm/backend-client'
 import { api, type SongNomination } from '@/api'
 import { parseReleaseYear } from '@/lib/releaseYear'
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label'
 
 const route = useRoute()
 const router = useRouter()
+const { t, d } = useI18n()
 
 const id = route.params.id as string
 const song = ref<SongResponse | null>(null)
@@ -30,7 +32,7 @@ async function load() {
     song.value = songRes.data
     nominations.value = nomRes
   } catch {
-    error.value = 'Song not found.'
+    error.value = t('songs.notFound')
   } finally {
     loading.value = false
   }
@@ -39,7 +41,7 @@ async function load() {
 onMounted(load)
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  return d(new Date(iso), 'dateTime')
 }
 
 // ── Edit dialog ───────────────────────────────────────────────────────────────
@@ -62,11 +64,11 @@ function openEdit() {
 
 async function submitEdit() {
   if (!form.value.artist.trim()) {
-    formError.value = 'Artist is required.'
+    formError.value = t('common.artistRequired')
     return
   }
   if (!form.value.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('common.nameRequired')
     return
   }
   saving.value = true
@@ -82,7 +84,7 @@ async function submitEdit() {
     song.value = data
     dialogOpen.value = false
   } catch {
-    formError.value = 'Failed to save. Please try again.'
+    formError.value = t('common.saveFailed')
   } finally {
     saving.value = false
   }
@@ -102,7 +104,7 @@ async function submitEdit() {
       </h1>
       <Button v-if="song" variant="outline" size="sm" class="ml-auto" @click="openEdit">
         <Pencil class="h-4 w-4" />
-        Edit
+        {{ t('common.edit') }}
       </Button>
     </div>
 
@@ -111,43 +113,43 @@ async function submitEdit() {
     <template v-if="song">
       <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">ID</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.id') }}</dt>
           <dd>{{ song.id }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Artist</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.artist') }}</dt>
           <dd class="font-medium">{{ song.artist }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Name</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.name') }}</dt>
           <dd class="font-medium">{{ song.name }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Album</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.album') }}</dt>
           <dd class="text-muted-foreground">{{ song.album ?? '—' }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Release year</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.releaseYear') }}</dt>
           <dd class="text-muted-foreground">{{ song.releaseYear ?? '—' }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Created</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.created') }}</dt>
           <dd>{{ formatDate(song.createdAt!) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Updated</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.updated') }}</dt>
           <dd>{{ formatDate(song.updatedAt!) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-32 shrink-0 text-muted-foreground">Version</dt>
+          <dt class="w-32 shrink-0 text-muted-foreground">{{ t('common.version') }}</dt>
           <dd class="text-muted-foreground">{{ song.version }}</dd>
         </div>
       </dl>
     </template>
 
     <template v-if="song && !loading">
-      <h2 class="text-lg font-semibold">Nominations</h2>
-      <p v-if="nominations.length === 0" class="text-sm text-muted-foreground">Not nominated in any playlist yet.</p>
+      <h2 class="text-lg font-semibold">{{ t('songs.nominations') }}</h2>
+      <p v-if="nominations.length === 0" class="text-sm text-muted-foreground">{{ t('songs.notNominated') }}</p>
       <ul v-else class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden">
         <li v-for="nom in nominations" :key="nom.id"
             class="flex items-center justify-between px-4 py-3 gap-4 [&:nth-child(even)]:bg-muted/40">
@@ -157,7 +159,7 @@ async function submitEdit() {
               {{ nom.playlistName }}
             </RouterLink>
             <span class="text-xs text-muted-foreground">
-              nominated by
+              {{ t('songs.nominatedBy') }}
               <RouterLink :to="`/contributors/${nom.nominatedById}`"
                           class="hover:underline underline-offset-2">
                 {{ nom.nominatedByName }}
@@ -169,7 +171,7 @@ async function submitEdit() {
             nom.status === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
             nom.status === 'DECLINED' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-          ]">{{ nom.status }}</span>
+          ]">{{ t(`nominationStatus.${nom.status}`) }}</span>
         </li>
       </ul>
     </template>
@@ -180,30 +182,30 @@ async function submitEdit() {
   <Dialog v-model:open="dialogOpen">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Edit song</DialogTitle>
+        <DialogTitle>{{ t('songs.editTitle') }}</DialogTitle>
       </DialogHeader>
       <form class="space-y-4" @submit.prevent="submitEdit">
         <div class="space-y-1.5">
-          <Label for="artist">Artist <span class="text-destructive">*</span></Label>
-          <Input id="artist" v-model="form.artist" placeholder="Artist name" autofocus />
+          <Label for="artist">{{ t('common.artist') }} <span class="text-destructive">*</span></Label>
+          <Input id="artist" v-model="form.artist" :placeholder="t('fields.artistName')" autofocus />
         </div>
         <div class="space-y-1.5">
-          <Label for="name">Name <span class="text-destructive">*</span></Label>
-          <Input id="name" v-model="form.name" placeholder="Song title" />
+          <Label for="name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
+          <Input id="name" v-model="form.name" :placeholder="t('fields.songTitle')" />
         </div>
         <div class="space-y-1.5">
-          <Label for="album">Album</Label>
-          <Input id="album" v-model="form.album" placeholder="Album name" />
+          <Label for="album">{{ t('common.album') }}</Label>
+          <Input id="album" v-model="form.album" :placeholder="t('fields.albumName')" />
         </div>
         <div class="space-y-1.5">
-          <Label for="releaseYear">Release year</Label>
-          <Input id="releaseYear" v-model="form.releaseYear" type="number" placeholder="e.g. 1993" />
+          <Label for="releaseYear">{{ t('common.releaseYear') }}</Label>
+          <Input id="releaseYear" v-model="form.releaseYear" type="number" :placeholder="t('fields.yearExample')" />
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>
       <DialogFooter>
-        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">Cancel</Button>
-        <Button :disabled="saving" @click="submitEdit">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="saving" @click="submitEdit">{{ saving ? t('common.saving') : t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

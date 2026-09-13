@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -44,6 +45,7 @@ interface Playlist {
 
 const router = useRouter()
 const authStore = useAuthStore()
+const { t, d } = useI18n()
 
 const playlists = ref<Playlist[]>([])
 const allContributors = ref<Contributor[]>([])
@@ -101,7 +103,7 @@ onMounted(async () => {
     )
     allContributors.value = (contributorsRes.data as any).content ?? []
   } catch {
-    error.value = 'Failed to load data.'
+    error.value = t('guessing.loadFailed')
   }
 })
 
@@ -131,7 +133,7 @@ async function selectPlaylist(playlist: Playlist) {
       me.value = myId
     }
   } catch {
-    error.value = 'Failed to load nominations.'
+    error.value = t('guessing.loadNominationsFailed')
   } finally {
     loadingNominations.value = false
   }
@@ -139,7 +141,7 @@ async function selectPlaylist(playlist: Playlist) {
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  return d(new Date(iso), 'date')
 }
 
 const guessingDeadlinePassed = computed(() => {
@@ -187,7 +189,8 @@ function downloadPlaylist() {
     const cell = (v: string) => `"${(v ?? '').replace(/"/g, '""')}"`
     return [i + 1, cell(s?.name ?? ''), cell(s?.artist ?? ''), cell(s?.album ?? ''), cell(s?.url ?? '')].join(',')
   })
-  const csv = ['#,Song,Artist,Album,Link', ...rows].join('\n')
+  const header = ['#', t('common.song'), t('common.artist'), t('common.album'), t('common.link')].join(',')
+  const csv = [header, ...rows].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -204,27 +207,27 @@ function downloadPlaylist() {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-semibold">Guessing</h1>
+    <h1 class="text-2xl font-semibold">{{ t('guessing.title') }}</h1>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 
     <!-- Playlist list -->
     <div v-if="!selectedPlaylist">
-      <p class="text-sm text-muted-foreground mb-4">Select a playlist in the guessing phase to play.</p>
+      <p class="text-sm text-muted-foreground mb-4">{{ t('guessing.intro') }}</p>
 
       <div v-if="playlists.length === 0" class="text-sm text-muted-foreground py-10 text-center">
-        No playlists are currently in the guessing phase.
+        {{ t('guessing.noPlaylists') }}
       </div>
 
       <div v-else class="rounded-md border border-border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Playlist</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead class="w-36">Status</TableHead>
-              <TableHead class="w-44">Lead</TableHead>
-              <TableHead class="w-36">Guessing deadline</TableHead>
+              <TableHead>{{ t('common.playlist') }}</TableHead>
+              <TableHead>{{ t('common.description') }}</TableHead>
+              <TableHead class="w-36">{{ t('common.status') }}</TableHead>
+              <TableHead class="w-44">{{ t('common.lead') }}</TableHead>
+              <TableHead class="w-36">{{ t('playlist.guessingDeadline') }}</TableHead>
               <TableHead class="w-24" />
             </TableRow>
           </TableHeader>
@@ -248,7 +251,7 @@ function downloadPlaylist() {
               </TableCell>
               <TableCell class="text-muted-foreground text-sm">{{ formatDate(playlist.guessingDeadline) }}</TableCell>
               <TableCell>
-                <Button size="sm" variant="outline" @click.stop="selectPlaylist(playlist)">Play</Button>
+                <Button size="sm" variant="outline" @click.stop="selectPlaylist(playlist)">{{ t('guessing.play') }}</Button>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -259,43 +262,43 @@ function downloadPlaylist() {
     <!-- Guessing game -->
     <div v-else class="space-y-5">
       <div class="flex items-center gap-3">
-        <Button variant="ghost" size="sm" @click="selectedPlaylist = null">← Back</Button>
+        <Button variant="ghost" size="sm" @click="selectedPlaylist = null">← {{ t('common.back') }}</Button>
         <h2 class="text-lg font-medium">{{ selectedPlaylist.name }}</h2>
         <PlaylistStatusBadge :status="selectedPlaylist.status" />
-        <Button variant="outline" size="sm" class="ml-auto" @click="downloadPlaylist">Download playlist</Button>
+        <Button variant="outline" size="sm" class="ml-auto" @click="downloadPlaylist">{{ t('guessing.downloadPlaylist') }}</Button>
       </div>
 
       <p v-if="selectedPlaylist.guessingDeadline" class="text-sm text-muted-foreground">
-        Guessing closes
+        {{ t('guessing.closes') }}
         <span :class="guessingDeadlinePassed ? 'text-destructive font-medium' : 'text-foreground'">
           {{ formatDate(selectedPlaylist.guessingDeadline) }}
         </span>
-        <span v-if="guessingDeadlinePassed"> (passed)</span>
+        <span v-if="guessingDeadlinePassed"> {{ t('common.passed') }}</span>
       </p>
 
-      <div v-if="loadingNominations" class="text-sm text-muted-foreground">Loading…</div>
+      <div v-if="loadingNominations" class="text-sm text-muted-foreground">{{ t('common.loading') }}</div>
 
       <template v-else-if="approvedNominations.length === 0">
-        <p class="text-sm text-muted-foreground">No approved nominations in this playlist.</p>
+        <p class="text-sm text-muted-foreground">{{ t('guessing.noApproved') }}</p>
       </template>
 
       <template v-else>
         <!-- Identity section -->
         <div class="flex items-center gap-3">
-          <label class="text-sm font-medium whitespace-nowrap">I am</label>
+          <label class="text-sm font-medium whitespace-nowrap">{{ t('guessing.iAm') }}</label>
           <!-- Auto-resolved in real mode -->
           <template v-if="me && authStore.currentContributor">
             <span class="text-sm font-medium">{{ contributorName(me) }}</span>
-            <button class="text-xs text-muted-foreground underline" @click="me = ''">Change</button>
+            <button class="text-xs text-muted-foreground underline" @click="me = ''">{{ t('guessing.change') }}</button>
           </template>
-          <Select v-else v-model="me" class="w-56" placeholder="Select your name…">
+          <Select v-else v-model="me" class="w-56" :placeholder="t('guessing.selectYourName')">
             <SelectItem v-for="c in eligibleContributors" :key="c.id" :value="c.id">
               {{ c.name }}
             </SelectItem>
           </Select>
           <span v-if="me" class="text-sm text-muted-foreground">
-            You nominated <strong>{{ songs[myNomination?.songId ?? '']?.name ?? '…' }}</strong> —
-            now guess the other {{ guessList.length }} song{{ guessList.length !== 1 ? 's' : '' }}.
+            {{ t('guessing.youNominated') }} <strong>{{ songs[myNomination?.songId ?? '']?.name ?? '…' }}</strong> —
+            {{ t('guessing.nowGuess', guessList.length) }}.
           </span>
         </div>
 
@@ -305,9 +308,9 @@ function downloadPlaylist() {
             <TableHeader>
               <TableRow>
                 <TableHead>#</TableHead>
-                <TableHead>Song</TableHead>
-                <TableHead>Album</TableHead>
-                <TableHead class="w-56">Your guess</TableHead>
+                <TableHead>{{ t('common.song') }}</TableHead>
+                <TableHead>{{ t('common.album') }}</TableHead>
+                <TableHead class="w-56">{{ t('guessing.yourGuess') }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -324,7 +327,7 @@ function downloadPlaylist() {
                   <ContributorSelect
                     v-model="guesses[nomination.id]"
                     :contributors="availableOptions(nomination.id)"
-                    placeholder="Pick a contributor…"
+                    :placeholder="t('guessing.pickContributor')"
                     class="w-full"
                   />
                 </TableCell>
@@ -335,7 +338,7 @@ function downloadPlaylist() {
 
         <!-- Actions -->
         <div v-if="me" class="flex justify-end">
-          <Button :disabled="!allGuessed" @click="submit">Submit guesses</Button>
+          <Button :disabled="!allGuessed" @click="submit">{{ t('guessing.submit') }}</Button>
         </div>
       </template>
     </div>

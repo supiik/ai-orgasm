@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api, type GuessEntry, type SongRatingEntry } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -16,6 +17,7 @@ import SongUrlBadge from '@/components/SongUrlBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { t, d } = useI18n()
 const authStore = useAuthStore()
 
 const isLead = computed(() =>
@@ -50,7 +52,7 @@ async function load() {
       await loadSongRatings()
     }
   } catch {
-    error.value = 'Playlist not found.'
+    error.value = t('playlist.notFound')
   } finally {
     loading.value = false
   }
@@ -110,7 +112,7 @@ onMounted(load)
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+  return d(new Date(iso), 'dateTime')
 }
 
 const deadlinePassed = computed(() => {
@@ -159,9 +161,9 @@ function openEdit() {
 }
 
 async function submitEdit() {
-  if (!editForm.value.name.trim()) { editError.value = 'Name is required.'; return }
-  if (canEditDeadline.value && !editForm.value.deadline) { editError.value = 'Nomination deadline is required.'; return }
-  if (canEditGuessingDeadline.value && !editForm.value.guessingDeadline) { editError.value = 'Guessing deadline is required.'; return }
+  if (!editForm.value.name.trim()) { editError.value = t('common.nameRequired'); return }
+  if (canEditDeadline.value && !editForm.value.deadline) { editError.value = t('playlist.nominationDeadlineRequired'); return }
+  if (canEditGuessingDeadline.value && !editForm.value.guessingDeadline) { editError.value = t('playlist.guessingDeadlineRequired'); return }
   saving.value = true
   editError.value = null
   try {
@@ -174,7 +176,7 @@ async function submitEdit() {
     playlist.value = data
     editOpen.value = false
   } catch {
-    editError.value = 'Failed to save. Please try again.'
+    editError.value = t('common.saveFailed')
   } finally {
     saving.value = false
   }
@@ -197,8 +199,8 @@ function showOpen() {
 }
 
 async function submitOpen() {
-  if (!openForm.value.contributorId.trim()) { openError.value = 'Contributor ID is required.'; return }
-  if (!openForm.value.deadline) { openError.value = 'Deadline is required.'; return }
+  if (!openForm.value.contributorId.trim()) { openError.value = t('playlist.contributorRequired'); return }
+  if (!openForm.value.deadline) { openError.value = t('playlist.deadlineRequired'); return }
   opening.value = true
   openError.value = null
   try {
@@ -210,7 +212,7 @@ async function submitOpen() {
     openOpen.value = false
     await loadNominations()
   } catch (e: unknown) {
-    openError.value = extractDetail(e) ?? 'Failed to open playlist.'
+    openError.value = extractDetail(e) ?? t('playlist.openFailed')
   } finally {
     opening.value = false
   }
@@ -358,7 +360,7 @@ async function autoSubmitRatings() {
     await api.songRatings().submit(id, { contributorId: myId.value, ratings })
     await loadSongRatings()
   } catch (e: unknown) {
-    ratingError.value = extractDetail(e) ?? 'Failed to submit ratings.'
+    ratingError.value = extractDetail(e) ?? t('playlist.submitRatingsFailed')
   } finally {
     submittingRating.value = false
   }
@@ -373,10 +375,8 @@ const songTotalPoints = computed(() => {
 })
 
 const ratingTypeLabel = computed(() => {
-  if (ratingType.value === 'LINEAR') return 'Linear (1, 2, 3 pts)'
-  if (ratingType.value === 'FIBONACCI') return 'Fibonacci (5, 8, 13 pts)'
-  if (ratingType.value === 'BEST_SONG') return 'Best Song (pick one)'
-  return ''
+  const rt = ratingType.value
+  return rt && rt in STAR_TO_POINTS ? t(`ratingType.${rt as keyof typeof STAR_TO_POINTS}`) : ''
 })
 
 function showNominate(contributorId = '') {
@@ -395,7 +395,7 @@ const nominateContributorName = computed(() => {
 
 async function submitNominate() {
   if (!nominateForm.value.contributorId || !nominateForm.value.artist.trim() || !nominateForm.value.name.trim()) {
-    nominateError.value = 'Contributor, artist, and song name are required.'
+    nominateError.value = t('playlist.nominateFieldsRequired')
     return
   }
   nominating.value = true
@@ -416,7 +416,7 @@ async function submitNominate() {
     nominateOpen.value = false
     await loadNominations()
   } catch (e: unknown) {
-    nominateError.value = extractDetail(e) ?? 'Failed to nominate song.'
+    nominateError.value = extractDetail(e) ?? t('playlist.nominateFailed')
   } finally {
     nominating.value = false
   }
@@ -447,7 +447,7 @@ async function startGuessing() {
     playlist.value = data
     await loadNominations()
   } catch (e: unknown) {
-    error.value = extractDetail(e) ?? 'Failed to start guessing phase.'
+    error.value = extractDetail(e) ?? t('playlist.startGuessingFailed')
   }
 }
 
@@ -480,9 +480,9 @@ function extractDetail(e: unknown): string | null {
 }
 
 function statusLabel(s: NominationStatus | undefined) {
-  if (s === NominationStatus.Approved) return 'Approved'
-  if (s === NominationStatus.Declined) return 'Declined'
-  return 'Pending'
+  if (s === NominationStatus.Approved) return t('nominationStatus.APPROVED')
+  if (s === NominationStatus.Declined) return t('nominationStatus.DECLINED')
+  return t('nominationStatus.PENDING')
 }
 
 function statusClass(s: NominationStatus | undefined) {
@@ -507,19 +507,19 @@ function statusClass(s: NominationStatus | undefined) {
       <div class="ml-auto flex gap-2">
         <Button v-if="canOpenPlaylist(playlist?.status)" variant="outline" size="sm" @click="showOpen">
           <Play class="h-4 w-4" />
-          Open for nominations
+          {{ t('playlist.openForNominations') }}
         </Button>
         <Button v-if="canStartGuessing(playlist?.status, isLead, deadlinePassed, allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
           <Headphones class="h-4 w-4" />
-          Start guessing
+          {{ t('playlist.startGuessing') }}
         </Button>
         <Button v-if="canPublish(playlist?.status, isLead)" variant="outline" size="sm" :disabled="publishing" @click="publish">
           <BookOpen class="h-4 w-4" />
-          {{ publishing ? 'Publishing…' : 'Publish' }}
+          {{ publishing ? t('playlist.publishing') : t('playlist.publish') }}
         </Button>
         <Button v-if="playlist?.status === PlaylistStatus.New || playlist?.status === PlaylistStatus.Open" variant="outline" size="sm" @click="openEdit">
           <Pencil class="h-4 w-4" />
-          Edit
+          {{ t('common.edit') }}
         </Button>
       </div>
     </div>
@@ -530,23 +530,23 @@ function statusClass(s: NominationStatus | undefined) {
     <template v-if="playlist">
       <dl class="divide-y divide-border rounded-md border border-border text-sm overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">ID</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.id') }}</dt>
           <dd>{{ playlist.id }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Name</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.name') }}</dt>
           <dd class="font-medium">{{ playlist.name }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Description</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.description') }}</dt>
           <dd class="text-muted-foreground">{{ playlist.description ?? '—' }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Status</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.status') }}</dt>
           <dd><PlaylistStatusBadge v-if="playlist.status" :status="playlist.status" /></dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Lead contributor</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('playlist.leadContributor') }}</dt>
           <dd>
             <RouterLink v-if="playlist.leadContributorId" :to="`/contributors/${playlist.leadContributorId}`" class="flex items-center gap-2 w-fit hover:underline underline-offset-2">
               <img v-if="(playlist as any).leadContributorAvatarUrl" :src="(playlist as any).leadContributorAvatarUrl" :alt="(playlist as any).leadContributorName" class="w-6 h-6 rounded-full object-cover shrink-0" />
@@ -557,25 +557,25 @@ function statusClass(s: NominationStatus | undefined) {
           </dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Deadline</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('playlist.deadline') }}</dt>
           <dd :class="deadlinePassed ? 'text-destructive' : ''">
             {{ formatDate(playlist.deadline) }}
-            <span v-if="deadlinePassed" class="ml-1 text-xs">(passed)</span>
+            <span v-if="deadlinePassed" class="ml-1 text-xs">{{ t('common.passed') }}</span>
           </dd>
         </div>
         <div v-if="(playlist as any).guessingDeadline" class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Guessing deadline</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('playlist.guessingDeadline') }}</dt>
           <dd :class="guessingDeadlinePassed ? 'text-destructive' : ''">
             {{ formatDate((playlist as any).guessingDeadline) }}
-            <span v-if="guessingDeadlinePassed" class="ml-1 text-xs">(passed)</span>
+            <span v-if="guessingDeadlinePassed" class="ml-1 text-xs">{{ t('common.passed') }}</span>
           </dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Created</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.created') }}</dt>
           <dd>{{ formatDate(playlist.createdAt) }}</dd>
         </div>
         <div class="flex px-4 py-3 gap-4">
-          <dt class="w-36 shrink-0 text-muted-foreground">Updated</dt>
+          <dt class="w-36 shrink-0 text-muted-foreground">{{ t('common.updated') }}</dt>
           <dd>{{ formatDate(playlist.updatedAt) }}</dd>
         </div>
       </dl>
@@ -583,15 +583,15 @@ function statusClass(s: NominationStatus | undefined) {
       <!-- Nominations section -->
       <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Guessing || playlist.status === PlaylistStatus.Published">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Nominations</h2>
+          <h2 class="text-lg font-semibold">{{ t('playlist.nominations') }}</h2>
           <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed" size="sm" @click="showNominate">
             <Send class="h-4 w-4" />
-            Nominate song
+            {{ t('playlist.nominateSong') }}
           </Button>
         </div>
 
         <div v-if="visibleNominations.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
-          No nominations yet.
+          {{ t('playlist.noNominations') }}
         </div>
 
         <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
@@ -625,7 +625,7 @@ function statusClass(s: NominationStatus | undefined) {
 
       <!-- Contributors not yet nominated -->
       <section v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed && eligibleContributors.length > 0">
-        <h2 class="text-lg font-semibold mb-3">Not yet nominated</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ t('playlist.notYetNominated') }}</h2>
         <div class="divide-y divide-border rounded-md border border-border overflow-hidden [&>div:nth-child(even)]:bg-muted/40">
           <div v-for="c in eligibleContributors" :key="c.id" class="flex items-center px-4 py-3 gap-3 text-sm">
             <img v-if="c.avatarUrl" :src="c.avatarUrl" :alt="c.name" class="w-7 h-7 rounded-full object-cover shrink-0" />
@@ -633,7 +633,7 @@ function statusClass(s: NominationStatus | undefined) {
             <span class="flex-1">{{ c.name }}</span>
             <Button size="sm" variant="ghost" @click="showNominate(c.id)">
               <Send class="h-4 w-4" />
-              Nominate
+              {{ t('playlist.nominate') }}
             </Button>
           </div>
         </div>
@@ -641,18 +641,18 @@ function statusClass(s: NominationStatus | undefined) {
 
       <!-- Rating type info -->
       <div v-if="ratingType" class="flex px-4 py-3 gap-4 border border-border rounded-md text-sm bg-muted/40">
-        <dt class="w-36 shrink-0 text-muted-foreground">Rating type</dt>
+        <dt class="w-36 shrink-0 text-muted-foreground">{{ t('playlist.ratingType') }}</dt>
         <dd class="font-medium">{{ ratingTypeLabel }}</dd>
       </div>
 
       <!-- Guess matrix -->
       <section v-if="showMatrix">
-        <h2 class="text-lg font-semibold mb-3">Guess matrix</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ t('playlist.guessMatrix') }}</h2>
         <div class="overflow-x-auto rounded-md border border-border">
           <table class="text-sm w-full">
             <thead>
               <tr class="bg-muted/60 divide-x divide-border">
-                <th class="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">Song</th>
+                <th class="px-4 py-2 text-left font-medium text-muted-foreground whitespace-nowrap">{{ t('common.song') }}</th>
                 <th v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 font-medium whitespace-nowrap text-center">
                   <RouterLink :to="`/contributors/${guesser.id}`" class="flex flex-col items-center gap-1 hover:underline underline-offset-2">
                     <img v-if="guesser.avatarUrl" :src="guesser.avatarUrl" :alt="guesser.name" class="w-6 h-6 rounded-full object-cover" />
@@ -660,7 +660,7 @@ function statusClass(s: NominationStatus | undefined) {
                     <span class="text-xs">{{ guesser.name }}</span>
                   </RouterLink>
                 </th>
-                <th class="px-3 py-2 font-medium whitespace-nowrap text-center text-muted-foreground">Total</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-center text-muted-foreground">{{ t('common.total') }}</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
@@ -689,7 +689,7 @@ function statusClass(s: NominationStatus | undefined) {
             </tbody>
             <tfoot>
               <tr class="bg-muted/60 divide-x divide-border border-t border-border">
-                <td class="px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Total</td>
+                <td class="px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">{{ t('common.total') }}</td>
                 <td v-for="guesser in guesserPool" :key="guesser.id" class="px-3 py-2 text-center whitespace-nowrap font-medium tabular-nums">
                   <span :class="guesserCorrectCounts[guesser.id]?.correct === guesserCorrectCounts[guesser.id]?.total ? 'text-green-600' : guesserCorrectCounts[guesser.id]?.correct === 0 ? 'text-muted-foreground' : ''">
                     {{ guesserCorrectCounts[guesser.id]?.correct ?? 0 }}/{{ guesserCorrectCounts[guesser.id]?.total ?? 0 }}
@@ -704,7 +704,7 @@ function statusClass(s: NominationStatus | undefined) {
 
       <!-- Song ratings section -->
       <section v-if="playlist.status === PlaylistStatus.Published && ratingType">
-        <h2 class="text-lg font-semibold mb-3">Song Ratings</h2>
+        <h2 class="text-lg font-semibold mb-3">{{ t('playlist.songRatings') }}</h2>
         <p class="text-xs text-muted-foreground mb-3">{{ ratingTypeLabel }}</p>
         <p v-if="ratingError" class="text-sm text-destructive mb-3">{{ ratingError }}</p>
 
@@ -716,7 +716,7 @@ function statusClass(s: NominationStatus | undefined) {
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
               <template v-if="nom.nominatedById === myId">
-                <span class="text-xs text-muted-foreground italic">Your nomination</span>
+                <span class="text-xs text-muted-foreground italic">{{ t('playlist.yourNomination') }}</span>
               </template>
               <template v-else>
                 <button
@@ -737,7 +737,7 @@ function statusClass(s: NominationStatus | undefined) {
             </div>
             <div class="w-16 text-right tabular-nums shrink-0">
               <span class="font-semibold">{{ songTotalPoints[nom.id!] ?? 0 }}</span>
-              <span class="text-muted-foreground text-xs"> pts</span>
+              <span class="text-muted-foreground text-xs"> {{ t('playlist.pts') }}</span>
             </div>
             <div class="flex flex-wrap gap-1 w-40 shrink-0">
               <span
@@ -759,29 +759,29 @@ function statusClass(s: NominationStatus | undefined) {
   <!-- Edit dialog -->
   <Dialog v-model:open="editOpen">
     <DialogContent>
-      <DialogHeader><DialogTitle>Edit playlist</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{{ t('playlists.editTitle') }}</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitEdit">
         <div class="space-y-1.5">
-          <Label for="edit-name">Name <span class="text-destructive">*</span></Label>
-          <Input id="edit-name" v-model="editForm.name" placeholder="My playlist" autofocus />
+          <Label for="edit-name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
+          <Input id="edit-name" v-model="editForm.name" :placeholder="t('playlists.namePlaceholder')" autofocus />
         </div>
         <div class="space-y-1.5">
-          <Label for="edit-desc">Description</Label>
-          <Input id="edit-desc" v-model="editForm.description" placeholder="Optional description" />
+          <Label for="edit-desc">{{ t('common.description') }}</Label>
+          <Input id="edit-desc" v-model="editForm.description" :placeholder="t('playlists.descriptionPlaceholder')" />
         </div>
         <div v-if="canEditDeadline" class="space-y-1.5">
-          <Label for="edit-deadline">Nomination deadline <span class="text-destructive">*</span></Label>
+          <Label for="edit-deadline">{{ t('playlist.nominationDeadline') }} <span class="text-destructive">*</span></Label>
           <Input id="edit-deadline" v-model="editForm.deadline" type="date" />
         </div>
         <div v-if="canEditGuessingDeadline" class="space-y-1.5">
-          <Label for="edit-guessing-deadline">Guessing deadline <span class="text-destructive">*</span></Label>
+          <Label for="edit-guessing-deadline">{{ t('playlist.guessingDeadline') }} <span class="text-destructive">*</span></Label>
           <Input id="edit-guessing-deadline" v-model="editForm.guessingDeadline" type="date" />
         </div>
         <p v-if="editError" class="text-sm text-destructive">{{ editError }}</p>
       </form>
       <DialogFooter>
-        <Button variant="outline" :disabled="saving" @click="editOpen = false">Cancel</Button>
-        <Button :disabled="saving" @click="submitEdit">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button variant="outline" :disabled="saving" @click="editOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="saving" @click="submitEdit">{{ saving ? t('common.saving') : t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -789,21 +789,21 @@ function statusClass(s: NominationStatus | undefined) {
   <!-- Open playlist dialog -->
   <Dialog v-model:open="openOpen">
     <DialogContent>
-      <DialogHeader><DialogTitle>Open playlist for nominations</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{{ t('playlist.openDialogTitle') }}</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitOpen">
         <div class="space-y-1.5">
-          <Label>Lead contributor <span class="text-destructive">*</span></Label>
-          <ContributorSelect v-model="openForm.contributorId" :contributors="allContributors" placeholder="Select lead contributor…" />
+          <Label>{{ t('playlist.leadContributor') }} <span class="text-destructive">*</span></Label>
+          <ContributorSelect v-model="openForm.contributorId" :contributors="allContributors" :placeholder="t('playlist.selectLead')" />
         </div>
         <div class="space-y-1.5">
-          <Label for="open-deadline">Nomination deadline <span class="text-destructive">*</span></Label>
+          <Label for="open-deadline">{{ t('playlist.nominationDeadline') }} <span class="text-destructive">*</span></Label>
           <Input id="open-deadline" v-model="openForm.deadline" type="date" />
         </div>
         <p v-if="openError" class="text-sm text-destructive">{{ openError }}</p>
       </form>
       <DialogFooter>
-        <Button variant="outline" :disabled="opening" @click="openOpen = false">Cancel</Button>
-        <Button :disabled="opening" @click="submitOpen">{{ opening ? 'Opening…' : 'Open' }}</Button>
+        <Button variant="outline" :disabled="opening" @click="openOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="opening" @click="submitOpen">{{ opening ? t('playlist.opening') : t('playlist.open') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -811,44 +811,44 @@ function statusClass(s: NominationStatus | undefined) {
   <!-- Nominate song dialog -->
   <Dialog v-model:open="nominateOpen">
     <DialogContent>
-      <DialogHeader><DialogTitle>Nominate a song</DialogTitle></DialogHeader>
+      <DialogHeader><DialogTitle>{{ t('playlist.nominateDialogTitle') }}</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitNominate">
         <div class="space-y-1.5">
-          <Label>Nominating as</Label>
+          <Label>{{ t('playlist.nominatingAs') }}</Label>
           <div class="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
             {{ nominateContributorName || '—' }}
           </div>
         </div>
         <div class="border-t border-border pt-4 space-y-3">
-          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Song</p>
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">{{ t('common.song') }}</p>
           <div class="grid grid-cols-2 gap-3">
             <div class="space-y-1.5">
-              <Label for="nom-artist">Artist <span class="text-destructive">*</span></Label>
+              <Label for="nom-artist">{{ t('common.artist') }} <span class="text-destructive">*</span></Label>
               <Input id="nom-artist" v-model="nominateForm.artist" placeholder="Radiohead" />
             </div>
             <div class="space-y-1.5">
-              <Label for="nom-name">Title <span class="text-destructive">*</span></Label>
+              <Label for="nom-name">{{ t('common.title') }} <span class="text-destructive">*</span></Label>
               <Input id="nom-name" v-model="nominateForm.name" placeholder="Creep" />
             </div>
             <div class="space-y-1.5">
-              <Label for="nom-album">Album</Label>
+              <Label for="nom-album">{{ t('common.album') }}</Label>
               <Input id="nom-album" v-model="nominateForm.album" placeholder="Pablo Honey" />
             </div>
             <div class="space-y-1.5">
-              <Label for="nom-year">Year</Label>
+              <Label for="nom-year">{{ t('common.year') }}</Label>
               <Input id="nom-year" v-model="nominateForm.releaseYear" type="number" placeholder="1993" />
             </div>
           </div>
           <div class="space-y-1.5">
-            <Label for="nom-url">Link</Label>
+            <Label for="nom-url">{{ t('common.link') }}</Label>
             <Input id="nom-url" v-model="nominateForm.url" type="url" placeholder="https://…" />
           </div>
         </div>
         <p v-if="nominateError" class="text-sm text-destructive">{{ nominateError }}</p>
       </form>
       <DialogFooter>
-        <Button variant="outline" :disabled="nominating" @click="nominateOpen = false">Cancel</Button>
-        <Button :disabled="nominating" @click="submitNominate">{{ nominating ? 'Nominating…' : 'Nominate' }}</Button>
+        <Button variant="outline" :disabled="nominating" @click="nominateOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="nominating" @click="submitNominate">{{ nominating ? t('playlist.nominating') : t('playlist.nominate') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { type PlaylistPage, type PlaylistResponse as BasePlaylistResponse } from '@orgasm/backend-client'
 
 type PlaylistResponse = BasePlaylistResponse & {
@@ -20,6 +21,7 @@ import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 
 const router = useRouter()
+const { t, d } = useI18n()
 // ── Table ────────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
@@ -36,7 +38,7 @@ async function fetchPage(p: number) {
     const { data: body } = await api.playlists().list(p, PAGE_SIZE, 'id', nameFilter.value || undefined)
     data.value = body as EnrichedPlaylistPage
   } catch {
-    error.value = 'Failed to load playlists.'
+    error.value = t('playlists.loadFailed')
   } finally {
     loading.value = false
   }
@@ -46,7 +48,7 @@ watch(page, fetchPage, { immediate: true })
 watch(nameFilter, () => { page.value === 0 ? fetchPage(0) : (page.value = 0) })
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' })
+  return d(new Date(iso), 'date')
 }
 
 // ── Create / Edit dialog ──────────────────────────────────────────────────────
@@ -56,20 +58,16 @@ type DialogMode = 'create' | 'edit'
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
 const editingId = ref<string | null>(null)
-const RATING_TYPES = [
-  { value: 'LINEAR', label: 'Linear (1, 2, 3 pts)' },
-  { value: 'FIBONACCI', label: 'Fibonacci (5, 8, 13 pts)' },
-  { value: 'BEST_SONG', label: 'Best Song (pick one)' },
-] as const
+const RATING_TYPES = ['LINEAR', 'FIBONACCI', 'BEST_SONG'] as const
 
 const form = ref({ name: '', description: '', ratingType: '' })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
-const dialogTitle = computed(() => dialogMode.value === 'create' ? 'New playlist' : 'Edit playlist')
+const dialogTitle = computed(() => dialogMode.value === 'create' ? t('playlists.new') : t('playlists.editTitle'))
 const submitLabel = computed(() => {
-  if (saving.value) return dialogMode.value === 'create' ? 'Creating…' : 'Saving…'
-  return dialogMode.value === 'create' ? 'Create' : 'Save'
+  if (saving.value) return dialogMode.value === 'create' ? t('common.creating') : t('common.saving')
+  return dialogMode.value === 'create' ? t('common.create') : t('common.save')
 })
 
 function openCreate() {
@@ -90,7 +88,7 @@ function openEdit(playlist: PlaylistResponse) {
 
 async function submitForm() {
   if (!form.value.name.trim()) {
-    formError.value = 'Name is required.'
+    formError.value = t('common.nameRequired')
     return
   }
   saving.value = true
@@ -112,7 +110,7 @@ async function submitForm() {
     }
     dialogOpen.value = false
   } catch {
-    formError.value = `Failed to ${dialogMode.value === 'create' ? 'create' : 'save'} playlist. Please try again.`
+    formError.value = dialogMode.value === 'create' ? t('playlists.createFailed') : t('playlists.saveFailed')
   } finally {
     saving.value = false
   }
@@ -123,12 +121,12 @@ async function submitForm() {
   <div class="space-y-4">
 
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-semibold">Playlists</h1>
+      <h1 class="text-2xl font-semibold">{{ t('playlists.title') }}</h1>
       <div class="flex items-center gap-2">
-        <NameFilter v-model="nameFilter" placeholder="Filter by name…" />
+        <NameFilter v-model="nameFilter" />
         <Button @click="openCreate">
           <Plus class="h-4 w-4" />
-          New playlist
+          {{ t('playlists.new') }}
         </Button>
       </div>
     </div>
@@ -139,12 +137,12 @@ async function submitForm() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead class="w-36">Status</TableHead>
-            <TableHead class="w-44">Lead</TableHead>
-            <TableHead class="w-36">Created</TableHead>
-            <TableHead class="w-36">Updated</TableHead>
+            <TableHead>{{ t('common.name') }}</TableHead>
+            <TableHead>{{ t('common.description') }}</TableHead>
+            <TableHead class="w-36">{{ t('common.status') }}</TableHead>
+            <TableHead class="w-44">{{ t('common.lead') }}</TableHead>
+            <TableHead class="w-36">{{ t('common.created') }}</TableHead>
+            <TableHead class="w-36">{{ t('common.updated') }}</TableHead>
             <TableHead class="w-12" />
           </TableRow>
         </TableHeader>
@@ -186,7 +184,7 @@ async function submitForm() {
           <template v-else>
             <TableRow>
               <TableCell colspan="7" class="text-center text-muted-foreground py-10">
-                No playlists found.
+                {{ t('playlists.empty') }}
               </TableCell>
             </TableRow>
           </template>
@@ -197,8 +195,8 @@ async function submitForm() {
     <!-- Pagination -->
     <div v-if="data && data.totalPages! > 1" class="flex items-center justify-between text-sm text-muted-foreground">
       <span>
-        {{ data.totalElements }} playlist{{ data.totalElements !== 1 ? 's' : '' }} —
-        page {{ data.number! + 1 }} of {{ data.totalPages }}
+        {{ t('playlists.count', data.totalElements!) }} —
+        {{ t('common.pageOf', { page: data.number! + 1, total: data.totalPages }) }}
       </span>
       <div class="flex gap-1">
         <Button variant="outline" size="icon" :disabled="page === 0" @click="page--">
@@ -221,18 +219,18 @@ async function submitForm() {
 
       <form class="space-y-4" @submit.prevent="submitForm">
         <div class="space-y-1.5">
-          <Label for="name">Name <span class="text-destructive">*</span></Label>
-          <Input id="name" v-model="form.name" placeholder="My playlist" autofocus />
+          <Label for="name">{{ t('common.name') }} <span class="text-destructive">*</span></Label>
+          <Input id="name" v-model="form.name" :placeholder="t('playlists.namePlaceholder')" autofocus />
         </div>
         <div class="space-y-1.5">
-          <Label for="description">Description</Label>
-          <Input id="description" v-model="form.description" placeholder="Optional description" />
+          <Label for="description">{{ t('common.description') }}</Label>
+          <Input id="description" v-model="form.description" :placeholder="t('playlists.descriptionPlaceholder')" />
         </div>
         <div v-if="dialogMode === 'create'" class="space-y-1.5">
-          <Label>Rating type</Label>
-          <Select v-model="form.ratingType" placeholder="None">
-            <SelectItem v-for="rt in RATING_TYPES" :key="rt.value" :value="rt.value">
-              {{ rt.label }}
+          <Label>{{ t('playlists.ratingType') }}</Label>
+          <Select v-model="form.ratingType" :placeholder="t('common.none')">
+            <SelectItem v-for="rt in RATING_TYPES" :key="rt" :value="rt">
+              {{ t(`ratingType.${rt}`) }}
             </SelectItem>
           </Select>
         </div>
@@ -240,7 +238,7 @@ async function submitForm() {
       </form>
 
       <DialogFooter>
-        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">Cancel</Button>
+        <Button variant="outline" :disabled="saving" @click="dialogOpen = false">{{ t('common.cancel') }}</Button>
         <Button :disabled="saving" @click="submitForm">{{ submitLabel }}</Button>
       </DialogFooter>
     </DialogContent>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import '@/amplify'
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-vue'
+import { Authenticator, useAuthenticator, translations } from '@aws-amplify/ui-vue'
+import { I18n } from 'aws-amplify/utils'
 import '@aws-amplify/ui-vue/styles.css'
 import { getCurrentContributor, linkContributor, listOrganizations, type LambdaContributorResponse, type OrganizationResponse } from '@/lambdaApi'
 import { useAuthStore } from '@/stores/auth'
@@ -15,8 +17,15 @@ import { Button } from '@/components/ui/button'
 // authMode === 'cognito' and no Contributor is linked yet (see CLAUDE.md "TypeScript Lambda API
 // via Amplify Gen 2").
 
+const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
+
+// <authenticator>'s own strings (sign-in/sign-up/confirm-code) come from Amplify UI's bundled
+// dictionaries, keyed by the same language codes we use; a language it doesn't ship (e.g. `sk`)
+// silently falls back to English inside the widget, our surrounding text still translates.
+I18n.putVocabularies(translations)
+watch(locale, (l) => I18n.setLanguage(l), { immediate: true })
 
 const contributor = ref<LambdaContributorResponse | null>(null)
 const checkingLink = ref(false)
@@ -66,7 +75,7 @@ async function checkLinkedContributor() {
     if (found) onContributorResolved(found)
     else contributor.value = null
   } catch (e) {
-    linkError.value = e instanceof Error ? e.message : 'Failed to check linked account'
+    linkError.value = e instanceof Error ? e.message : t('login.checkLinkFailed')
   } finally {
     checkingLink.value = false
   }
@@ -84,7 +93,7 @@ async function completeLink() {
     onContributorResolved(linked)
     router.push({ name: 'home' })
   } catch (e) {
-    linkError.value = e instanceof Error ? e.message : 'Failed to link account'
+    linkError.value = e instanceof Error ? e.message : t('login.linkFailed')
   } finally {
     linking.value = false
   }
@@ -98,40 +107,40 @@ async function completeLink() {
         <template v-slot="{ user, signOut }">
           <div class="space-y-6 text-left">
             <div class="text-center space-y-1">
-              <h1 class="text-xl font-semibold tracking-wide">ORGAnized Spotify Mediabuilding</h1>
-              <p class="text-sm text-muted-foreground">Signed in as {{ user?.signInDetails?.loginId ?? user?.username }}</p>
+              <h1 class="text-xl font-semibold tracking-wide">{{ t('app.title') }}</h1>
+              <p class="text-sm text-muted-foreground">{{ t('login.signedInAs', { user: user?.signInDetails?.loginId ?? user?.username }) }}</p>
             </div>
 
             <div v-if="checkingLink" class="h-16 rounded-lg bg-muted animate-pulse" />
 
             <div v-else-if="contributor" class="space-y-4 text-center">
               <p class="text-sm">
-                Linked to contributor <span class="font-medium">{{ contributor.name }}</span>
+                {{ t('login.linkedTo') }} <span class="font-medium">{{ contributor.name }}</span>
               </p>
-              <Button variant="outline" class="w-full" @click="signOut">Sign out</Button>
+              <Button variant="outline" class="w-full" @click="signOut">{{ t('login.signOut') }}</Button>
             </div>
 
             <form v-else class="space-y-4" @submit.prevent="completeLink">
               <p class="text-sm text-muted-foreground">
-                Complete your profile to link this account to a contributor.
+                {{ t('login.completeProfile') }}
               </p>
               <div class="space-y-1">
-                <Label for="link-org">Organization</Label>
-                <Select id="link-org" v-model="linkOrgSlug" placeholder="Select organization…">
+                <Label for="link-org">{{ t('login.organization') }}</Label>
+                <Select id="link-org" v-model="linkOrgSlug" :placeholder="t('login.selectOrganization')">
                   <SelectItem v-for="org in organizations" :key="org.slug" :value="org.slug">
                     {{ org.name }}
                   </SelectItem>
                 </Select>
               </div>
               <div class="space-y-1">
-                <Label for="link-name">Name</Label>
-                <Input id="link-name" v-model="linkName" placeholder="Your name" required />
+                <Label for="link-name">{{ t('common.name') }}</Label>
+                <Input id="link-name" v-model="linkName" :placeholder="t('login.yourName')" required />
               </div>
               <p v-if="linkError" class="text-sm text-destructive">{{ linkError }}</p>
               <Button type="submit" class="w-full" :disabled="linking || !linkName.trim() || !linkOrgSlug">
-                {{ linking ? 'Linking…' : 'Continue' }}
+                {{ linking ? t('login.linking') : t('login.continue') }}
               </Button>
-              <Button variant="ghost" class="w-full" type="button" @click="signOut">Sign out</Button>
+              <Button variant="ghost" class="w-full" type="button" @click="signOut">{{ t('login.signOut') }}</Button>
             </form>
           </div>
         </template>

@@ -3,6 +3,7 @@ import './assets/index.css'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { i18n } from './i18n'
 import { authMode } from './authMode'
 
 async function bootstrap() {
@@ -21,6 +22,7 @@ async function bootstrap() {
   const app = createApp(App)
   app.use(createPinia())
   app.use(router)
+  app.use(i18n)
 
   const { useAuthStore } = await import('@/stores/auth')
   await useAuthStore().load()

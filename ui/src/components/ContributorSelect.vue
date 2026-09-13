@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue'
 import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'radix-vue'
 import { ChevronDown, Check, Search } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { useI18n } from 'vue-i18n'
 
 interface Contributor {
   id: string
@@ -18,6 +19,7 @@ const props = defineProps<{
 }>()
 
 const model = defineModel<string>()
+const { t } = useI18n()
 
 const open = ref(false)
 const search = ref('')
@@ -93,7 +95,7 @@ function onItemKeydown(e: KeyboardEvent, index: number) {
             <div v-else class="w-5 h-5 rounded-full bg-muted shrink-0" />
             <span class="truncate">{{ selected.name }}</span>
           </template>
-          <template v-else>{{ placeholder ?? 'Select contributor…' }}</template>
+          <template v-else>{{ placeholder ?? t('contributors.selectPlaceholder') }}</template>
         </span>
         <ChevronDown class="h-4 w-4 opacity-50 shrink-0 ml-2" />
       </button>
@@ -111,14 +113,14 @@ function onItemKeydown(e: KeyboardEvent, index: number) {
             ref="searchInputRef"
             v-model="search"
             class="flex h-9 w-full bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
-            placeholder="Search…"
+            :placeholder="t('common.search')"
             @keydown="onSearchKeydown"
           />
         </div>
 
         <div class="max-h-52 overflow-y-auto p-1">
           <p v-if="!filtered.length" class="py-4 text-center text-sm text-muted-foreground">
-            No contributors found.
+            {{ t('contributors.empty') }}
           </p>
           <button
             v-for="(c, i) in filtered"

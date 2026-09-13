@@ -5,21 +5,28 @@ import {
 } from 'radix-vue'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
+import { useI18n } from 'vue-i18n'
+
+// Attrs (`id`, `aria-label`, …) go on the trigger button so a <Label for> / accessible name
+// targets the focusable element, not the root.
+defineOptions({ inheritAttrs: false })
 
 const props = defineProps<{ placeholder?: string; class?: string; disabled?: boolean }>()
 const model = defineModel<string>()
+const { t } = useI18n()
 </script>
 
 <template>
   <SelectRoot v-model="model" :disabled="props.disabled">
     <SelectTrigger
+      v-bind="$attrs"
       :class="cn(
         'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
         'focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
         props.class
       )"
     >
-      <SelectValue :placeholder="props.placeholder ?? 'Select…'" />
+      <SelectValue :placeholder="props.placeholder ?? t('common.select')" />
       <ChevronDown class="h-4 w-4 opacity-50 shrink-0" />
     </SelectTrigger>
 

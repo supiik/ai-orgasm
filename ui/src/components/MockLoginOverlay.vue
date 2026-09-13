@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ContributorResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import type { OrganizationResponse } from '@/mocks/handlers/organizations'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const activeTab = ref<'login' | 'register'>('login')
 
@@ -56,13 +58,13 @@ async function register() {
     })
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      regError.value = body.detail ?? body.message ?? `Error ${res.status}`
+      regError.value = body.detail ?? body.message ?? t('login.error', { status: res.status })
       return
     }
     const created: ContributorResponse = await res.json()
     authStore.mockLogin(created)
   } catch {
-    regError.value = 'Network error'
+    regError.value = t('login.networkError')
   } finally {
     registering.value = false
   }
@@ -73,8 +75,8 @@ async function register() {
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
     <div class="w-full max-w-lg px-6 space-y-6 text-center">
       <div class="space-y-2">
-        <h1 class="text-xl font-semibold tracking-wide">ORGAnized Spotify Mediabuilding</h1>
-        <p class="text-sm text-muted-foreground">Select your identity or register to continue</p>
+        <h1 class="text-xl font-semibold tracking-wide">{{ t('app.title') }}</h1>
+        <p class="text-sm text-muted-foreground">{{ t('login.subtitle') }}</p>
       </div>
 
       <div class="flex gap-4 border-b border-border">
@@ -83,14 +85,14 @@ async function register() {
           :class="activeTab === 'login' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground'"
           @click="activeTab = 'login'"
         >
-          Select identity
+          {{ t('login.selectIdentity') }}
         </button>
         <button
           class="pb-2 px-1 text-sm font-medium transition-colors"
           :class="activeTab === 'register' ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground hover:text-foreground'"
           @click="activeTab = 'register'"
         >
-          Register
+          {{ t('login.register') }}
         </button>
       </div>
 
@@ -129,20 +131,20 @@ async function register() {
       <template v-else>
         <form class="space-y-4 text-left" @submit.prevent="register">
           <div class="space-y-1">
-            <Label for="reg-org">Organization</Label>
-            <Select id="reg-org" v-model="regOrgSlug" placeholder="Select organization…">
+            <Label for="reg-org">{{ t('login.organization') }}</Label>
+            <Select id="reg-org" v-model="regOrgSlug" :placeholder="t('login.selectOrganization')">
               <SelectItem v-for="org in organizations" :key="org.slug" :value="org.slug">
                 {{ org.name }}
               </SelectItem>
             </Select>
           </div>
           <div class="space-y-1">
-            <Label for="reg-name">Name</Label>
-            <Input id="reg-name" v-model="regName" placeholder="Your name" required />
+            <Label for="reg-name">{{ t('common.name') }}</Label>
+            <Input id="reg-name" v-model="regName" :placeholder="t('login.yourName')" required />
           </div>
           <div class="space-y-1">
-            <Label for="reg-email">Email (optional)</Label>
-            <Input id="reg-email" v-model="regEmail" type="email" placeholder="you@example.com" />
+            <Label for="reg-email">{{ t('login.emailOptional') }}</Label>
+            <Input id="reg-email" v-model="regEmail" type="email" :placeholder="t('login.emailPlaceholder')" />
           </div>
           <p v-if="regError" class="text-sm text-destructive">{{ regError }}</p>
           <Button
@@ -150,7 +152,7 @@ async function register() {
             class="w-full"
             :disabled="registering || !regName.trim() || !regOrgSlug"
           >
-            {{ registering ? 'Registering…' : 'Register' }}
+            {{ registering ? t('login.registering') : t('login.register') }}
           </Button>
         </form>
       </template>

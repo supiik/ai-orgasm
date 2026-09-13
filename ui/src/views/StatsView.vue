@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api, type RankingEntry } from '@/api'
 import { Trophy, Target, TrendingUp, Users } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
+const { t } = useI18n()
 const rankings = ref<RankingEntry[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
@@ -15,7 +17,7 @@ async function fetchRankings() {
     const { data } = await api.rankings().list()
     rankings.value = data
   } catch {
-    error.value = 'Failed to load rankings.'
+    error.value = t('stats.loadFailed')
   } finally {
     loading.value = false
   }
@@ -101,7 +103,7 @@ function rankBadge(rank: number) {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-semibold">Stats</h1>
+    <h1 class="text-2xl font-semibold">{{ t('stats.title') }}</h1>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 
@@ -110,28 +112,28 @@ function rankBadge(rank: number) {
       <div class="rounded-lg border border-border p-4 space-y-1">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Trophy class="h-4 w-4" />
-          Top Guesser
+          {{ t('stats.topGuesser') }}
         </div>
         <div class="text-lg font-semibold">{{ topGuesser }}</div>
       </div>
       <div class="rounded-lg border border-border p-4 space-y-1">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Target class="h-4 w-4" />
-          Overall Accuracy
+          {{ t('stats.overallAccuracy') }}
         </div>
         <div class="text-lg font-semibold">{{ overallAccuracy }}{{ overallAccuracy !== '—' ? '%' : '' }}</div>
       </div>
       <div class="rounded-lg border border-border p-4 space-y-1">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <TrendingUp class="h-4 w-4" />
-          Published Playlists
+          {{ t('stats.publishedPlaylists') }}
         </div>
         <div class="text-lg font-semibold">{{ totalPlaylists }}</div>
       </div>
       <div class="rounded-lg border border-border p-4 space-y-1">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Users class="h-4 w-4" />
-          Participants
+          {{ t('stats.participants') }}
         </div>
         <div class="text-lg font-semibold">{{ totalParticipants }}</div>
       </div>
@@ -147,19 +149,19 @@ function rankBadge(rank: number) {
     <!-- All-time leaderboard -->
     <template v-else-if="leaderboard.length > 0">
       <div class="space-y-2">
-        <h2 class="text-lg font-semibold">All-Time Leaderboard</h2>
+        <h2 class="text-lg font-semibold">{{ t('stats.leaderboard') }}</h2>
         <div class="rounded-md border border-border">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead class="w-12">#</TableHead>
                 <TableHead class="w-10" />
-                <TableHead>Contributor</TableHead>
-                <TableHead class="text-right">Correct</TableHead>
-                <TableHead class="text-right">Total</TableHead>
-                <TableHead class="text-right">Accuracy</TableHead>
-                <TableHead class="text-right">Playlists</TableHead>
-                <TableHead class="text-right">Avg Rank</TableHead>
+                <TableHead>{{ t('common.contributor') }}</TableHead>
+                <TableHead class="text-right">{{ t('stats.correct') }}</TableHead>
+                <TableHead class="text-right">{{ t('common.total') }}</TableHead>
+                <TableHead class="text-right">{{ t('stats.accuracy') }}</TableHead>
+                <TableHead class="text-right">{{ t('stats.playlists') }}</TableHead>
+                <TableHead class="text-right">{{ t('stats.avgRank') }}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,19 +192,19 @@ function rankBadge(rank: number) {
 
       <!-- Per-playlist rankings -->
       <div class="space-y-4">
-        <h2 class="text-lg font-semibold">Rankings by Playlist</h2>
+        <h2 class="text-lg font-semibold">{{ t('stats.byPlaylist') }}</h2>
         <div v-for="group in playlistGroups" :key="group.playlistName" class="space-y-2">
           <h3 class="text-sm font-medium text-muted-foreground">{{ group.playlistName }}</h3>
           <div class="rounded-md border border-border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead class="w-12">Rank</TableHead>
+                  <TableHead class="w-12">{{ t('stats.rank') }}</TableHead>
                   <TableHead class="w-10" />
-                  <TableHead>Contributor</TableHead>
-                  <TableHead class="text-right">Correct</TableHead>
-                  <TableHead class="text-right">Total</TableHead>
-                  <TableHead class="text-right">Accuracy</TableHead>
+                  <TableHead>{{ t('common.contributor') }}</TableHead>
+                  <TableHead class="text-right">{{ t('stats.correct') }}</TableHead>
+                  <TableHead class="text-right">{{ t('common.total') }}</TableHead>
+                  <TableHead class="text-right">{{ t('stats.accuracy') }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -232,7 +234,7 @@ function rankBadge(rank: number) {
     </template>
 
     <div v-else-if="!loading" class="text-center text-muted-foreground py-10">
-      No ranking data yet. Rankings appear after a playlist is published.
+      {{ t('stats.empty') }}
     </div>
   </div>
 </template>
