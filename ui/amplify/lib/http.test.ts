@@ -4,7 +4,7 @@ import { ConflictError, ValidationError } from './errors'
 
 // http.ts imports auth.ts, which builds the Cognito verifier at module load and needs a real
 // user pool id — irrelevant to the pure helpers under test here.
-vi.mock('./auth', () => ({ verifyRequest: vi.fn() }))
+vi.mock('./auth', () => ({ verifyRequest: vi.fn(), ADMIN_GROUP: 'admins' }))
 vi.mock('./repositories/contributor', () => ({ findContributorByCognitoSub: vi.fn() }))
 
 import { verifyRequest } from './auth'
@@ -26,7 +26,7 @@ describe('withAuth logging', () => {
   beforeEach(() => {
     lines = []
     setLogSink((line) => lines.push(JSON.parse(line)))
-    vi.mocked(verifyRequest).mockResolvedValue({ sub: 'cognito-sub-1', email: 'alice@example.com' })
+    vi.mocked(verifyRequest).mockResolvedValue({ sub: 'cognito-sub-1', email: 'alice@example.com', groups: [] })
     vi.mocked(findContributorByCognitoSub).mockResolvedValue({ id: 7n, tenantId: 3 } as any)
   })
 
@@ -121,6 +121,34 @@ describe('withAuth logging', () => {
 
     expect(lines[0]).toMatchObject({ http: { request: { id: 'first' } }, tenant: { id: 3 }, user: { id: '7' } })
     expect(lines[1]).toMatchObject({ http: { request: { id: 'second' } }, tenant: { id: 4 }, user: { id: '8' } })
+  })
+
+  describe("'admin' mode", () => {
+    it('rejects a valid token outside the admins group with 403 and never looks up a Contributor', async () => {
+      vi.mocked(verifyRequest).mockResolvedValue({ sub: 'cognito-sub-1', groups: ['editors'] })
+      const body = vi.fn(async () => ({ ok: true }))
+
+      const result = await withAuth('admin', 200, body)(request(), context)
+
+      expect(result.statusCode).toBe(403)
+      expect(JSON.parse(result.body!)).toEqual({ error: 'Administrator group membership required' })
+      expect(body).not.toHaveBeenCalled()
+      expect(findContributorByCognitoSub).not.toHaveBeenCalled()
+      expect(lines[0].error.type).toBe('ForbiddenError')
+    })
+
+    it('admits an admins member without a tenant and attributes the request to the subject', async () => {
+      vi.mocked(verifyRequest).mockResolvedValue({ sub: 'cognito-sub-1', groups: ['admins'] })
+      const body = vi.fn(async (_e, ctx) => ctx)
+
+      const result = await withAuth('admin', 200, body)(request(), context)
+
+      expect(result.statusCode).toBe(200)
+      expect(JSON.parse(result.body!)).toEqual({ cognitoSub: 'cognito-sub-1' })
+      expect(findContributorByCognitoSub).not.toHaveBeenCalled()
+      expect(lines[0]).toMatchObject({ user: { id: 'cognito-sub-1', roles: ['admin'] } })
+      expect(lines[0]).not.toHaveProperty('tenant')
+    })
   })
 })
 

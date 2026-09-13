@@ -15,7 +15,7 @@ export interface RegisterContributorRequest {
  * No-op when the organization has no `allowedDomain` configured (default: unrestricted).
  * Mirrors `RegistrationController.assertEmailAllowed` on the Java side.
  */
-function assertEmailAllowed(org: OrganizationItem, email: string | undefined): void {
+export function assertEmailAllowed(org: OrganizationItem, email: string | undefined): void {
   if (!org.allowedDomain) return
   if (!email) {
     throw new ValidationError([`Email required: organization "${org.slug}" only accepts @${org.allowedDomain} addresses`])

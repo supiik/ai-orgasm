@@ -51,3 +51,21 @@ export async function saveOrganization(item: OrganizationItem): Promise<Organiza
   await ddb.send(new PutCommand({ TableName: TABLE(), Item: item }))
   return item
 }
+
+/**
+ * Insert-only write, refused if `id` is already taken. Organization ids are small sequential
+ * numbers (see `OrganizationItem`), so `services/admin.ts` picks `max(id) + 1` from a Scan and
+ * relies on this condition — not the read — to detect a concurrent create with the same id.
+ * Returns false on that collision so the caller can pick the next id and retry.
+ */
+export async function insertOrganization(item: OrganizationItem): Promise<boolean> {
+  try {
+    await ddb.send(
+      new PutCommand({ TableName: TABLE(), Item: item, ConditionExpression: 'attribute_not_exists(id)' }),
+    )
+    return true
+  } catch (e) {
+    if (e instanceof Error && e.name === 'ConditionalCheckFailedException') return false
+    throw e
+  }
+}

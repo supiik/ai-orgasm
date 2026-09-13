@@ -23,6 +23,8 @@ public final class LogFields {
     public static final String TENANT_ID = "tenant.id";
     /** Opaque identity-provider subject ({@code sub} claim) — never the email or username. */
     public static final String USER_ID = "user.id";
+    /** Roles the caller acted under; the Lambda API sets {@code ["admin"]} on admin-mode requests. Unused by the backend so far. */
+    public static final String USER_ROLES = "user.roles";
 
     /** MDC keys written by Micrometer Tracing; renamed to ECS {@code trace.id}/{@code span.id} on output. */
     public static final String MDC_TRACE_ID = "traceId";

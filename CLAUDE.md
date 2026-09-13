@@ -377,7 +377,7 @@ to the right handler; DynamoDB calls will fail without a real/local table behind
 amazon/dynamodb-local:2.5.4` instance and pre-create the tables to exercise that path too).
 
 For the **deployed** TypeScript API, `npx ampx sandbox` (run from `ui/`) deploys a real, isolated,
-per-developer AWS stack (all 9 tables, the Cognito User Pool, all 33 functions) — no image to
+per-developer AWS stack (all 9 tables, the Cognito User Pool, all 38 functions) — no image to
 build/push first, since every function bundles straight from its own `handler.ts`. See
 "TypeScript Lambda API via Amplify Gen 2" for how to run its tests against DynamoDB Local instead.
 
@@ -463,7 +463,7 @@ The root `pom.xml` imports `spring-boot-dependencies` as a BOM inside `<dependen
 
 ### TypeScript Lambda API via Amplify Gen 2
 
-`ui/amplify/` is the actual deployed Lambda API: 33 AWS Lambda functions written in TypeScript,
+`ui/amplify/` is the actual deployed Lambda API: 38 AWS Lambda functions written in TypeScript,
 using Amplify Gen 2's native `defineFunction` — one `resource.ts` + `handler.ts` per function, no
 CDK escape hatch, no container image, no Docker anywhere in the pipeline. It supersedes an earlier
 design (and, before that, AWS SAM) that packaged the **Java** `lambda`/`backend-dynamo` modules
@@ -543,7 +543,7 @@ frontend root is `ui/`.
     `backend` mirrors the fields on its `UpdatePlaylistRequest` (MapStruct null-ignore, no
     gating — same body-actor caveat as the rest of `OrgasmController`), and the Edit dialog in
     `PlaylistDetailView.vue` shows the matching date input only when the API would accept it.
-- **`backend.ts`** — imports all 33 `*Fn` resources, passes them into `defineBackend({ auth,
+- **`backend.ts`** — imports all 38 `*Fn` resources, passes them into `defineBackend({ auth,
   helloFn, createPlaylistFn, ... })`, builds the 9 DynamoDB tables (`tables.ts`'s `createTables` —
   unchanged from the earlier design: raw CDK `dynamodb.Table` L2 constructs, **not** Gen 2's
   `defineData`/AppSync GraphQL model; this schema is hand-rolled pk/sk + GSIs, unrelated to
@@ -553,8 +553,8 @@ frontend root is `ui/`.
   hold no write grant at all), add its Function URL (`AuthType.NONE`), and inject the table names
   + Cognito User Pool/Client ids as environment variables (via a CDK-concrete-`Function` cast,
   since `FunctionResources.lambda`'s `IFunction` type doesn't expose `addEnvironment`).
-  Functions flagged `publiclyReachable` (the two no-token endpoints, `hello` and
-  `list-organizations`) additionally get a reserved-concurrency cap, set on the underlying
+  Functions flagged `publiclyReachable` (only `hello` — `list-organizations` needed a token
+  since 2026-09-13, see "Administration") additionally get a reserved-concurrency cap, set on the underlying
   `CfnFunction` — the one thing bounding how much Lambda an unauthenticated flood can burn, since
   Function URLs can't sit behind WAF or an API Gateway throttle. Three deploy-time env vars tune
   this, all read in `backend.ts` and all safe to leave unset: `PUBLIC_FN_RESERVED_CONCURRENCY`
@@ -563,17 +563,58 @@ frontend root is `ui/`.
   Amplify Hosting origin is branch-dependent — pin it for production in the Console build env),
   and `ID_GENERATOR_SECRET` (16 hex chars keying `lib/idGenerator.ts`'s id scrambling; default
   all-zero, which makes the external id a plain reversible transform of the DB id).
-- **`functions.ts`**'s `fnSpecs` array (name/tables/writes/methods/corsHeaders/publiclyReachable)
-  lost its Java-specific `handlerClass` field in the rewrite — every function now has its own
-  `resource.ts`/`handler.ts` instead of sharing one image + `CMD` override. Note `tables` must
-  include `contributors` for every `authenticated-with-contributor` function even when its body
-  never reads it — `withAuth`'s `findContributorByCognitoSub` does.
+- **`functions.ts`**'s `fnSpecs` array (name/tables/writes/methods/corsHeaders/publiclyReachable/
+  userPoolActions) lost its Java-specific `handlerClass` field in the rewrite — every function now
+  has its own `resource.ts`/`handler.ts` instead of sharing one image + `CMD` override. Note
+  `tables` must include `contributors` for every `authenticated-with-contributor` function even
+  when its body never reads it — `withAuth`'s `findContributorByCognitoSub` does.
+  `userPoolActions` lists Cognito actions (`cognito-idp:ListUsers`) to grant on the User Pool —
+  only `admin-add-org-contributor` uses it.
 - **`register-contributor` is not deployed.** The Java `POST /api/v1/register` port exists as
   `lib/services/registration.ts`'s `register()` (kept, with tests, for parity) but has no
   `functions/` entry since the 2026-09-11 security review: it was an unauthenticated, unlimited
   DynamoDB write that nothing in the UI called — Cognito sign-up goes through `link-contributor`,
-  which has a verified identity and the `allowedDomain` gate. So the deployed count is **33**
-  functions, not the 34 the Java reference implementation has.
+  which has a verified identity and the `allowedDomain` gate. So the deployed count is **38**
+  functions: the Java reference implementation's 34, minus this one, plus the five `admin-*`
+  functions below (which have no Java counterpart).
+- **Administration (`admin` AuthMode, Cognito `admins` group).** Added 2026-09-13 so
+  organizations and manual memberships no longer have to be written straight into DynamoDB.
+  `auth/resource.ts` declares `groups: ['admins']`; nobody is in it after a deploy — an operator
+  adds the first admin by hand (`aws cognito-idp admin-add-user-to-group --user-pool-id <id>
+  --username <email> --group-name admins`), and a user can never join it at sign-up. `withAuth`'s
+  fourth mode, `'admin'`, checks the signed ID token's `cognito:groups` claim (`lib/auth.ts`
+  exposes it as `claims.groups`) and throws `ForbiddenError` → 403 otherwise; it resolves **no**
+  Contributor/tenant (admins act cross-tenant, taking the organization id from the path) and logs
+  `user.id` = the Cognito `sub` + `user.roles: ['admin']` as the audit handle — the only
+  place a `sub` is logged on the Lambda side, mirroring `backend`'s `user.id` convention.
+  Removal from the group takes effect when the token expires (≤ 1 h). Five functions, all in
+  `lib/services/admin.ts` (tests in `admin.test.ts`): `admin-list-organizations` (includes
+  `allowedDomain`, unlike the public shape), `admin-create-organization` (`POST {slug, name,
+  allowedDomain?}` — id is `max(id)+1` from a Scan of the small directory table, made race-safe
+  by `insertOrganization`'s `attribute_not_exists(id)` condition + retry; slug uniqueness is only
+  pre-checked, DynamoDB can't enforce it on the `bySlug` GSI), `admin-update-organization`
+  (`PUT /{id}` — rename / set or clear `allowedDomain`; the slug is immutable), `admin-list-org-
+  contributors` (`GET /{id}/contributors`, each with `linked: boolean`), and
+  `admin-add-org-contributor` (`POST /{id}/contributors {name, email}` — creates the Contributor
+  and, if that email already has a Cognito account (`lib/cognito.ts`'s `ListUsers` by email),
+  sets `cognitoSub` immediately; otherwise `link-contributor`'s email match attaches it when they
+  sign up. The org's `allowedDomain` gate applies here too, or the admin would create a record the
+  link step then rejects. 409 if the email is already a live member or the account is linked
+  elsewhere.) `list-organizations` became `'authenticated'` in the same change — it only feeds the
+  post-sign-in org picker, so anonymous access bought nothing; `CognitoLoginOverlay` now loads it
+  after sign-in instead of on mount. UI side: `stores/auth.ts`'s `isAdmin` (Cognito: the same
+  claim, read via `loadCognitoSession()`; mock: `isMockAdmin` — only the seeded Thom Yorke;
+  Keycloak: never), the `/admin` route + `SidebarNav` link (`AdminView.vue`, i18n under
+  `admin.*`), `api.admin()` on both `api-lambda.ts` (Function URLs) and `api-backend.ts`
+  (`/api/v1/admin/**` — exists only so MSW's `mocks/handlers/admin.ts` can serve dev/e2e; the
+  Spring backend has **no** admin endpoints), and `e2e/admin.spec.ts`. There is deliberately no
+  router redirect: a signed-in non-admin opening `/admin` sees AdminView's "not an administrator"
+  explanation (the usual cause being a token issued before the group was assigned — re-sign-in
+  fixes it); the `v-if`s are cosmetic — the 403 is the gate. One deliberate hole in `App.vue`'s overlay gating: a
+  Cognito admin with no linked Contributor may still open `/admin` (the overlay's "Go to
+  administration" button), otherwise nobody could create the first organization to link into.
+  `main.ts` awaits `authStore.load()` *before* `app.use(router)` so any future guard can read the
+  store during the initial navigation.
 - **`amplify.yml`'s `backend` phase is now just** `npm install && npx ampx pipeline-deploy
   --branch $AWS_BRANCH --app-id $AWS_APP_ID` — no Maven, no Docker, no ECR, no custom Amplify
   Console Build image required. This is the actual fix for the Docker build failure that started
@@ -650,7 +691,7 @@ Both are declared in `SecurityConfig.permitAll()`. `TenantResolverFilter` alread
 
 **Organization** (`com.orgasm.billing.domain`) is the billing-database identity entity. `Organization.id` equals the `tenant_id` used throughout the app DB. When the mock login overlay's "Register" tab submits, `POST /api/v1/register` creates the contributor and auto-logs them in.
 
-**Domain-restricted registration:** Because both endpoints above are unauthenticated and `organizationSlug` is a free-form field, anyone who can see the org list could otherwise self-register into *any* organization. `Organization.allowedDomain` (nullable, `@JsonIgnore`d — never returned by `GET /api/v1/organizations`) closes this per-org, opt-in: when set, `RegistrationController.assertEmailAllowed` rejects registration with 400 unless the submitted email's domain matches (case-insensitive); a null/blank `allowedDomain` means unrestricted, so existing organizations are unaffected until someone sets the column. `IllegalArgumentException` → 400 is a new `GlobalExceptionHandler` mapping added for this. There is currently no admin endpoint to set `allowedDomain` — like `Organization` creation itself, it's set directly in the database (e.g. via a migration or manual `UPDATE`) until an org-admin API exists.
+**Domain-restricted registration:** Because both endpoints above are unauthenticated and `organizationSlug` is a free-form field, anyone who can see the org list could otherwise self-register into *any* organization. `Organization.allowedDomain` (nullable, `@JsonIgnore`d — never returned by `GET /api/v1/organizations`) closes this per-org, opt-in: when set, `RegistrationController.assertEmailAllowed` rejects registration with 400 unless the submitted email's domain matches (case-insensitive); a null/blank `allowedDomain` means unrestricted, so existing organizations are unaffected until someone sets the column. `IllegalArgumentException` → 400 is a new `GlobalExceptionHandler` mapping added for this. On the Spring/MariaDB path there is no admin endpoint to set `allowedDomain` — like `Organization` creation itself, it's set directly in the database (e.g. via a migration or manual `UPDATE`). The deployed Lambda API has one: see "Administration" under "TypeScript Lambda API via Amplify Gen 2".
 
 The same gate is mirrored in the deployed TypeScript Cognito path (`ui/amplify/lib/services/registration.ts`'s `assertEmailAllowed`, used by both `register()` and `linkContributor()`) against `OrganizationItem.allowedDomain`, using the Cognito-verified email for `linkContributor`. **Not** ported to the frozen Java reference implementation (`backend-dynamo`'s `RegistrationService`/`LinkContributorService`) — that module tracks the original 34-endpoint parity snapshot the TS port was checked against, not every subsequent app-level feature.
 
@@ -668,7 +709,7 @@ canonical list is `backend/.../logging/LogFields.java` and `ui/amplify/lib/logge
 | `trace.id` / `span.id` | Backend: Micrometer Tracing (OTel bridge) — W3C `traceparent` in/out, B3 accepted; a new trace when none is sent. Lambda: `traceparent` header → X-Ray `Root` (flattened to the 32-hex OTel form) → fresh random id (`lib/tracing.ts`). |
 | `http.request.id` | Inbound `X-Request-ID` if it matches `[A-Za-z0-9._-]{1,64}` (caller-controlled, so anything else is replaced, not trusted); else a UUID (backend) / the Lambda `awsRequestId`. Echoed back in the `X-Request-ID` response header, exposed via CORS on both sides. |
 | `http.request.method`, `url.path`, `http.response.status_code`, `event.duration` (ns), `faas.coldstart` (Lambda) | One `HTTP request completed` line per request from `RequestLoggingFilter` / `withAuth` (actuator paths at DEBUG). |
-| `tenant.id`, `user.id` | Opaque ids only: the `tenant_id` claim + JWT `sub` (backend), the Contributor's tenant + id (Lambda). Scheduled jobs scope `tenant.id` into the MDC themselves since they run outside the filter. |
+| `tenant.id`, `user.id`, `user.roles` | Opaque ids only: the `tenant_id` claim + JWT `sub` (backend), the Contributor's tenant + id (Lambda). Lambda `admin`-mode requests have no Contributor, so they log `user.id` = the Cognito `sub` and `user.roles: ["admin"]` instead (no `tenant.id`). Scheduled jobs scope `tenant.id` into the MDC themselves since they run outside the filter. |
 | `process.thread.name` / `process.thread.id` | Backend only. Thread id is emitted as a dotted top-level key because Boot's ECS formatter already owns the nested `process` object and `JsonWriter` rejects a second member of that name — Elasticsearch treats both spellings as the same field. It reads `Thread.currentThread()`, which is the logging thread only because the console appender is synchronous; don't put an `AsyncAppender` in front of it. |
 
 **Backend mechanics.** Spring Boot's built-in structured logging (`logging.structured.format.console=ecs`
@@ -708,9 +749,9 @@ list endpoints take a `name` filter — `url.path` is logged, `rawQueryString` d
 not). `PiiMasker` (Java) / `maskPii` (TS) scrub anything that looks like an email from every
 string in the output (message, MDC, key-value pairs, exception message, stack trace) as a
 safety net — it cannot recognise a bare personal name, so it is not a licence to log
-`Contributor` objects. `user.id` is the identity provider's opaque subject / the Contributor id;
-if that is ever deemed too identifying for the log retention in use, drop it from
-`RequestLoggingFilter`/`withAuth` and nothing else depends on it.
+`Contributor` objects. `user.id` is the identity provider's opaque subject / the Contributor id
+(the Cognito `sub` only for admin-mode requests); if that is ever deemed too identifying for the
+log retention in use, drop it from `RequestLoggingFilter`/`withAuth` and nothing else depends on it.
 
 ### CORS
 `WebConfig` allows `http://localhost:5173` (Vite dev server) for `/api/**` (all methods). For production, update the allowed origins in `backend/src/main/resources/application.yml` or override via environment variable.

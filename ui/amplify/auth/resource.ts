@@ -7,4 +7,8 @@ export const auth = defineAuth({
   loginWith: {
     email: true,
   },
+  // Membership unlocks the admin-* functions (`admin` AuthMode, lib/http.ts) and the UI's /admin
+  // section. Nobody is in it after a deploy — an operator adds the first admin by hand:
+  //   aws cognito-idp admin-add-user-to-group --user-pool-id <id> --username <email> --group-name admins
+  groups: ['admins'],
 })

@@ -34,6 +34,8 @@ export const Fields = {
   TENANT_ID: 'tenant.id',
   /** The Contributor id — never the Cognito email. */
   USER_ID: 'user.id',
+  /** Only set on `admin`-mode requests (`['admin']`) — everyone else is a plain Contributor. */
+  USER_ROLES: 'user.roles',
   FAAS_COLDSTART: 'faas.coldstart',
 } as const
 

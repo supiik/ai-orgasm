@@ -38,8 +38,12 @@ const appVersion = __APP_VERSION__
 // deep link opened before login (e.g. a shared /playlists/{id} URL) showed "Playlist not found."
 // with no action buttons. Gating <RouterView> on the same condition as the overlays means the
 // view mounts (and loads) only once there is a session to load with.
+//
+// One exception: a Cognito admin with no linked Contributor may still open /admin — otherwise
+// nobody could create the first organization to link into (the overlay offers the shortcut).
 const loginRequired = computed(() =>
-  (isMock && !authStore.isAuthenticated) || (authMode === 'cognito' && !authStore.currentContributor),
+  (isMock && !authStore.isAuthenticated) ||
+  (authMode === 'cognito' && !authStore.currentContributor && !(authStore.isAdmin && route.name === 'admin')),
 )
 </script>
 

@@ -22,6 +22,14 @@ export class NotLinkedError extends Error {
   }
 }
 
+/** Valid token, but the caller lacks the role the endpoint requires (e.g. the `admins` group). */
+export class ForbiddenError extends Error {
+  constructor(message = 'Insufficient permissions') {
+    super(message)
+    this.name = 'ForbiddenError'
+  }
+}
+
 export class NotFoundError extends Error {
   constructor(message: string) {
     super(message)

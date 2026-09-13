@@ -49,7 +49,19 @@ const router = createRouter({
       name: 'stats',
       component: () => import('../views/StatsView.vue'),
     },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/AdminView.vue'),
+      meta: { requiresAdmin: true },
+    },
   ],
 })
+
+// No redirect on purpose: AdminView renders a "you are not an administrator" explanation for a
+// signed-in non-admin, which is more useful than a silent bounce home (the usual cause is simply
+// that the account hasn't been added to the Cognito `admins` group yet, or hasn't re-signed-in
+// since). The real gate is the Lambda API's `admin` AuthMode (403 without the group); `meta.
+// requiresAdmin` is kept so a guard can be added if a route ever needs one.
 
 export default router

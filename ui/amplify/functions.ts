@@ -14,7 +14,7 @@ export interface FnSpec {
   /** Subset of `tables` this function actually writes to; these get read+write instead. */
   writes?: (keyof Tables)[]
   methods: HttpMethod[]
-  /** Empty for the fully public endpoints (hello, ListOrganizations). */
+  /** Empty for the one fully public endpoint (hello). */
   corsHeaders: string[]
   /**
    * Reachable without a bearer token, so a flood costs us Lambda time before any auth check can
@@ -22,6 +22,11 @@ export interface FnSpec {
    * are gated by Cognito. See CLAUDE.md "Known gaps" for what this does and doesn't mitigate.
    */
   publiclyReachable?: boolean
+  /**
+   * Cognito User Pool actions (e.g. `cognito-idp:ListUsers`) this function needs — granted on
+   * the pool in `backend.ts`. Only the admin-* functions that resolve accounts by email use it.
+   */
+  userPoolActions?: string[]
 }
 
 /**
@@ -68,8 +73,8 @@ export const fnSpecs: FnSpec[] = [
   { name: 'delete-contributor', description: 'Delete (soft) a contributor',
     tables: ['contributors'], writes: ['contributors'], methods: [HttpMethod.DELETE], corsHeaders: ['authorization'] },
 
-  { name: 'list-organizations', description: 'List organizations (public, no auth)',
-    tables: ['organizations'], methods: [HttpMethod.GET], corsHeaders: [], publiclyReachable: true },
+  { name: 'list-organizations', description: 'List organizations for the post-sign-up link form (any signed-in user)',
+    tables: ['organizations'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
 
   { name: 'open-playlist', description: 'Open a playlist for nominations',
     tables: ['playlists', 'contributors'], writes: ['playlists'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
@@ -104,4 +109,17 @@ export const fnSpecs: FnSpec[] = [
     tables: ['organizations', 'contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
   { name: 'get-current-contributor', description: 'Get the Contributor linked to the calling Cognito identity (/me equivalent)',
     tables: ['contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+
+  // Administration — `admin` AuthMode (Cognito `admins` group), cross-tenant, no Contributor lookup.
+  { name: 'admin-list-organizations', description: 'Admin: list organizations incl. allowedDomain',
+    tables: ['organizations'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'admin-create-organization', description: 'Admin: create an organization',
+    tables: ['organizations'], writes: ['organizations'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
+  { name: 'admin-update-organization', description: 'Admin: rename an organization / set its allowedDomain',
+    tables: ['organizations'], writes: ['organizations'], methods: [HttpMethod.PUT], corsHeaders: ['content-type', 'authorization'] },
+  { name: 'admin-list-org-contributors', description: "Admin: list an organization's contributors with link status",
+    tables: ['organizations', 'contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'admin-add-org-contributor', description: 'Admin: add a contributor to an organization, linking an existing Cognito account by email',
+    tables: ['organizations', 'contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'],
+    userPoolActions: ['cognito-idp:ListUsers'] },
 ]

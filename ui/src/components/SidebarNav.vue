@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight, Languages } from 'lucide-vue-next'
+import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight, Languages, ShieldCheck } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/stores/auth'
@@ -54,6 +54,13 @@ const activeClass = 'bg-accent text-accent-foreground font-medium'
       <BarChart3 class="h-4 w-4 shrink-0" />
       {{ t('nav.stats') }}
     </RouterLink>
+    <template v-if="authStore.isAdmin">
+      <div class="my-1 border-t border-border" />
+      <RouterLink to="/admin" :class="linkClass" :active-class="activeClass" @click="emit('navigate')">
+        <ShieldCheck class="h-4 w-4 shrink-0" />
+        {{ t('nav.admin') }}
+      </RouterLink>
+    </template>
     <div class="mt-auto pt-2 border-t border-border space-y-0.5">
       <!-- Current user -->
       <div v-if="authStore.currentContributor" class="flex items-center gap-3 px-3 py-2 text-sm">

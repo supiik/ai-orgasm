@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
+import { ShieldCheck } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import '@/amplify'
@@ -47,20 +48,25 @@ onMounted(() => {
   watch(
     () => authenticator.authStatus,
     (status) => {
-      if (status === 'authenticated') checkLinkedContributor()
+      if (status === 'authenticated') onSignedIn()
       else contributor.value = null
     },
     { immediate: true },
   )
 })
 
-onMounted(async () => {
+async function onSignedIn() {
+  // Picks up the session's group claims (isAdmin) before anything renders on them.
+  await authStore.loadCognitoSession()
+  await checkLinkedContributor()
+  if (contributor.value) return
   try {
+    // list-organizations needs a bearer token, so this can't run on mount like it used to.
     organizations.value = await listOrganizations()
   } catch {
     // Org picker just stays empty; the link form's submit button is disabled without a selection.
   }
-})
+}
 
 function onContributorResolved(c: LambdaContributorResponse) {
   contributor.value = c
@@ -139,6 +145,12 @@ async function completeLink() {
               <p v-if="linkError" class="text-sm text-destructive">{{ linkError }}</p>
               <Button type="submit" class="w-full" :disabled="linking || !linkName.trim() || !linkOrgSlug">
                 {{ linking ? t('login.linking') : t('login.continue') }}
+              </Button>
+              <!-- An admin has to be able to create the first organization before anyone (themselves
+                   included) can link — App.vue lets /admin render for an admin with no Contributor. -->
+              <Button v-if="authStore.isAdmin" variant="outline" class="w-full" type="button" @click="router.push({ name: 'admin' })">
+                <ShieldCheck class="h-4 w-4" />
+                {{ t('login.goToAdmin') }}
               </Button>
               <Button variant="ghost" class="w-full" type="button" @click="signOut">{{ t('login.signOut') }}</Button>
             </form>
