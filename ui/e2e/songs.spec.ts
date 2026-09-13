@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mockLogin } from './helpers'
+import { mockLogin, waitForMsw } from './helpers'
 
 // MSW seed data (see src/mocks/handlers/songs.ts)
 const SEED = [
@@ -23,14 +23,7 @@ function browserFetch(page: import('@playwright/test').Page, input: string, init
 test.describe('songs API (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
     await mockLogin(page)
-    const mswReady = page.waitForResponse(
-      async res =>
-        res.url().endsWith('/api/health') &&
-        res.status() === 200 &&
-        (await res.json().catch(() => null))?.success === true,
-    )
-    await page.goto('/')
-    await mswReady
+    await waitForMsw(page)
   })
 
   test('lists seed songs', async ({ page }) => {

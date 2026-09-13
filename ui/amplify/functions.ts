@@ -23,6 +23,13 @@ export interface FnSpec {
    */
   publiclyReachable?: boolean
   /**
+   * Explicit reserved-concurrency cap, for functions that call a rate-limited third party
+   * (MusicBrainz asks for ~1 request/second): bounds how many outbound calls can be in flight
+   * regardless of how many users are typing. `PUBLIC_FN_RESERVED_CONCURRENCY=0` disables this
+   * too, for accounts whose concurrency limit can't spare a reservation.
+   */
+  reservedConcurrency?: number
+  /**
    * Cognito User Pool actions (e.g. `cognito-idp:ListUsers`) this function needs — granted on
    * the pool in `backend.ts`. Only the admin-* functions that resolve accounts by email use it.
    */
@@ -61,6 +68,8 @@ export const fnSpecs: FnSpec[] = [
     tables: ['songs', 'contributors'], writes: ['songs'], methods: [HttpMethod.PUT], corsHeaders: ['content-type', 'authorization'] },
   { name: 'delete-song', description: 'Delete (soft) a song',
     tables: ['songs', 'contributors'], writes: ['songs'], methods: [HttpMethod.DELETE], corsHeaders: ['authorization'] },
+  { name: 'search-songs', description: 'Look a song up in the external catalogue (lib/songSearch) to pre-fill the song form',
+    tables: ['contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'], reservedConcurrency: 2 },
 
   { name: 'create-contributor', description: 'Create a contributor',
     tables: ['contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },

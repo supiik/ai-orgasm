@@ -24,6 +24,18 @@ const db: SongResponse[] = [
 
 const now = () => new Date().toISOString()
 
+// Stand-in for the external catalogue behind `search-songs` (MusicBrainz in production) — a
+// handful of well-known tracks so dev/e2e can exercise the "pick a hit → form pre-filled" flow.
+const catalogue = [
+  { source: 'mock', externalId: 'mb-creep', artist: 'Radiohead', name: 'Creep', album: 'Pablo Honey', releaseYear: 1992, score: 100 },
+  { source: 'mock', externalId: 'mb-karma', artist: 'Radiohead', name: 'Karma Police', album: 'OK Computer', releaseYear: 1997, score: 100 },
+  { source: 'mock', externalId: 'mb-slts', artist: 'Nirvana', name: 'Smells Like Teen Spirit', album: 'Nevermind', releaseYear: 1991, score: 100 },
+  { source: 'mock', externalId: 'mb-wonderwall', artist: 'Oasis', name: 'Wonderwall', album: "(What's the Story) Morning Glory?", releaseYear: 1995, score: 100 },
+  { source: 'mock', externalId: 'mb-bohemian', artist: 'Queen', name: 'Bohemian Rhapsody', album: 'A Night at the Opera', releaseYear: 1975, score: 100 },
+  { source: 'mock', externalId: 'mb-lucky', artist: 'Daft Punk', name: 'Get Lucky', album: 'Random Access Memories', releaseYear: 2013, score: 100 },
+  { source: 'mock', externalId: 'mb-sos', artist: 'Simon & Garfunkel', name: 'The Sound of Silence', releaseYear: 1964, score: 90 },
+]
+
 export const songHandlers = [
   http.get('/api/v1/songs', ({ request }) => {
     const url = new URL(request.url)
@@ -72,6 +84,18 @@ export const songHandlers = [
     }
     db.push(created)
     return HttpResponse.json(created, { status: 201 })
+  }),
+
+  // Must precede `/api/v1/songs/:id`, which would otherwise swallow the literal `search` segment.
+  http.get('/api/v1/songs/search', ({ request }) => {
+    const url = new URL(request.url)
+    const q = url.searchParams.get('q')?.trim() ?? ''
+    const limit = Number(url.searchParams.get('limit') ?? 10)
+    if (q.length < 2) return HttpResponse.json({ errors: ['q must be at least 2 characters'] }, { status: 400 })
+    if (q === 'unavailable') return HttpResponse.json({ error: 'Song search is temporarily unavailable' }, { status: 502 })
+    const terms = q.toLowerCase().split(/\s+/)
+    const hits = catalogue.filter(h => terms.every(t => `${h.artist} ${h.name}`.toLowerCase().includes(t)))
+    return HttpResponse.json(hits.slice(0, limit))
   }),
 
   http.get('/api/v1/songs/:id', ({ params }) => {

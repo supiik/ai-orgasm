@@ -15,6 +15,7 @@ import { getSongFn } from './functions/get-song/resource'
 import { listSongsFn } from './functions/list-songs/resource'
 import { updateSongFn } from './functions/update-song/resource'
 import { deleteSongFn } from './functions/delete-song/resource'
+import { searchSongsFn } from './functions/search-songs/resource'
 import { createContributorFn } from './functions/create-contributor/resource'
 import { getContributorFn } from './functions/get-contributor/resource'
 import { listContributorsFn } from './functions/list-contributors/resource'
@@ -56,6 +57,7 @@ const backend = defineBackend({
   listSongsFn,
   updateSongFn,
   deleteSongFn,
+  searchSongsFn,
   createContributorFn,
   getContributorFn,
   listContributorsFn,
@@ -113,6 +115,10 @@ const sharedEnv: Record<string, string> = {
   // lib/logger.ts: `service.environment` on every log line, and the minimum level emitted.
   APP_ENV: process.env.APP_ENV ?? envName,
   LOG_LEVEL: process.env.LOG_LEVEL ?? 'INFO',
+  // lib/songSearch: which external catalogue backs `search-songs`, and the User-Agent MusicBrainz
+  // requires (app/version + a contact URL). Both optional — see the registry's defaults.
+  ...(process.env.SONG_SEARCH_PROVIDER ? { SONG_SEARCH_PROVIDER: process.env.SONG_SEARCH_PROVIDER } : {}),
+  ...(process.env.SONG_SEARCH_USER_AGENT ? { SONG_SEARCH_USER_AGENT: process.env.SONG_SEARCH_USER_AGENT } : {}),
 }
 
 /**
@@ -153,6 +159,7 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'list-songs': backend.listSongsFn,
   'update-song': backend.updateSongFn,
   'delete-song': backend.deleteSongFn,
+  'search-songs': backend.searchSongsFn,
   'create-contributor': backend.createContributorFn,
   'get-contributor': backend.getContributorFn,
   'list-contributors': backend.listContributorsFn,
@@ -203,9 +210,9 @@ for (const spec of fnSpecs) {
     userPool.grant(fn, ...spec.userPoolActions)
   }
 
-  if (spec.publiclyReachable && publicReservedConcurrency > 0) {
-    ;((fn as unknown as CdkFunction).node.defaultChild as CfnFunction).reservedConcurrentExecutions =
-      publicReservedConcurrency
+  const reservedConcurrency = spec.reservedConcurrency ?? (spec.publiclyReachable ? publicReservedConcurrency : undefined)
+  if (reservedConcurrency !== undefined && publicReservedConcurrency > 0) {
+    ;((fn as unknown as CdkFunction).node.defaultChild as CfnFunction).reservedConcurrentExecutions = reservedConcurrency
   }
 
   const url = fn.addFunctionUrl({

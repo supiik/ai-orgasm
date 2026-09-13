@@ -165,6 +165,15 @@
     "notNominated": "Zatiaľ nie je nominovaná v žiadnom playliste.",
     "nominatedBy": "nominoval(a)"
   },
+  "songSearch": {
+    "label": "Vyhľadať skladbu",
+    "placeholder": "napr. Radiohead Creep",
+    "hint": "Hľadajte podľa interpreta a názvu. Výber zhody vyplní polia nižšie — stále ich môžete upraviť.",
+    "searching": "Vyhľadáva sa…",
+    "empty": "Nenašli sa žiadne zhody.",
+    "failed": "Vyhľadávanie skladieb momentálne nie je dostupné.",
+    "results": "Výsledky vyhľadávania"
+  },
   "contributors": {
     "title": "Prispievatelia",
     "new": "Nový prispievateľ",

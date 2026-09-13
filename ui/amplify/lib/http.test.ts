@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { APIGatewayProxyEventV2, Context } from 'aws-lambda'
-import { ConflictError, ValidationError } from './errors'
+import { ConflictError, UpstreamError, ValidationError } from './errors'
 
 // http.ts imports auth.ts, which builds the Cognito verifier at module load and needs a real
 // user pool id — irrelevant to the pure helpers under test here.
@@ -96,6 +96,18 @@ describe('withAuth logging', () => {
     expect(lines.map((l) => l.log.level)).toEqual(['WARN', 'INFO'])
     expect(lines[0].error).toEqual({ type: 'ConflictError', message: 'Playlist 42 is not OPEN' })
     expect(lines[1].http.response.status_code).toBe(409)
+  })
+
+  it('maps a failed third-party dependency to 502, logged as a warning', async () => {
+    const handler = withAuth('public', 200, async () => {
+      throw new UpstreamError('Song search is temporarily unavailable')
+    })
+
+    const result = await handler(request(), context)
+
+    expect(result.statusCode).toBe(502)
+    expect(JSON.parse(result.body!)).toEqual({ error: 'Song search is temporarily unavailable' })
+    expect(lines[0].log.level).toBe('WARN')
   })
 
   it('logs unexpected errors at ERROR with a masked stack trace and returns 500', async () => {

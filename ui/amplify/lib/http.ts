@@ -1,6 +1,6 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2, Context } from 'aws-lambda'
 import { ADMIN_GROUP, verifyRequest } from './auth'
-import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, UnauthorizedError, ValidationError } from './errors'
+import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, UnauthorizedError, ValidationError, UpstreamError } from './errors'
 import { Fields, addLogContext, log, runWithLogContext } from './logger'
 import { REQUEST_ID_HEADER, newSpanId, resolveRequestId, resolveTrace } from './tracing'
 import { findContributorByCognitoSub } from './repositories/contributor'
@@ -116,6 +116,7 @@ async function handle(
     if (e instanceof ForbiddenError) return rejected(403, { error: e.message })
     if (e instanceof NotFoundError) return rejected(404, { error: e.message })
     if (e instanceof ConflictError) return rejected(409, { error: e.message })
+    if (e instanceof UpstreamError) return rejected(502, { error: e.message })
     log.error('Unhandled error', e)
     return respond(500, { error: 'Internal server error' })
   }

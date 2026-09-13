@@ -85,8 +85,30 @@ export type SongNomination = {
   status: string
 }
 
+/**
+ * One row from the external song catalogue (`search-songs` Lambda → lib/songSearch). The
+ * Spring backend has no equivalent yet — against `backend`, `/api/v1/songs/search` exists only
+ * so MSW can mock it for dev/e2e (same arrangement as the admin endpoints below).
+ */
+export type SongSearchHit = {
+  source: string
+  externalId: string
+  artist: string
+  name: string
+  album?: string
+  releaseYear?: number
+  score?: number
+}
+
 const songClient = {
   list:   (page?: number, size?: number, sort?: string, name?: string) => _songs.findAllSongs(page, size, sort, name),
+  search: async (q: string, limit?: number): Promise<{ data: SongSearchHit[] }> => {
+    const params = new URLSearchParams({ q })
+    if (limit !== undefined) params.set('limit', String(limit))
+    const res = await authenticatedFetch(`/api/v1/songs/search?${params}`)
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
   get:    (id: string) => _songs.findSongById(id),
   create: (body: CreateSongRequest) => _songs.createSong(body),
   update: (id: string, body: UpdateSongRequest) => _songs.updateSong(id, body),

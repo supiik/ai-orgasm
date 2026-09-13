@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mockLogin } from './helpers'
+import { mockLogin, waitForMsw } from './helpers'
 
 function browserFetch(page: import('@playwright/test').Page, input: string) {
   return page.evaluate(
@@ -15,14 +15,7 @@ function browserFetch(page: import('@playwright/test').Page, input: string) {
 test.describe('stats (via MSW)', () => {
   test.beforeEach(async ({ page }) => {
     await mockLogin(page)
-    const mswReady = page.waitForResponse(
-      async res =>
-        res.url().endsWith('/api/health') &&
-        res.status() === 200 &&
-        (await res.json().catch(() => null))?.success === true,
-    )
-    await page.goto('/')
-    await mswReady
+    await waitForMsw(page)
   })
 
   test('rankings API returns data for published playlists', async ({ page }) => {
