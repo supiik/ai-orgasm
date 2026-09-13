@@ -70,6 +70,7 @@ async function loadSongRatings() {
   try {
     const { data } = await api.songRatings().list(id)
     songRatings.value = data
+    syncMyStarsFromServer()
   } catch {}
 }
 
@@ -320,6 +321,28 @@ const maxStars = computed(() => ratingType.value === 'BEST_SONG' ? 1 : 3)
 const myStars = ref<Record<string, number>>({})
 const ratingError = ref<string | null>(null)
 const submittingRating = ref(false)
+
+/** Rebuild the local star state from the rows the server holds for the current contributor. */
+function syncMyStarsFromServer() {
+  const points = STAR_TO_POINTS[ratingType.value ?? '']
+  if (!points || !myId.value) return
+  const stars: Record<string, number> = {}
+  for (const r of songRatings.value) {
+    if (r.contributorId !== myId.value) continue
+    const star = points.indexOf(r.points)
+    if (star > 0) stars[r.nominationId] = star
+  }
+  myStars.value = stars
+}
+
+/** True once the local stars match what the server holds — i.e. nothing is pending. */
+const ratingsSaved = computed(() => {
+  const points = STAR_TO_POINTS[ratingType.value ?? '']
+  if (!points || !myId.value) return false
+  const mine = songRatings.value.filter(r => r.contributorId === myId.value)
+  if (mine.length === 0 || mine.length !== Object.keys(myStars.value).length) return false
+  return mine.every(r => points.indexOf(r.points) === myStars.value[r.nominationId])
+})
 
 function starsForNom(nomId: string): number {
   return myStars.value[nomId] ?? 0
@@ -719,6 +742,11 @@ function statusClass(s: NominationStatus | undefined) {
         <h2 class="text-lg font-semibold mb-3">{{ t('playlist.songRatings') }}</h2>
         <p class="text-xs text-muted-foreground mb-3">{{ ratingTypeLabel }}</p>
         <p v-if="ratingError" class="text-sm text-destructive mb-3">{{ ratingError }}</p>
+        <p v-else-if="myId" class="text-xs mb-3" :class="ratingsSaved ? 'text-muted-foreground' : 'text-amber-600 dark:text-amber-400'">
+          <template v-if="submittingRating">{{ t('playlist.ratingsSaving') }}</template>
+          <template v-else-if="ratingsSaved">{{ t('playlist.ratingsSaved') }}</template>
+          <template v-else>{{ t('playlist.ratingsIncomplete', maxStars) }}</template>
+        </p>
 
         <div class="divide-y divide-border rounded-md border border-border overflow-hidden">
           <div v-for="nom in approvedNoms" :key="nom.id" class="flex items-center px-4 py-3 gap-4 text-sm even:bg-muted/40">

@@ -149,7 +149,10 @@
     "openFailed": "Playlist sa nepodarilo otvoriť.",
     "nominateFailed": "Skladbu sa nepodarilo nominovať.",
     "startGuessingFailed": "Hádanie sa nepodarilo spustiť.",
-    "submitRatingsFailed": "Hodnotenie sa nepodarilo odoslať."
+    "submitRatingsFailed": "Hodnotenie sa nepodarilo odoslať.",
+    "ratingsIncomplete": "Zatiaľ neuložené — vyberte jednu skladbu ako svoju obľúbenú. | Zatiaľ neuložené — vyberte jednu skladbu ako svoju obľúbenú. | Zatiaľ neuložené — rozdeľte všetky {n} hviezdičkové hodnotenia, každé inej skladbe. | Zatiaľ neuložené — rozdeľte všetkých {n} hviezdičkových hodnotení, každé inej skladbe.",
+    "ratingsSaving": "Ukladám vaše hodnotenie…",
+    "ratingsSaved": "Vaše hodnotenie je uložené."
   },
   "songs": {
     "title": "Skladby",

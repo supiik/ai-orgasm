@@ -149,7 +149,10 @@
     "openFailed": "Failed to open playlist.",
     "nominateFailed": "Failed to nominate song.",
     "startGuessingFailed": "Failed to start guessing phase.",
-    "submitRatingsFailed": "Failed to submit ratings."
+    "submitRatingsFailed": "Failed to submit ratings.",
+    "ratingsIncomplete": "Not saved yet — pick one song as your favourite. | Not saved yet — pick one song as your favourite. | Not saved yet — hand out all {n} star ratings, each to a different song.",
+    "ratingsSaving": "Saving your ratings…",
+    "ratingsSaved": "Your ratings are saved."
   },
   "songs": {
     "title": "Songs",
