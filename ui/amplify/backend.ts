@@ -100,7 +100,17 @@ const sharedEnv: Record<string, string> = {
   // Keys lib/idGenerator.ts's format/parse scrambling. Unset at deploy time means the all-zero
   // default key, i.e. the external id representation is a plain reversible transform of the DB id.
   ID_GENERATOR_SECRET: process.env.ID_GENERATOR_SECRET ?? '0000000000000000',
+  // lib/logger.ts: `service.environment` on every log line, and the minimum level emitted.
+  APP_ENV: process.env.APP_ENV ?? envName,
+  LOG_LEVEL: process.env.LOG_LEVEL ?? 'INFO',
 }
+
+/**
+ * Correlation headers accepted from and exposed to browsers on every Function URL, on top of
+ * each spec's own list: `traceparent` lets a caller join its trace, `x-request-id` lets it
+ * choose/quote the request id (lib/tracing.ts).
+ */
+const correlationHeaders = ['traceparent', 'x-request-id']
 
 /**
  * Browser origins allowed to call the Function URLs. Defaults to `*` because the deployed origin
@@ -184,7 +194,8 @@ for (const spec of fnSpecs) {
     cors: {
       allowedOrigins,
       allowedMethods: spec.methods,
-      allowedHeaders: spec.corsHeaders.length > 0 ? spec.corsHeaders : undefined,
+      allowedHeaders: [...new Set([...spec.corsHeaders, ...correlationHeaders])],
+      exposedHeaders: ['x-request-id'],
     },
   })
 

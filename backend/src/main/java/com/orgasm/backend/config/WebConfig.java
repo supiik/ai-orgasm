@@ -1,5 +1,6 @@
 package com.orgasm.backend.config;
 
+import com.orgasm.backend.logging.RequestLoggingFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.server.PathContainer;
 import org.springframework.web.servlet.config.annotation.ApiVersionConfigurer;
@@ -27,6 +28,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins("http://localhost:5173")
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .exposedHeaders(RequestLoggingFilter.REQUEST_ID_HEADER)
                 .allowCredentials(true);
     }
 }
