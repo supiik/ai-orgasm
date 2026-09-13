@@ -2,17 +2,17 @@ package com.orgasm.lambda;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.orgasm.backend.playlist.CreatePlaylistRequest;
-import com.orgasm.backend.playlist.PlaylistResponse;
-import com.orgasm.backend.playlist.PlaylistService;
-import com.orgasm.backend.playlist.PlaylistStatus;
-import jakarta.persistence.EntityNotFoundException;
+import com.orgasm.dynamo.playlist.CreatePlaylistRequest;
+import com.orgasm.dynamo.playlist.PlaylistResponse;
+import com.orgasm.dynamo.playlist.PlaylistService;
+import com.orgasm.dynamo.playlist.PlaylistStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.NoSuchElementException;
 
 import static com.orgasm.lambda.LambdaTestSupport.VALIDATOR;
 import static com.orgasm.lambda.LambdaTestSupport.postEvent;
@@ -74,7 +74,8 @@ class CreatePlaylistHandlerTest {
 
     @Test
     void returns404_whenServiceThrowsNotFound() {
-        when(playlistService.create(anyRequest())).thenThrow(new EntityNotFoundException("Playlist not found: 99"));
+        when(playlistService.create(anyRequest()))
+                .thenThrow(new NoSuchElementException("Playlist not found: 99"));
         var event = postEvent("{\"name\":\"My Mix\"}");
 
         var response = handler().handleRequest(event, context);
@@ -100,6 +101,7 @@ class CreatePlaylistHandlerTest {
         var failingMapper = mock(ObjectMapper.class);
         when(failingMapper.readValue(any(String.class), any(Class.class)))
                 .thenReturn(new CreatePlaylistRequest("x", null, null, null));
+        when(playlistService.create(anyRequest())).thenReturn(stubResponse());
         when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("ser-fail"));
         var handler = new CreatePlaylistHandler(playlistService, failingMapper, VALIDATOR);
 

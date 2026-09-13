@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/aws-amplify/amplify-backend/main/packages/client-config/src/client-config-schema/schema_v1.json",
+  "version": "1",
+  "auth": {
+    "user_pool_id": "PLACEHOLDER_USER_POOL_ID",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "PLACEHOLDER_USER_POOL_CLIENT_ID",
+    "mfa_methods": [],
+    "standard_required_attributes": ["email"],
+    "username_attributes": ["email"],
+    "user_verification_types": ["email"],
+    "mfa_configuration": "NONE",
+    "unauthenticated_identities_enabled": false
+  },
+  "custom": {
+    "functionUrls": {
+      "link-contributor": "https://placeholder.lambda-url.us-east-1.on.aws/",
+      "get-current-contributor": "https://placeholder.lambda-url.us-east-1.on.aws/"
+    }
+  }
+}

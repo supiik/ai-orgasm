@@ -49,7 +49,7 @@ class RegistrationControllerTest {
     @SuppressWarnings("unchecked")
     void register_returns201WithLocation() throws Exception {
         when(orgRepository.findBySlug("default"))
-                .thenReturn(Optional.of(new Organization(1L, "default", "Default Organization")));
+                .thenReturn(Optional.of(new Organization(1L, "default", "Default Organization", null)));
         when(contributorService.create(any(UnaryOperator.class)))
                 .thenReturn(contributor("cont-abc123", "Alice"));
 
@@ -61,6 +61,45 @@ class RegistrationControllerTest {
                 .andExpect(header().string("Location", endsWith("/api/v1/contributors/cont-abc123")))
                 .andExpect(jsonPath("$.id").value("cont-abc123"))
                 .andExpect(jsonPath("$.name").value("Alice"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void register_returns201_whenEmailMatchesAllowedDomain() throws Exception {
+        when(orgRepository.findBySlug("acme"))
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+        when(contributorService.create(any(UnaryOperator.class)))
+                .thenReturn(contributor("cont-abc123", "Alice"));
+
+        mvc.perform(post("/api/v1/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationController.RegisterRequest("Alice", "alice@acme.com", null, "acme"))))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void register_returns400_whenEmailDomainDoesNotMatchAllowedDomain() throws Exception {
+        when(orgRepository.findBySlug("acme"))
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+
+        mvc.perform(post("/api/v1/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationController.RegisterRequest("Alice", "alice@gmail.com", null, "acme"))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_returns400_whenAllowedDomainSetAndEmailMissing() throws Exception {
+        when(orgRepository.findBySlug("acme"))
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+
+        mvc.perform(post("/api/v1/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationController.RegisterRequest("Alice", null, null, "acme"))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

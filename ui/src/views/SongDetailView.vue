@@ -2,21 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { type SongResponse } from '@orgasm/backend-client'
-import { api } from '@/api'
+import { api, type SongNomination } from '@/api'
+import { parseReleaseYear } from '@/lib/releaseYear'
 import { ArrowLeft, Pencil } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
-interface SongNomination {
-  id: string
-  playlistId: string
-  playlistName: string
-  nominatedById: string
-  nominatedByName: string
-  status: string
-}
 
 const route = useRoute()
 const router = useRouter()
@@ -33,7 +25,7 @@ async function load() {
   try {
     const [songRes, nomRes] = await Promise.all([
       api.songs().get(id),
-      fetch(`/api/v1/songs/${id}/nominations`).then(r => r.json() as Promise<SongNomination[]>),
+      api.songs().nominations(id),
     ])
     song.value = songRes.data
     nominations.value = nomRes
@@ -80,7 +72,7 @@ async function submitEdit() {
   saving.value = true
   formError.value = null
   try {
-    const releaseYear = form.value.releaseYear.trim() ? Number(form.value.releaseYear) : undefined
+    const releaseYear = parseReleaseYear(form.value.releaseYear)
     const { data } = await api.songs().update(id, {
       artist: form.value.artist.trim(),
       name: form.value.name.trim(),

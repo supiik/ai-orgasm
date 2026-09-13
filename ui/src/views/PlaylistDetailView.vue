@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api, type GuessEntry, type SongRatingEntry } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { canOpenPlaylist, canStartGuessing, canPublish } from '@/lib/playlistPermissions'
 import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -125,24 +126,50 @@ const guessingDeadlinePassed = computed(() => {
 // ── Edit dialog ───────────────────────────────────────────────────────────────
 
 const editOpen = ref(false)
-const editForm = ref({ name: '', description: '' })
+const editForm = ref({ name: '', description: '', deadline: '', guessingDeadline: '' })
 const editError = ref<string | null>(null)
 const saving = ref(false)
 
+// Deadlines are editable only by the lead, and only while the playlist is in the phase that
+// deadline governs — the same rule the API enforces (see amplify/lib/services/playlist.ts).
+const canEditDeadline = computed(() => isLead.value && playlist.value?.status === PlaylistStatus.Open)
+const canEditGuessingDeadline = computed(() => isLead.value && playlist.value?.status === PlaylistStatus.Guessing)
+
+/** ISO date-time → `YYYY-MM-DD` in local time, for an `<input type="date">`. */
+function toDateInput(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** `YYYY-MM-DD` → ISO date-time at the end of that local day, so the whole chosen day counts. */
+function fromDateInput(date: string): string {
+  return new Date(`${date}T23:59:59`).toISOString()
+}
+
 function openEdit() {
-  editForm.value = { name: playlist.value!.name!, description: playlist.value!.description ?? '' }
+  editForm.value = {
+    name: playlist.value!.name!,
+    description: playlist.value!.description ?? '',
+    deadline: toDateInput(playlist.value!.deadline),
+    guessingDeadline: toDateInput((playlist.value as any).guessingDeadline),
+  }
   editError.value = null
   editOpen.value = true
 }
 
 async function submitEdit() {
   if (!editForm.value.name.trim()) { editError.value = 'Name is required.'; return }
+  if (canEditDeadline.value && !editForm.value.deadline) { editError.value = 'Nomination deadline is required.'; return }
+  if (canEditGuessingDeadline.value && !editForm.value.guessingDeadline) { editError.value = 'Guessing deadline is required.'; return }
   saving.value = true
   editError.value = null
   try {
     const { data } = await api.playlists().update(id, {
       name: editForm.value.name.trim(),
       description: editForm.value.description.trim() || undefined,
+      ...(canEditDeadline.value && { deadline: fromDateInput(editForm.value.deadline) }),
+      ...(canEditGuessingDeadline.value && { guessingDeadline: fromDateInput(editForm.value.guessingDeadline) }),
     })
     playlist.value = data
     editOpen.value = false
@@ -358,6 +385,14 @@ function showNominate(contributorId = '') {
   nominateOpen.value = true
 }
 
+// The dialog never lets you pick a contributor — it's always either you (the generic
+// "Nominate" button) or whoever's row you clicked "Nominate for" on, both already fixed by the
+// time the dialog opens. This just resolves a display name for that already-decided contributor.
+const nominateContributorName = computed(() => {
+  if (nominateForm.value.contributorId === myId.value) return authStore.currentContributor?.name ?? ''
+  return allContributors.value.find(c => c.id === nominateForm.value.contributorId)?.name ?? ''
+})
+
 async function submitNominate() {
   if (!nominateForm.value.contributorId || !nominateForm.value.artist.trim() || !nominateForm.value.name.trim()) {
     nominateError.value = 'Contributor, artist, and song name are required.'
@@ -470,15 +505,15 @@ function statusClass(s: NominationStatus | undefined) {
         <span v-else>{{ playlist?.name }}</span>
       </h1>
       <div class="ml-auto flex gap-2">
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.New" variant="outline" size="sm" @click="showOpen">
+        <Button v-if="canOpenPlaylist(playlist?.status)" variant="outline" size="sm" @click="showOpen">
           <Play class="h-4 w-4" />
           Open for nominations
         </Button>
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.Open && (deadlinePassed || allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
+        <Button v-if="canStartGuessing(playlist?.status, isLead, deadlinePassed, allNominationsReviewed)" variant="outline" size="sm" @click="startGuessing">
           <Headphones class="h-4 w-4" />
           Start guessing
         </Button>
-        <Button v-if="isLead && playlist?.status === PlaylistStatus.Guessing" variant="outline" size="sm" :disabled="publishing" @click="publish">
+        <Button v-if="canPublish(playlist?.status, isLead)" variant="outline" size="sm" :disabled="publishing" @click="publish">
           <BookOpen class="h-4 w-4" />
           {{ publishing ? 'Publishing…' : 'Publish' }}
         </Button>
@@ -734,6 +769,14 @@ function statusClass(s: NominationStatus | undefined) {
           <Label for="edit-desc">Description</Label>
           <Input id="edit-desc" v-model="editForm.description" placeholder="Optional description" />
         </div>
+        <div v-if="canEditDeadline" class="space-y-1.5">
+          <Label for="edit-deadline">Nomination deadline <span class="text-destructive">*</span></Label>
+          <Input id="edit-deadline" v-model="editForm.deadline" type="date" />
+        </div>
+        <div v-if="canEditGuessingDeadline" class="space-y-1.5">
+          <Label for="edit-guessing-deadline">Guessing deadline <span class="text-destructive">*</span></Label>
+          <Input id="edit-guessing-deadline" v-model="editForm.guessingDeadline" type="date" />
+        </div>
         <p v-if="editError" class="text-sm text-destructive">{{ editError }}</p>
       </form>
       <DialogFooter>
@@ -771,8 +814,10 @@ function statusClass(s: NominationStatus | undefined) {
       <DialogHeader><DialogTitle>Nominate a song</DialogTitle></DialogHeader>
       <form class="space-y-4" @submit.prevent="submitNominate">
         <div class="space-y-1.5">
-          <Label>Contributor <span class="text-destructive">*</span></Label>
-          <ContributorSelect v-model="nominateForm.contributorId" :contributors="eligibleContributors" placeholder="Select contributor…" />
+          <Label>Nominating as</Label>
+          <div class="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
+            {{ nominateContributorName || '—' }}
+          </div>
         </div>
         <div class="border-t border-border pt-4 space-y-3">
           <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">Song</p>

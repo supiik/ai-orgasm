@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { type SongPage, type SongResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
+import { parseReleaseYear } from '@/lib/releaseYear'
 import { ChevronLeft, ChevronRight, Plus, Pencil } from 'lucide-vue-next'
 import NameFilter from '@/components/NameFilter.vue'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -91,7 +92,7 @@ async function submitForm() {
   saving.value = true
   formError.value = null
   try {
-    const releaseYear = form.value.releaseYear.trim() ? Number(form.value.releaseYear) : undefined
+    const releaseYear = parseReleaseYear(form.value.releaseYear)
     const payload = {
       artist: form.value.artist.trim(),
       name: form.value.name.trim(),

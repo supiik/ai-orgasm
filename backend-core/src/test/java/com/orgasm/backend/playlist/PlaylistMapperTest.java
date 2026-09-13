@@ -91,7 +91,9 @@ class PlaylistMapperTest {
     @Test
     void updateEntity_updatesAllFields() {
         Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null, null, null);
-        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED);
+        Instant deadline = Instant.parse("2026-02-01T00:00:00Z");
+        Instant guessingDeadline = Instant.parse("2026-02-08T00:00:00Z");
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED, deadline, guessingDeadline);
 
         mapper.updateEntity(request, playlist);
 
@@ -99,12 +101,27 @@ class PlaylistMapperTest {
         assertThat(playlist.getName()).isEqualTo("Renamed");
         assertThat(playlist.getDescription()).isEqualTo("New desc");
         assertThat(playlist.getStatus()).isEqualTo(PlaylistStatus.CLOSED);
+        assertThat(playlist.getDeadline()).isEqualTo(deadline);
+        assertThat(playlist.getGuessingDeadline()).isEqualTo(guessingDeadline);
+    }
+
+    @Test
+    void updateEntity_preservesDeadlines_whenNullInRequest() {
+        Instant deadline = Instant.parse("2026-02-01T00:00:00Z");
+        Instant guessingDeadline = deadline.plusSeconds(7 * 24 * 3600);
+        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, deadline, guessingDeadline, null);
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null);
+
+        mapper.updateEntity(request, playlist);
+
+        assertThat(playlist.getDeadline()).isEqualTo(deadline);
+        assertThat(playlist.getGuessingDeadline()).isEqualTo(guessingDeadline);
     }
 
     @Test
     void updateEntity_preservesStatus_whenNullInRequest() {
         Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, null, null, null);
-        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null);
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null);
 
         mapper.updateEntity(request, playlist);
 

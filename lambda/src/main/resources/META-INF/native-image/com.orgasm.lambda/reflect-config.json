@@ -10,6 +10,166 @@
     "allPublicMethods": true
   },
   {
+    "name": "com.orgasm.lambda.GetPlaylistHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListPlaylistsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.UpdatePlaylistHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.DeletePlaylistHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.CreateSongHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.GetSongHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListSongsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.UpdateSongHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.DeleteSongHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.CreateContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.GetContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListContributorsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.UpdateContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.DeleteContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListOrganizationsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.RegisterContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.OpenPlaylistHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListPlaylistsByContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.NominateSongHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListNominationsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListSongNominationsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ApproveNominationHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.DeclineNominationHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.StartGuessingHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.SubmitGuessesHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListGuessesHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListRankingsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.SubmitRatingsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.ListSongRatingsHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.PublishPlaylistHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.LinkContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "com.orgasm.lambda.GetCurrentContributorHandler",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
     "name": "com.amazonaws.services.lambda.runtime.events.APIGatewayV2HTTPEvent",
     "allDeclaredConstructors": true,
     "allDeclaredFields": true,

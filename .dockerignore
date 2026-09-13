@@ -2,10 +2,12 @@
 .git/
 .gitignore
 
-# Build outputs
+# Build outputs — except the shaded fat jar the lambda Dockerfile packages (built by Maven
+# outside Docker; see lambda/Dockerfile's header comment).
 target/
 */target/
 **/target/
+!lambda/target/orgasm-lambda-*.jar
 
 # Frontend (not needed for lambda Docker build)
 ui/

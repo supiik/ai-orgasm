@@ -24,10 +24,10 @@
     </properties>
 
     <dependencies>
-        <!-- Backend core: service layer, JPA entities, Flyway, datasource config -->
+        <!-- Backend dynamo: DynamoDB-backed service layer used when deployed to AWS -->
         <dependency>
             <groupId>com.orgasm</groupId>
-            <artifactId>orgasm-backend-core</artifactId>
+            <artifactId>orgasm-backend-dynamo</artifactId>
         </dependency>
 
         <!-- Spring Boot core (no web) – provides ApplicationContext bootstrap -->
@@ -76,6 +76,13 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
+        <!-- Cognito JWT validation (signature + claims), no AWS SDK call needed -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -103,12 +110,6 @@
                     <groupId>com.amazonaws</groupId>
                     <artifactId>aws-lambda-java-runtime-interface-client</artifactId>
                 </dependency>
-                <!-- H2 needed by process-aot via application-aot profile -->
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <scope>runtime</scope>
-                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -129,9 +130,6 @@
                         <artifactId>spring-boot-maven-plugin</artifactId>
                         <configuration>
                             <mainClass>com.orgasm.lambda.LambdaApplication</mainClass>
-                            <profiles>
-                                <profile>aot</profile>
-                            </profiles>
                         </configuration>
                         <executions>
                             <execution>
@@ -155,6 +153,10 @@
                             <buildArgs>
                                 <buildArg>--no-fallback</buildArg>
                                 <buildArg>--enable-url-protocols=http,https</buildArg>
+                                <!-- Netty's ChannelHandlerMask (pulled in transitively via the AWS SDK's
+                                     netty-nio-client) captures a static Logback Logger/LoggerContext,
+                                     which native-image would otherwise try to initialize at build time. -->
+                                <buildArg>--initialize-at-build-time=ch.qos.logback</buildArg>
                             </buildArgs>
                         </configuration>
                         <executions>
@@ -196,6 +198,20 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                            <!-- Without these, multiple dependency jars each shipping their own
+                                 META-INF/spring.factories / spring/*.imports / services/* get
+                                 naively overwritten (last-jar-wins) instead of merged, silently
+                                 dropping Spring Boot auto-configuration (e.g. YAML property-source
+                                 loading) — the fat jar boots but application.yml is never read. -->
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring.factories</resource>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports</resource>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>

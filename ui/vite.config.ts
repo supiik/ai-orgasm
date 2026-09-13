@@ -2,12 +2,18 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
+import { createRequire } from 'node:module'
+
+const { version: appVersion } = createRequire(import.meta.url)('./package.json')
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
   const isMock = env.VITE_MOCK === 'true'
 
   return {
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+    },
     plugins: [tailwindcss(), vue()],
     resolve: {
       alias: {
