@@ -16,6 +16,8 @@ public record PlaylistResponse(
         String leadContributorAvatarUrl,
         Instant deadline,
         Instant guessingDeadline,
+        String spotifyPlaylistId,
+        String spotifyPlaylistUrl,
         Long version,
         Instant createdAt,
         Instant updatedAt
