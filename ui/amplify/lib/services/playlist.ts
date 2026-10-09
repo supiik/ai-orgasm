@@ -166,6 +166,7 @@ function assertDeadlineChangeAllowed(
 function parseDeadline(value: string, field: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) throw new ValidationError([`${field} must be an ISO-8601 date-time`])
+  if (date.getTime() < Date.now()) throw new ValidationError([`${field} must not be in the past`])
   return date.toISOString()
 }
 

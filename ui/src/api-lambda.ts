@@ -121,9 +121,11 @@ const nominationClient = {
 const songClient = {
   list:   (page?: number, size?: number, _sort?: string, name?: string) => req<SongPage>('list-songs', pageQuery(page, size, name)),
   search: (q: string, limit?: number) => {
-    const params = new URLSearchParams({ q })
-    if (limit !== undefined) params.set('limit', String(limit))
-    return req<SongSearchHit[]>('search-songs', `?${params}`)
+    // Hand-encoded, not URLSearchParams — see pageQuery's comment above: a '+' survives a
+    // Lambda Function URL verbatim instead of decoding back to a space.
+    const parts = [`q=${encodeURIComponent(q)}`]
+    if (limit !== undefined) parts.push(`limit=${limit}`)
+    return req<SongSearchHit[]>('search-songs', `?${parts.join('&')}`)
   },
   get:    (id: string) => req<SongResponse>('get-song', `/${id}`),
   create: (body: CreateSongRequest) => req<SongResponse>('create-song', '', { method: 'POST', body: JSON.stringify(body) }),

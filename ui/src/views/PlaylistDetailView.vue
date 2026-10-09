@@ -156,6 +156,10 @@ function toDateInput(iso: string | null | undefined): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// A deadline can be extended into the future but never moved back before today — used as the
+// date input's `min` and re-checked in submitEdit() since `min` alone doesn't stop every browser/input.
+const todayDateInput = computed(() => toDateInput(new Date().toISOString()))
+
 /** `YYYY-MM-DD` → ISO date-time at the end of that local day, so the whole chosen day counts. */
 function fromDateInput(date: string): string {
   return new Date(`${date}T23:59:59`).toISOString()
@@ -176,6 +180,8 @@ async function submitEdit() {
   if (!editForm.value.name.trim()) { editError.value = t('common.nameRequired'); return }
   if (canEditDeadline.value && !editForm.value.deadline) { editError.value = t('playlist.nominationDeadlineRequired'); return }
   if (canEditGuessingDeadline.value && !editForm.value.guessingDeadline) { editError.value = t('playlist.guessingDeadlineRequired'); return }
+  if (canEditDeadline.value && editForm.value.deadline < todayDateInput.value) { editError.value = t('playlist.deadlineInPast'); return }
+  if (canEditGuessingDeadline.value && editForm.value.guessingDeadline < todayDateInput.value) { editError.value = t('playlist.deadlineInPast'); return }
   saving.value = true
   editError.value = null
   try {
@@ -905,11 +911,11 @@ function statusClass(s: NominationStatus | undefined) {
         </div>
         <div v-if="canEditDeadline" class="space-y-1.5">
           <Label for="edit-deadline">{{ t('playlist.nominationDeadline') }} <span class="text-destructive">*</span></Label>
-          <Input id="edit-deadline" v-model="editForm.deadline" type="date" />
+          <Input id="edit-deadline" v-model="editForm.deadline" type="date" :min="todayDateInput" />
         </div>
         <div v-if="canEditGuessingDeadline" class="space-y-1.5">
           <Label for="edit-guessing-deadline">{{ t('playlist.guessingDeadline') }} <span class="text-destructive">*</span></Label>
-          <Input id="edit-guessing-deadline" v-model="editForm.guessingDeadline" type="date" />
+          <Input id="edit-guessing-deadline" v-model="editForm.guessingDeadline" type="date" :min="todayDateInput" />
         </div>
         <p v-if="editError" class="text-sm text-destructive">{{ editError }}</p>
       </form>

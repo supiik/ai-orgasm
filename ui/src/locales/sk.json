@@ -144,6 +144,7 @@
     "nominatingAs": "Nominuje",
     "nominationDeadlineRequired": "Uzávierka nominácií je povinná.",
     "guessingDeadlineRequired": "Uzávierka hádania je povinná.",
+    "deadlineInPast": "Termín nemôže byť v minulosti.",
     "contributorRequired": "Prispievateľ je povinný.",
     "deadlineRequired": "Uzávierka je povinná.",
     "nominateFieldsRequired": "Prispievateľ, interpret a názov skladby sú povinné.",

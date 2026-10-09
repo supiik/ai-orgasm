@@ -144,6 +144,7 @@
     "nominatingAs": "Nominating as",
     "nominationDeadlineRequired": "Nomination deadline is required.",
     "guessingDeadlineRequired": "Guessing deadline is required.",
+    "deadlineInPast": "Deadline cannot be in the past.",
     "contributorRequired": "Contributor ID is required.",
     "deadlineRequired": "Deadline is required.",
     "nominateFieldsRequired": "Contributor, artist, and song name are required.",

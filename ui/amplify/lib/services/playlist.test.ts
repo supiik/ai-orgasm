@@ -57,20 +57,30 @@ describe('updatePlaylist', () => {
 
   it('lets the lead extend the nomination deadline while OPEN', async () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('OPEN'))
+    const future = new Date(Date.now() + 86_400_000).toISOString()
 
-    const result = await updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', deadline: '2026-02-01T00:00:00Z' })
+    const result = await updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', deadline: future })
 
-    expect(result.deadline).toBe('2026-02-01T00:00:00.000Z')
+    expect(result.deadline).toBe(future)
     expect(result.guessingDeadline).toBe('2026-01-08T00:00:00.000Z')
   })
 
   it('lets the lead extend the guessing deadline while GUESSING', async () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('GUESSING'))
+    const future = new Date(Date.now() + 2 * 86_400_000).toISOString()
 
-    const result = await updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', guessingDeadline: '2026-03-01T00:00:00Z' })
+    const result = await updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', guessingDeadline: future })
 
-    expect(result.guessingDeadline).toBe('2026-03-01T00:00:00.000Z')
+    expect(result.guessingDeadline).toBe(future)
     expect(result.deadline).toBe('2026-01-01T00:00:00.000Z')
+  })
+
+  it('rejects a deadline change that moves it into the past', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('OPEN'))
+    const past = new Date(Date.now() - 86_400_000).toISOString()
+
+    await expect(updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', deadline: past }))
+      .rejects.toThrow(ValidationError)
   })
 
   it('rejects a nomination deadline change from a non-lead', async () => {
