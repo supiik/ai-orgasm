@@ -17,6 +17,8 @@ export interface PlaylistItem {
   leadContributorId?: bigint
   deadline?: string
   guessingDeadline?: string
+  spotifyPlaylistId?: string
+  spotifyPlaylistUrl?: string
   createdAt: string
   updatedAt: string
   deletedAt?: string

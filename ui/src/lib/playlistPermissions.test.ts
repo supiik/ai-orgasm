@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PlaylistStatus } from '@orgasm/backend-client'
-import { canOpenPlaylist, canPublish, canStartGuessing } from './playlistPermissions'
+import { canExportSpotify, canOpenPlaylist, canPublish, canStartGuessing } from './playlistPermissions'
 
 describe('canOpenPlaylist', () => {
   it('allows opening a NEW playlist with no lead yet — regression for the bug where this was gated on isLead, which can never be true before a playlist is opened', () => {
@@ -40,5 +40,27 @@ describe('canPublish', () => {
     expect(canPublish(PlaylistStatus.Guessing, true)).toBe(true)
     expect(canPublish(PlaylistStatus.Guessing, false)).toBe(false)
     expect(canPublish(PlaylistStatus.Open, true)).toBe(false)
+  })
+})
+
+describe('canExportSpotify', () => {
+  it('requires the lead contributor', () => {
+    expect(canExportSpotify(PlaylistStatus.Guessing, false)).toBe(false)
+  })
+
+  it('is not allowed while nominations are still open (New/Open)', () => {
+    expect(canExportSpotify(PlaylistStatus.New, true)).toBe(false)
+    expect(canExportSpotify(PlaylistStatus.Open, true)).toBe(false)
+  })
+
+  it('is allowed once the nomination phase has closed', () => {
+    expect(canExportSpotify(PlaylistStatus.Guessing, true)).toBe(true)
+    expect(canExportSpotify(PlaylistStatus.UnderEvaluation, true)).toBe(true)
+    expect(canExportSpotify(PlaylistStatus.Closed, true)).toBe(true)
+    expect(canExportSpotify(PlaylistStatus.Published, true)).toBe(true)
+  })
+
+  it('does not allow when the playlist has not loaded yet', () => {
+    expect(canExportSpotify(undefined, true)).toBe(false)
   })
 })

@@ -1,5 +1,6 @@
 package com.orgasm.backend.config;
 
+import com.orgasm.backend.spotify.SpotifyUpstreamException;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +55,17 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setTitle("Not Found");
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(pd);
+    }
+
+    @ExceptionHandler(SpotifyUpstreamException.class)
+    public ResponseEntity<ProblemDetail> handleSpotifyUpstream(SpotifyUpstreamException ex) {
+        log.warn("Spotify upstream call failed", ex);
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_GATEWAY, "The Spotify API is currently unavailable");
+        pd.setTitle("Bad Gateway");
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(pd);
     }

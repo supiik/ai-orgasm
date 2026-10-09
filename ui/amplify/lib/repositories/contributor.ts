@@ -12,10 +12,20 @@ export interface ContributorItem {
   email?: string
   avatarUrl?: string
   cognitoSub?: string
+  /** Set once the contributor completes the Spotify OAuth connect flow — see lib/services/spotify.ts. */
+  spotify?: SpotifyConnection
   createdAt: string
   updatedAt: string
   deletedAt?: string
   version?: number
+}
+
+export interface SpotifyConnection {
+  spotifyUserId: string
+  accessToken: string
+  refreshToken: string
+  /** ISO-8601 instant. */
+  expiresAt: string
 }
 
 export function contributorKey(tenantId: number, id: bigint) {
