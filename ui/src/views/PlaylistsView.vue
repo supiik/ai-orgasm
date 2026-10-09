@@ -67,7 +67,7 @@ const dialogMode = ref<DialogMode>('create')
 const editingId = ref<string | null>(null)
 const RATING_TYPES = ['LINEAR', 'FIBONACCI', 'BEST_SONG'] as const
 
-const form = ref({ name: '', description: '', ratingType: '' })
+const form = ref({ name: '', description: '', ratingType: RATING_TYPES[0] as string })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
@@ -80,7 +80,7 @@ const submitLabel = computed(() => {
 function openCreate() {
   dialogMode.value = 'create'
   editingId.value = null
-  form.value = { name: '', description: '', ratingType: '' }
+  form.value = { name: '', description: '', ratingType: RATING_TYPES[0] }
   formError.value = null
   dialogOpen.value = true
 }
@@ -88,7 +88,7 @@ function openCreate() {
 function openEdit(playlist: PlaylistResponse) {
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
-  form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: '' }
+  form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: RATING_TYPES[0] }
   formError.value = null
   dialogOpen.value = true
 }
@@ -104,7 +104,7 @@ async function submitForm() {
     const payload = {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
-      ...(dialogMode.value === 'create' && form.value.ratingType
+      ...(dialogMode.value === 'create'
         ? { ratingType: form.value.ratingType }
         : {}),
     }
@@ -235,7 +235,7 @@ async function submitForm() {
         </div>
         <div v-if="dialogMode === 'create'" class="space-y-1.5">
           <Label>{{ t('playlists.ratingType') }}</Label>
-          <Select v-model="form.ratingType" :placeholder="t('common.none')">
+          <Select v-model="form.ratingType">
             <SelectItem v-for="rt in RATING_TYPES" :key="rt" :value="rt">
               {{ t(`ratingType.${rt}`) }}
             </SelectItem>
