@@ -76,7 +76,7 @@ describe('exportOrganization', () => {
     ])
     vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([
       { pk: '1#PLAYLIST', sk: '30', id: 30n, tenantId: T, name: 'Mix', status: 'PUBLISHED', ratingType: 'TOP3', leadContributorId: 10n, deadline: at(3), version: 7, ...audit(1) },
-      { pk: '1#PLAYLIST', sk: '31', id: 31n, tenantId: T, name: 'Draft', status: 'DRAFT', version: 1, ...audit(2) },
+      { pk: '1#PLAYLIST', sk: '31', id: 31n, tenantId: T, name: 'Draft', status: 'NEW', version: 1, ...audit(2) },
     ])
     vi.mocked(nominationRepo.findAllNominationsByTenant).mockResolvedValue([
       { pk: '1#NOMINATION', sk: '40', id: 40n, tenantId: T, playlistId: 30n, songId: 20n, nominatedById: 10n, status: 'APPROVED', version: 2, ...audit(2) },
@@ -104,7 +104,7 @@ describe('exportOrganization', () => {
     ])
     expect(doc.songs).toEqual([{ id: creep, artist: 'Radiohead', name: 'Creep', album: 'Pablo Honey', releaseYear: 1993, url: undefined, ...audit(1), deletedAt: undefined }])
     expect(doc.playlists[0]).toMatchObject({ id: mix, status: 'PUBLISHED', ratingType: 'TOP3', leadContributorId: alice, deadline: at(3) })
-    expect(doc.playlists[1]).toMatchObject({ id: formatId('play', 31n), status: 'DRAFT', leadContributorId: undefined })
+    expect(doc.playlists[1]).toMatchObject({ id: formatId('play', 31n), status: 'NEW', leadContributorId: undefined })
     expect(doc.nominations).toEqual([{ id: nom, playlistId: mix, songId: creep, nominatedById: alice, status: 'APPROVED', ...audit(2), deletedAt: undefined }])
     expect(doc.guessSubmissions).toEqual([{ id: formatId('gsub', 50n), playlistId: mix, contributorId: bob, ...audit(3), deletedAt: undefined }])
     expect(doc.guesses).toEqual([{ id: formatId('guess', 60n), playlistId: mix, nominationId: nom, guesserId: bob, guessedContributorId: alice, createdAt: at(3) }])
