@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('../views/AdminView.vue'),
       meta: { requiresAdmin: true },
     },
+    {
+      path: '/spotify/callback',
+      name: 'spotify-callback',
+      component: () => import('../views/SpotifyCallbackView.vue'),
+    },
   ],
 })
 

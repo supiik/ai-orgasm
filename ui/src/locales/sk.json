@@ -68,7 +68,8 @@
     "passed": "(uplynul)",
     "saveFailed": "Uloženie zlyhalo. Skúste to znova.",
     "nameRequired": "Názov je povinný.",
-    "artistRequired": "Interpret je povinný."
+    "artistRequired": "Interpret je povinný.",
+    "copy": "Kopírovať"
   },
   "fields": {
     "fullName": "Celé meno",
@@ -152,7 +153,21 @@
     "submitRatingsFailed": "Hodnotenie sa nepodarilo odoslať.",
     "ratingsIncomplete": "Zatiaľ neuložené — vyberte jednu skladbu ako svoju obľúbenú. | Zatiaľ neuložené — vyberte jednu skladbu ako svoju obľúbenú. | Zatiaľ neuložené — rozdeľte všetky {n} hviezdičkové hodnotenia, každé inej skladbe. | Zatiaľ neuložené — rozdeľte všetkých {n} hviezdičkových hodnotení, každé inej skladbe.",
     "ratingsSaving": "Ukladám vaše hodnotenie…",
-    "ratingsSaved": "Vaše hodnotenie je uložené."
+    "ratingsSaved": "Vaše hodnotenie je uložené.",
+    "createSpotifyPlaylist": "Vytvoriť playlist na Spotify",
+    "spotifyExporting": "Vytvára sa…",
+    "spotifyNotConnected": "Pripojte svoj účet Spotify a vytvorte playlist z týchto skladieb.",
+    "connectSpotify": "Pripojiť Spotify",
+    "spotifyConnecting": "Presmerúva sa…",
+    "spotifyLinkCopied": "Skopírované!",
+    "spotifyExportFailed": "Vytvorenie playlistu na Spotify zlyhalo.",
+    "spotifyMatchedCount": "Na Spotify sa nenašla žiadna zhoda | Na Spotify sa našla zhoda pre {n} skladbu | Na Spotify sa našla zhoda pre {n} skladby | Na Spotify sa našla zhoda pre {n} skladieb",
+    "songsSkipped": "vynechané: {songs}"
+  },
+  "spotifyCallback": {
+    "connecting": "Pripája sa váš účet Spotify…",
+    "failed": "Účet Spotify sa nepodarilo pripojiť. Skúste to znova.",
+    "backToPlaylists": "Späť na playlisty"
   },
   "songs": {
     "title": "Skladby",

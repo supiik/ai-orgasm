@@ -44,6 +44,10 @@ import { adminUpdateOrganizationFn } from './functions/admin-update-organization
 import { adminListOrgContributorsFn } from './functions/admin-list-org-contributors/resource'
 import { adminAddOrgContributorFn } from './functions/admin-add-org-contributor/resource'
 import { adminExportOrganizationFn } from './functions/admin-export-organization/resource'
+import { spotifyConnectFn } from './functions/spotify-connect/resource'
+import { spotifyStatusFn } from './functions/spotify-status/resource'
+import { spotifyCallbackFn } from './functions/spotify-callback/resource'
+import { spotifyExportFn } from './functions/spotify-export/resource'
 
 const backend = defineBackend({
   auth,
@@ -87,6 +91,10 @@ const backend = defineBackend({
   adminListOrgContributorsFn,
   adminAddOrgContributorFn,
   adminExportOrganizationFn,
+  spotifyConnectFn,
+  spotifyStatusFn,
+  spotifyCallbackFn,
+  spotifyExportFn,
 })
 
 // Per-branch env name: `ampx pipeline-deploy --branch <name>` sets AWS_BRANCH in the Amplify
@@ -121,6 +129,15 @@ const sharedEnv: Record<string, string> = {
   // requires (app/version + a contact URL). Both optional — see the registry's defaults.
   ...(process.env.SONG_SEARCH_PROVIDER ? { SONG_SEARCH_PROVIDER: process.env.SONG_SEARCH_PROVIDER } : {}),
   ...(process.env.SONG_SEARCH_USER_AGENT ? { SONG_SEARCH_USER_AGENT: process.env.SONG_SEARCH_USER_AGENT } : {}),
+  // lib/spotify + lib/services/spotify.ts: Spotify app credentials, the redirect URI registered
+  // with that app (the UI's own /spotify/callback route — see CLAUDE.md), and the key for
+  // lib/spotify/state.ts's HMAC-signed OAuth `state` param. All optional to leave unset in a
+  // sandbox that isn't exercising this feature; an unset state secret falls back to all-zero,
+  // same plaintext-default precedent as ID_GENERATOR_SECRET.
+  ...(process.env.SPOTIFY_CLIENT_ID ? { SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID } : {}),
+  ...(process.env.SPOTIFY_CLIENT_SECRET ? { SPOTIFY_CLIENT_SECRET: process.env.SPOTIFY_CLIENT_SECRET } : {}),
+  ...(process.env.SPOTIFY_REDIRECT_URI ? { SPOTIFY_REDIRECT_URI: process.env.SPOTIFY_REDIRECT_URI } : {}),
+  SPOTIFY_STATE_SECRET: process.env.SPOTIFY_STATE_SECRET ?? '0000000000000000',
 }
 
 /**
@@ -190,6 +207,10 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'admin-list-org-contributors': backend.adminListOrgContributorsFn,
   'admin-add-org-contributor': backend.adminAddOrgContributorFn,
   'admin-export-organization': backend.adminExportOrganizationFn,
+  'spotify-connect': backend.spotifyConnectFn,
+  'spotify-status': backend.spotifyStatusFn,
+  'spotify-callback': backend.spotifyCallbackFn,
+  'spotify-export': backend.spotifyExportFn,
 }
 
 const functionUrls: Record<string, string> = {}

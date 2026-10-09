@@ -55,4 +55,10 @@ public class Playlist extends AuditableEntity {
     @Column(name = "rating_type")
     @Enumerated(EnumType.STRING)
     private RatingType ratingType;
+
+    @Column(name = "spotify_playlist_id")
+    private String spotifyPlaylistId;
+
+    @Column(name = "spotify_playlist_url", length = 2048)
+    private String spotifyPlaylistUrl;
 }

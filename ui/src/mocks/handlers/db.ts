@@ -14,6 +14,8 @@ export interface PlaylistRow {
   leadContributorAvatarUrl: string | null
   deadline: string | null
   guessingDeadline: string | null
+  spotifyPlaylistId?: string | null
+  spotifyPlaylistUrl?: string | null
   version: number
   createdAt: string
   updatedAt: string

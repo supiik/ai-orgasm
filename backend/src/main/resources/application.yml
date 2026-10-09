@@ -43,6 +43,11 @@ app:
     from: ${MAIL_FROM:noreply@orgasm.local}
   id:
     secret: ${ID_SECRET:0000000000000000}
+  spotify:
+    client-id: ${SPOTIFY_CLIENT_ID:}
+    client-secret: ${SPOTIFY_CLIENT_SECRET:}
+    redirect-uri: ${SPOTIFY_REDIRECT_URI:http://localhost:5173/spotify/callback}
+    state-secret: ${SPOTIFY_STATE_SECRET:0000000000000000}
 
 datasource:
   app:
@@ -95,6 +100,14 @@ resilience4j:
         record-exceptions:
           - org.springframework.dao.DataAccessException
           - java.sql.SQLException
+      spotify:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - com.orgasm.backend.spotify.SpotifyUpstreamException
 
 logging:
   level:

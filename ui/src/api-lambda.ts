@@ -12,6 +12,7 @@ import { throwApiError } from './api-backend'
 import type {
   GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
   AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest, OrganizationExport,
+  SpotifyStatus, SpotifyAuthorize, SpotifyCallbackResult, SpotifyExportResult,
 } from './api-backend'
 
 // Lambda-backed mirror of api-backend.ts's `api` object — same method names/shapes, so the view
@@ -178,6 +179,13 @@ async function adminReq<T>(name: string, path: string, init?: RequestInit): Prom
   return { data: await res.json() }
 }
 
+const spotifyClient = {
+  status:        () => req<SpotifyStatus>('spotify-status', ''),
+  authorizeUrl:  (playlistId?: string) => req<SpotifyAuthorize>('spotify-connect', playlistId ? `?playlistId=${encodeURIComponent(playlistId)}` : ''),
+  handleCallback: (code: string, state: string) => req<SpotifyCallbackResult>('spotify-callback', '', { method: 'POST', body: JSON.stringify({ code, state }) }),
+  exportPlaylist: (playlistId: string) => req<SpotifyExportResult>('spotify-export', `/${playlistId}/export`, { method: 'POST' }),
+}
+
 const adminClient = {
   listOrganizations:  () => adminReq<AdminOrganization[]>('admin-list-organizations', ''),
   createOrganization: (body: CreateOrganizationRequest) => adminReq<AdminOrganization>('admin-create-organization', '', { method: 'POST', body: JSON.stringify(body) }),
@@ -196,4 +204,5 @@ export const api = {
   rankings:     () => rankingsClient,
   songRatings:  () => songRatingsClient,
   admin:        () => adminClient,
+  spotify:      () => spotifyClient,
 }

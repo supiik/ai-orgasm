@@ -5,8 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { type PlaylistResponse, type NominationResponse, PlaylistStatus, NominationStatus } from '@orgasm/backend-client'
 import { api, type GuessEntry, type SongRatingEntry, type SongSearchHit } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { canOpenPlaylist, canStartGuessing, canPublish } from '@/lib/playlistPermissions'
-import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star } from 'lucide-vue-next'
+import { canOpenPlaylist, canStartGuessing, canPublish, canExportSpotify } from '@/lib/playlistPermissions'
+import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphones, Star, Music, Copy, Check } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -110,7 +110,17 @@ async function resolveNominationDetails() {
   ])
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  // Returning from the Spotify connect redirect (see SpotifyCallbackView.vue) — strip the marker
+  // so a refresh doesn't re-trigger, then auto-retry the export now that Spotify is connected.
+  if (route.query.spotifyConnected === '1') {
+    router.replace({ path: route.path })
+    if (canExportSpotify(playlist.value?.status, isLead.value)) {
+      await exportSpotifyPlaylist()
+    }
+  }
+})
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -503,6 +513,59 @@ async function publish() {
   }
 }
 
+// ── Spotify export ───────────────────────────────────────────────────────────
+// Button → check connection → not connected shows an inline "Connect Spotify" prompt that
+// redirects to Spotify's OAuth consent screen → Spotify redirects back to SpotifyCallbackView.vue
+// → that routes back here with ?spotifyConnected=1, which onMounted uses to auto-retry the export.
+
+const spotifyConnecting = ref(false)
+const spotifyExporting = ref(false)
+const spotifyNeedsConnect = ref(false)
+const spotifyError = ref<string | null>(null)
+const spotifyResult = ref<{ matchedCount: number; skippedSongs: string[] } | null>(null)
+const spotifyLinkCopied = ref(false)
+
+async function exportSpotifyPlaylist() {
+  spotifyError.value = null
+  spotifyNeedsConnect.value = false
+  spotifyExporting.value = true
+  try {
+    const { data: status } = await api.spotify().status()
+    if (!status.connected) {
+      spotifyNeedsConnect.value = true
+      return
+    }
+    const { data } = await api.spotify().exportPlaylist(id)
+    if (playlist.value) {
+      playlist.value = { ...playlist.value, spotifyPlaylistId: data.spotifyPlaylistId, spotifyPlaylistUrl: data.spotifyPlaylistUrl } as PlaylistResponse
+    }
+    spotifyResult.value = { matchedCount: data.matchedCount, skippedSongs: data.skippedSongs }
+  } catch (e: unknown) {
+    spotifyError.value = extractDetail(e) ?? t('playlist.spotifyExportFailed')
+  } finally {
+    spotifyExporting.value = false
+  }
+}
+
+async function connectSpotify() {
+  spotifyConnecting.value = true
+  try {
+    const { data } = await api.spotify().authorizeUrl(id)
+    window.location.href = data.authorizeUrl
+  } catch (e: unknown) {
+    spotifyError.value = extractDetail(e) ?? t('playlist.spotifyExportFailed')
+    spotifyConnecting.value = false
+  }
+}
+
+async function copySpotifyLink() {
+  const url = (playlist.value as any)?.spotifyPlaylistUrl
+  if (!url) return
+  await navigator.clipboard.writeText(url)
+  spotifyLinkCopied.value = true
+  setTimeout(() => { spotifyLinkCopied.value = false }, 2000)
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 function extractDetail(e: unknown): string | null {
@@ -551,6 +614,10 @@ function statusClass(s: NominationStatus | undefined) {
         <Button v-if="canPublish(playlist?.status, isLead)" variant="outline" size="sm" :disabled="publishing" @click="publish">
           <BookOpen class="h-4 w-4" />
           {{ publishing ? t('playlist.publishing') : t('playlist.publish') }}
+        </Button>
+        <Button v-if="canExportSpotify(playlist?.status, isLead) && !spotifyNeedsConnect" variant="outline" size="sm" :disabled="spotifyExporting" @click="exportSpotifyPlaylist">
+          <Music class="h-4 w-4" />
+          {{ spotifyExporting ? t('playlist.spotifyExporting') : t('playlist.createSpotifyPlaylist') }}
         </Button>
         <Button v-if="playlist?.status === PlaylistStatus.New || playlist?.status === PlaylistStatus.Open" variant="outline" size="sm" @click="openEdit">
           <Pencil class="h-4 w-4" />
@@ -614,6 +681,33 @@ function statusClass(s: NominationStatus | undefined) {
           <dd>{{ formatDate(playlist.updatedAt) }}</dd>
         </div>
       </dl>
+
+      <!-- Spotify export -->
+      <div v-if="spotifyError" class="text-sm text-destructive">{{ spotifyError }}</div>
+      <div v-if="spotifyNeedsConnect" class="flex items-center gap-3 rounded-md border border-border p-4 text-sm">
+        <Music class="h-5 w-5 shrink-0 text-muted-foreground" />
+        <span class="flex-1">{{ t('playlist.spotifyNotConnected') }}</span>
+        <Button size="sm" :disabled="spotifyConnecting" @click="connectSpotify">
+          {{ spotifyConnecting ? t('playlist.spotifyConnecting') : t('playlist.connectSpotify') }}
+        </Button>
+      </div>
+      <div v-if="(playlist as any).spotifyPlaylistUrl" class="flex items-center gap-3 rounded-md border border-border p-4 text-sm">
+        <Music class="h-5 w-5 shrink-0 text-muted-foreground" />
+        <a :href="(playlist as any).spotifyPlaylistUrl" target="_blank" rel="noopener noreferrer" class="flex-1 truncate hover:underline underline-offset-2">
+          {{ (playlist as any).spotifyPlaylistUrl }}
+        </a>
+        <Button variant="outline" size="sm" @click="copySpotifyLink">
+          <Check v-if="spotifyLinkCopied" class="h-4 w-4" />
+          <Copy v-else class="h-4 w-4" />
+          {{ spotifyLinkCopied ? t('playlist.spotifyLinkCopied') : t('common.copy') }}
+        </Button>
+      </div>
+      <p v-if="spotifyResult" class="text-sm text-muted-foreground">
+        {{ t('playlist.spotifyMatchedCount', spotifyResult.matchedCount) }}
+        <span v-if="spotifyResult.skippedSongs.length">
+          — {{ t('playlist.songsSkipped', { songs: spotifyResult.skippedSongs.join(', ') }) }}
+        </span>
+      </p>
 
       <!-- Nominations section -->
       <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Guessing || playlist.status === PlaylistStatus.Published">

@@ -210,6 +210,48 @@ async function adminReq<T>(path: string, init?: RequestInit): Promise<{ data: T 
   return { data: await res.json() }
 }
 
+// ── Spotify playlist export ──────────────────────────────────────────────────
+// See CLAUDE.md "Spotify playlist export". Per-contributor OAuth; the callback exchange and the
+// export action both require an authenticated request, same raw-fetch pattern as songClient.search.
+
+export type SpotifyStatus = { connected: boolean }
+export type SpotifyAuthorize = { authorizeUrl: string }
+export type SpotifyCallbackResult = { playlistId?: string }
+export type SpotifyExportResult = {
+  spotifyPlaylistId: string
+  spotifyPlaylistUrl: string
+  matchedCount: number
+  skippedSongs: string[]
+}
+
+const spotifyClient = {
+  status: async (): Promise<{ data: SpotifyStatus }> => {
+    const res = await authenticatedFetch('/api/v1/spotify/status')
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  authorizeUrl: async (playlistId?: string): Promise<{ data: SpotifyAuthorize }> => {
+    const params = playlistId ? `?playlistId=${encodeURIComponent(playlistId)}` : ''
+    const res = await authenticatedFetch(`/api/v1/spotify/connect${params}`)
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  handleCallback: async (code: string, state: string): Promise<{ data: SpotifyCallbackResult }> => {
+    const res = await authenticatedFetch('/api/v1/spotify/callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, state }),
+    })
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  exportPlaylist: async (playlistId: string): Promise<{ data: SpotifyExportResult }> => {
+    const res = await authenticatedFetch(`/api/v1/spotify/playlists/${playlistId}/export`, { method: 'POST' })
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+}
+
 const adminClient = {
   listOrganizations:  () => adminReq<AdminOrganization[]>('/organizations'),
   createOrganization: (body: CreateOrganizationRequest) => adminReq<AdminOrganization>('/organizations', { method: 'POST', body: JSON.stringify(body) }),
@@ -228,4 +270,5 @@ export const api = {
   rankings:     () => rankingsClient,
   songRatings:  () => songRatingsClient,
   admin:        () => adminClient,
+  spotify:      () => spotifyClient,
 }

@@ -68,7 +68,8 @@
     "passed": "(passed)",
     "saveFailed": "Failed to save. Please try again.",
     "nameRequired": "Name is required.",
-    "artistRequired": "Artist is required."
+    "artistRequired": "Artist is required.",
+    "copy": "Copy"
   },
   "fields": {
     "fullName": "Full name",
@@ -152,7 +153,21 @@
     "submitRatingsFailed": "Failed to submit ratings.",
     "ratingsIncomplete": "Not saved yet — pick one song as your favourite. | Not saved yet — pick one song as your favourite. | Not saved yet — hand out all {n} star ratings, each to a different song.",
     "ratingsSaving": "Saving your ratings…",
-    "ratingsSaved": "Your ratings are saved."
+    "ratingsSaved": "Your ratings are saved.",
+    "createSpotifyPlaylist": "Create Spotify playlist",
+    "spotifyExporting": "Creating…",
+    "spotifyNotConnected": "Connect your Spotify account to create a playlist from these songs.",
+    "connectSpotify": "Connect Spotify",
+    "spotifyConnecting": "Redirecting…",
+    "spotifyLinkCopied": "Copied!",
+    "spotifyExportFailed": "Failed to create the Spotify playlist.",
+    "spotifyMatchedCount": "No songs matched on Spotify | {n} song matched on Spotify | {n} songs matched on Spotify",
+    "songsSkipped": "skipped: {songs}"
+  },
+  "spotifyCallback": {
+    "connecting": "Connecting your Spotify account…",
+    "failed": "Could not connect your Spotify account. Please try again.",
+    "backToPlaylists": "Back to playlists"
   },
   "songs": {
     "title": "Songs",

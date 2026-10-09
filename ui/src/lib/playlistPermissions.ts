@@ -27,3 +27,13 @@ export function canStartGuessing(
 export function canPublish(status: PlaylistStatus | undefined, isLead: boolean): boolean {
   return isLead && status === PlaylistStatus.Guessing
 }
+
+/**
+ * "All nominated songs collected" is exactly "the nomination phase has closed" — nominations are
+ * only mutable while OPEN (see backend's OrgasmService.nominateSong/approveNomination), so any
+ * status past that point has a final song list to export. Lead-only, consistent with
+ * open/startGuessing/publish.
+ */
+export function canExportSpotify(status: PlaylistStatus | undefined, isLead: boolean): boolean {
+  return isLead && status !== undefined && status !== PlaylistStatus.New && status !== PlaylistStatus.Open
+}

@@ -134,4 +134,16 @@ export const fnSpecs: FnSpec[] = [
   { name: 'admin-export-organization', description: "Admin: export an organization's complete data (all entities, incl. soft-deleted) as one JSON document",
     tables: ['organizations', 'contributors', 'songs', 'playlists', 'nominations', 'guesses', 'guessSubmissions', 'songRatings', 'playlistRankings'],
     methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+
+  // Spotify playlist export — see CLAUDE.md "Spotify playlist export". Per-contributor OAuth
+  // (tokens stored on the Contributor item) + best-effort track matching/export of a playlist's
+  // approved nominations.
+  { name: 'spotify-connect', description: "Get the Spotify OAuth authorize URL for the caller's account",
+    tables: ['contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'spotify-status', description: "Whether the caller has a connected Spotify account",
+    tables: ['contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'spotify-callback', description: 'Exchange a Spotify authorization code and store the connection',
+    tables: ['contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
+  { name: 'spotify-export', description: "Export a playlist's approved nominations to a Spotify playlist",
+    tables: ['playlists', 'nominations', 'songs', 'contributors'], writes: ['playlists'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
 ]

@@ -7,4 +7,5 @@ export const api = authMode === 'cognito' ? lambdaApi : backendApi
 export type {
   GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
   AdminOrganization, AdminContributor, CreateOrganizationRequest, UpdateOrganizationRequest, AddOrganizationContributorRequest,
+  SpotifyStatus, SpotifyAuthorize, SpotifyCallbackResult, SpotifyExportResult,
 } from './api-backend'

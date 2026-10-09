@@ -738,6 +738,74 @@ frontend root is `ui/`.
   `OrgasmController` (mitigated only by Keycloak + the nginx proxy) and, by design, in the frozen
   Java reference modules.
 
+### Spotify playlist export
+
+Once a playlist's nomination phase closes, a lead contributor can create/update a Spotify
+playlist from that playlist's approved nominations and get back its `open.spotify.com` link.
+Added 2026-09-15 to both live backends — **not** the frozen Java reference implementation
+(`backend-dynamo`/`lambda`), same precedent as the rest of this section (admin, org export, song
+search were never backported there either). Per-contributor Spotify OAuth (Authorization Code
+flow); no email delivery in this first pass, link-only.
+
+- **OAuth redirect is frontend-owned.** One Spotify app, one registered redirect URI:
+  `<ui-origin>/spotify/callback` (`SpotifyCallbackView.vue`). The callback view forwards
+  `code`+`state` to whichever backend is active via `api.spotify().handleCallback()` — same
+  backend-agnostic dispatch every other `api.*` call already uses.
+- **Lifecycle gate: any status other than `NEW`/`OPEN`.** Nominations are only mutable while
+  `OPEN`, so "all nominated songs collected" ⇔ `status != NEW && status != OPEN` — see
+  `canExportSpotify` (`ui/src/lib/playlistPermissions.ts`, mirrored server-side in both
+  `SpotifyService.java` and `lib/services/spotify.ts`).
+- **Lead-only trigger**, consistent with open/start-guessing/publish. The resulting link is
+  visible to all contributors once created (read is not lead-gated).
+- **Best-effort track matching.** One Spotify search per approved nomination (`artist`+`name`);
+  a song with no hit is skipped, not fatal — the response reports `matchedCount` and
+  `skippedSongs`, same graceful-degradation philosophy as `lib/songSearch/musicbrainz.ts`.
+- **Idempotent, update-in-place.** `spotifyPlaylistId`/`spotifyPlaylistUrl` are stored on
+  `Playlist`/`PlaylistItem`; re-export replaces the existing Spotify playlist's tracks instead of
+  creating a new one each time, falling back to creating fresh on a 404 (stale/deleted id).
+- **Token refresh: refresh-before-use + retry-once-on-401.** `SpotifyTokenService.java` /
+  `lib/services/spotify.ts`'s `withValidAccessToken` refresh ~60s before expiry and retry once
+  after a forced refresh if Spotify still 401s.
+- **OAuth `state` is a CSRF token, not an identity carrier.** `SpotifyStateService.java` /
+  `lib/spotify/state.ts` HMAC-sign `nonce:issuedAt:playlistId` (keyed by
+  `SPOTIFY_STATE_SECRET`/`app.spotify.state-secret`, 10 min TTL) — the acting contributor is
+  always resolved from the caller's own JWT/Cognito token on both `/connect` and `/callback`
+  (never taken from `state`), so a forged `state` can carry a bogus `playlistId` at worst, never
+  impersonate another contributor.
+- **Spring side specifics**: new `backend-core/.../spotify/` package — `SpotifyConnection`
+  (own table `spotify_connections`, one row per contributor, plaintext tokens for now — see
+  below), `SpotifyClient` (Spring's `RestClient`, not `WebClient`: no reactive stack in this app).
+  `backend-core` gained two new dependencies for this — `spring-web` and
+  `spring-boot-restclient` (Spring Boot 4 split `RestClient` autoconfiguration out of the
+  monolithic `spring-boot-autoconfigure`) — deliberately not the `spring-boot-starter-web`
+  bundle, so the module stays free of a servlet container/MVC. `SpotifyController` (in `backend`)
+  resolves the contributor via `@AuthenticationPrincipal Jwt jwt` + `jwt.getClaimAsString("email")`
+  — **not** `@AuthenticationPrincipal JwtAuthenticationToken`, the pattern
+  `ContributorController.me()` uses: that resolves to `Authentication.getPrincipal()`, which for
+  a JWT auth *is* the `Jwt`, not the token wrapper, so with Spring Security's default
+  `errorOnInvalidType=false` the type mismatch silently binds `null` instead of throwing —
+  `ContributorController.me()` carries this latent bug too, undetected only because nothing
+  exercises it under a real JWT; don't copy that pattern into new code. Migrations `V19`
+  (adds the two `Playlist` columns) and `V20` (creates `spotify_connections`).
+  `SpotifyUpstreamException` → 502 is a new `GlobalExceptionHandler` mapping; a `spotify`
+  resilience4j circuit-breaker instance sits alongside `db`, scoped to that exception type.
+- **TypeScript side specifics**: `lib/spotify/client.ts` (hand-rolled `fetch` wrapper, same
+  conventions as `musicbrainz.ts`), `lib/spotify/state.ts`, `lib/services/spotify.ts`
+  (sibling to `orgasm.ts`), 4 new functions (`spotify-connect`, `spotify-status`,
+  `spotify-callback`, `spotify-export`) wired into `functions.ts`/`backend.ts` the usual way. No
+  new DynamoDB table — the Spotify connection lives in an optional `spotify` sub-object on
+  `ContributorItem`, `spotifyPlaylistId`/`spotifyPlaylistUrl` directly on `PlaylistItem`.
+- **Known follow-ups, not blocking.** Tokens are stored in plaintext on both sides (matches the
+  existing `ID_GENERATOR_SECRET`-style precedent, but a real OAuth token deserves better —
+  encryption-at-rest, or a CDK-managed `Secret` for the Lambda side's client secret, are
+  reasonable fast-follows). The OpenAPI spec/generated SDK clients were **not** regenerated for
+  the two new `PlaylistResponse` fields — `PlaylistDetailView.vue` reads them the same
+  workaround way it already reads the equally-stale `leadContributorName`/`leadContributorAvatarUrl`
+  (`(playlist as any).spotifyPlaylistUrl`); regenerate `api-spec/backend-api.yaml` + rebuild the
+  SDK modules (see "Updating the spec" under "API clients") next time there's reason to touch it.
+  Email delivery of the link (mentioned in the original request) is deliberately out of scope —
+  `backend`'s existing `EmailController`/`EmailService` would be the natural next step.
+
 ### API versioning
 
 The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:

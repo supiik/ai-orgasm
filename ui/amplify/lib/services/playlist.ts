@@ -38,6 +38,8 @@ export interface PlaylistResponse {
   leadContributorAvatarUrl?: string
   deadline?: string
   guessingDeadline?: string
+  spotifyPlaylistId?: string
+  spotifyPlaylistUrl?: string
   version?: number
   createdAt: string
   updatedAt: string
@@ -75,6 +77,8 @@ async function buildResponse(
     leadContributorAvatarUrl: lead?.avatarUrl,
     deadline: item.deadline,
     guessingDeadline: item.guessingDeadline,
+    spotifyPlaylistId: item.spotifyPlaylistId,
+    spotifyPlaylistUrl: item.spotifyPlaylistUrl,
     version: item.version,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
