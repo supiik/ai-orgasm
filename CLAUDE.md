@@ -603,9 +603,17 @@ frontend root is `ui/`.
   (`provider.ts`: `search(query, limit) → SongSearchHit[]`); `index.ts` is a registry keyed by
   the `SONG_SEARCH_PROVIDER` env var (default `musicbrainz`), so **swapping the catalogue is one
   new file implementing the interface plus one registry entry** — `services/songSearch.ts`
-  (query validation, limit cap of 25) and the handler don't change. The one implementation is
-  `musicbrainz.ts` (MusicBrainz: open data, no API key). Things learned against the live API
-  that the class comments also record: (1) MusicBrainz **requires a descriptive `User-Agent`**
+  (query validation, limit cap of 25) and the handler don't change. Two implementations exist:
+  `musicbrainz.ts` (MusicBrainz: open data, no API key) and `spotify.ts` (added 2026-10-09,
+  selected via `SONG_SEARCH_PROVIDER=spotify`), which reuses the `SPOTIFY_CLIENT_ID`/
+  `SPOTIFY_CLIENT_SECRET` already configured for Spotify playlist export (see "Spotify playlist
+  export" below) — but via the **Client Credentials** flow (app-only, module-level-cached
+  token), not the per-contributor OAuth connection that feature uses. Spotify's `/v1/search`
+  gives every track a `popularity` (0–100), the one thing MusicBrainz's index lacks; `spotify.ts`
+  fetches the 50-track max, dedupes by artist+title keeping the most popular instance of each,
+  and sorts the groups by popularity — directly solving MusicBrainz's "which cover is the real
+  one" problem instead of the Lucene-boost workaround described below. Things learned against
+  the live API that the class comments also record: (1) MusicBrainz **requires a descriptive `User-Agent`**
   (`SONG_SEARCH_USER_AGENT`, default names this repo) and throttles at ~1 req/s per IP with
   503s — which is why the lookup is a Lambda (browsers can't set `User-Agent`) with
   `reservedConcurrency: 2` in `functions.ts` (a new optional `FnSpec` field; still switched off

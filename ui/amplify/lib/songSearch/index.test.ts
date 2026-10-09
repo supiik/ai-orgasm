@@ -17,6 +17,12 @@ describe('createSongSearchProvider', () => {
   })
 
   it('rejects an unknown provider name, listing the known ones', () => {
-    expect(() => createSongSearchProvider('discogs')).toThrow(/Unknown song search provider "discogs" \(known: musicbrainz\)/)
+    expect(() => createSongSearchProvider('discogs')).toThrow(/Unknown song search provider "discogs" \(known: musicbrainz, spotify\)/)
+  })
+
+  it('creates the Spotify provider from SONG_SEARCH_PROVIDER + its client credentials', () => {
+    process.env.SPOTIFY_CLIENT_ID = 'id'
+    process.env.SPOTIFY_CLIENT_SECRET = 'secret'
+    expect(createSongSearchProvider('spotify').name).toBe('spotify')
   })
 })
