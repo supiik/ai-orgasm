@@ -920,6 +920,8 @@ components:
           $ref: '#/components/schemas/PlaylistStatus'
         maxNominationsPerContributor:
           type: integer
+          minimum: 1
+          maximum: 3
           default: 1
 
     UpdatePlaylistRequest:
@@ -941,6 +943,8 @@ components:
           format: date-time
         maxNominationsPerContributor:
           type: integer
+          minimum: 1
+          maximum: 3
 
     PlaylistResponse:
       type: object

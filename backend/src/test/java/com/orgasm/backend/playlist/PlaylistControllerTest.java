@@ -151,6 +151,30 @@ class PlaylistControllerTest {
     }
 
     @Test
+    void update_returns400_whenMaxNominationsPerContributorExceedsThree() throws Exception {
+        mvc.perform(put("/api/v1/playlists/play-0001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpdatePlaylistRequest("Updated", "desc", null, null, null, 4))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.maxNominationsPerContributor").exists());
+    }
+
+    @Test
+    void create_returns400_whenMaxNominationsPerContributorExceedsThree() throws Exception {
+        mvc.perform(post("/api/v1/playlists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new CreatePlaylistRequest("New Mix", "desc", null, null, 4))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.maxNominationsPerContributor").exists());
+    }
+
+    @Test
     void delete_returns204_whenFound() throws Exception {
         mvc.perform(delete("/api/v1/playlists/play-0001"))
                 .andExpect(status().isNoContent());

@@ -30,6 +30,9 @@ export const playlistHandlers = [
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
+    if (body.maxNominationsPerContributor !== undefined && (body.maxNominationsPerContributor < 1 || body.maxNominationsPerContributor > 3)) {
+      return HttpResponse.json({ message: 'maxNominationsPerContributor must be between 1 and 3' }, { status: 400 })
+    }
     const created = {
       id: nextId(),
       name: body.name,
@@ -62,6 +65,9 @@ export const playlistHandlers = [
     const body = await request.json() as { name: string; description?: string; deadline?: string; guessingDeadline?: string; maxNominationsPerContributor?: number }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
+    }
+    if (body.maxNominationsPerContributor !== undefined && (body.maxNominationsPerContributor < 1 || body.maxNominationsPerContributor > 3)) {
+      return HttpResponse.json({ message: 'maxNominationsPerContributor must be between 1 and 3' }, { status: 400 })
     }
     playlistsDb[index] = {
       ...playlistsDb[index],

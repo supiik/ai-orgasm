@@ -1,6 +1,7 @@
 package com.orgasm.backend.playlist;
 
 import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import lombok.Builder;
@@ -14,5 +15,5 @@ public record UpdatePlaylistRequest(
         PlaylistStatus status,
         @FutureOrPresent Instant deadline,
         @FutureOrPresent Instant guessingDeadline,
-        @Positive Integer maxNominationsPerContributor
+        @Positive @Max(3) Integer maxNominationsPerContributor
 ) {}

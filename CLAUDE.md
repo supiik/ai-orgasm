@@ -825,37 +825,45 @@ flow); no email delivery in this first pass, link-only.
 ### Nomination cap per contributor
 
 Previously a contributor could nominate unlimited songs into one playlist. `Playlist` now carries
-`maxNominationsPerContributor` (int, **default 1**) — a lead sets it on create/update (matches
-the deadline-fields precedent: editable via `UpdatePlaylistRequest`/the TS `updatePlaylist`, no
-lead-only gating since name/description aren't gated either). `nominateSong` counts the acting
-contributor's **active** (non-`DECLINED`) nominations on that playlist and rejects a new one at
-or above the cap — same status code as every other nomination business rule (409 via
-`IllegalStateException` on the Spring side, `ConflictError` on the TS side), checked after the
-existing "song already nominated" check so a duplicate-song attempt still reports that specific
-reason first.
+`maxNominationsPerContributor` (int, **default 1, capped at 3**) — a lead sets it on create/update
+(matches the deadline-fields precedent: editable via `UpdatePlaylistRequest`/the TS
+`updatePlaylist`, no lead-only gating since name/description aren't gated either). `nominateSong`
+counts the acting contributor's **active** (non-`DECLINED`) nominations on that playlist and
+rejects a new one at or above the cap — same status code as every other nomination business rule
+(409 via `IllegalStateException` on the Spring side, `ConflictError` on the TS side), checked
+after the existing "song already nominated" check so a duplicate-song attempt still reports that
+specific reason first. The upper bound of 3 is a product decision (not a technical limit) enforced
+at request validation, separately from the per-nominate-call cap check.
 
 - **Spring (`backend-core`)**: `Playlist.maxNominationsPerContributor` (`NOT NULL`, migration
   `V21__add_playlist_max_nominations.sql`, `DEFAULT 1`); `PlaylistMapper.toEntity` defaults it to
   `1` via `@Mapping(defaultValue = "1")` when a `CreatePlaylistRequest` omits it.
-  `NominationRepository.countByPlaylist_IdAndNominatedBy_IdAndStatusNot(playlistId,
-  contributorId, DECLINED)` is a derived query (no `@Query` needed) backing the check in
-  `OrgasmService.nominateSong`. **Not** ported to the frozen `backend-dynamo`/`lambda` reference
+  `CreatePlaylistRequest`/`UpdatePlaylistRequest` both validate it with `@Positive @Max(3)` (400
+  via the existing `MethodArgumentNotValidException` → `GlobalExceptionHandler` mapping, same as
+  every other `@Valid` field). `NominationRepository.countByPlaylist_IdAndNominatedBy_IdAndStatusNot(
+  playlistId, contributorId, DECLINED)` is a derived query (no `@Query` needed) backing the check
+  in `OrgasmService.nominateSong`. **Not** ported to the frozen `backend-dynamo`/`lambda` reference
   implementation, same precedent as admin/export/song-search/Spotify above.
 - **TypeScript (`ui/amplify`)**: `PlaylistItem.maxNominationsPerContributor` (required — DynamoDB
   is schemaless, so no migration; `createPlaylist` defaults it via
-  `DEFAULT_MAX_NOMINATIONS_PER_CONTRIBUTOR = 1`). The count check in `services/orgasm.ts`'s
+  `DEFAULT_MAX_NOMINATIONS_PER_CONTRIBUTOR = 1`). `parseMaxNominations` in `services/playlist.ts`
+  enforces the same `1..MAX_NOMINATIONS_PER_CONTRIBUTOR_LIMIT` (3) bound → `ValidationError`,
+  shared by both `createPlaylist` and `updatePlaylist`. The count check in `services/orgasm.ts`'s
   `nominateSong` reuses the existing `findNominationsByPlaylistId` GSI query (no new GSI) and
   filters in memory by `nominatedById` + non-`DECLINED` status — same "lookup/filter at read"
   reasoning as everywhere else in this module. `services/export.ts`'s `ExportedPlaylist` carries
   the field too (whole-history export).
 - **UI**: `PlaylistsView.vue`'s create/edit dialog gained a `maxNominationsPerContributor` number
-  input (`playlists.maxNominationsPerContributor` i18n key, both locales); the field is read off
-  `PlaylistResponse` through the same local type-extension workaround as
+  input (`min="1" max="3"`, `playlists.maxNominationsPerContributor` i18n key, both locales); the
+  field is read off `PlaylistResponse` through the same local type-extension workaround as
   `leadContributorName`/`spotifyPlaylistUrl` (generated SDK not regenerated — see "Spotify
   playlist export" above) rather than `as any`. `PlaylistDetailView.vue`'s "contributors not yet
   nominated" list (`eligibleContributors`) now counts each contributor's active nominations and
   compares against the playlist's cap instead of a simple "has any nomination" `Set`, so it stays
-  correct once a lead raises the cap above 1.
+  correct once a lead raises the cap above 1. The logged-in contributor's own capacity is tracked
+  the same way (`myNominationCapReached`): once reached, the top "Nominate song" button is replaced
+  with a `playlist.nominationCapReached` message instead of letting the click round-trip to a 409
+  — the dialog is simply never offered once there's nothing left to submit.
 - **Found and fixed while testing this: `@click="showNominate"` was a bare method reference on
   the top-level "Nominate song" button** (`PlaylistDetailView.vue`). Vue passes the native
   `MouseEvent` as a bare handler's first argument, so `showNominate`'s `contributorId = ''`
@@ -869,10 +877,18 @@ reason first.
   cap — worth reaching for that technique again if a mock-handler check seems to have no effect
   from the actual app.
 - **Mock/e2e**: `src/mocks/handlers/nominations.ts`'s create handler enforces the same cap;
-  `src/mocks/handlers/playlists.ts`'s create/update handlers accept and default the field; all 5
-  seeded playlists in `db.ts` got `maxNominationsPerContributor: 1`. `e2e/nominations.spec.ts`
-  creates and opens its own playlist per test (deliberately not reusing seeded playlists) so cap
-  assertions don't depend on which contributors happen to already be seeded with nominations.
+  `src/mocks/handlers/playlists.ts`'s create/update handlers accept, default, and bound-check
+  (1–3) the field; all 5 seeded playlists in `db.ts` got `maxNominationsPerContributor: 1`.
+  `e2e/nominations.spec.ts`'s API-level cap tests create and open their own playlist per test
+  (deliberately not reusing seeded playlists) so assertions don't depend on which contributors
+  happen to already be seeded with nominations; its UI-level test (button hidden + message shown)
+  uses the seeded "Workout Hits" playlist instead — **creating a playlist via `fetch` and then
+  `page.goto`-ing to it in the same test doesn't work reliably**: MSW's mock DB lives in the
+  Service Worker's module scope, and Chromium can terminate an idle worker and re-run its
+  top-level setup (reseeding `playlistsDb` from scratch) between the `fetch` and the next
+  navigation, discarding what was just created. Every other spec that mixes API setup with UI
+  navigation already avoids this by using seeded data for the navigation half; follow that
+  pattern rather than creating-then-navigating to a fresh entity.
 
 ### API versioning
 

@@ -88,4 +88,25 @@ test.describe('nomination cap (via MSW)', () => {
     expect(third.status).toBe(409)
     expect(third.body.detail).toMatch(/maximum number of nominations/)
   })
+
+  test('hides the nominate button and shows a message once the logged-in contributor is at the cap', async ({ page }) => {
+    // "Workout Hits" (play-2d3e4f5a6b7c8d90) — seeded OPEN, future deadline, default cap of 1.
+    // The logged-in mock user (Thom Yorke) starts with zero active nominations on it.
+    await page.goto('/playlists/play-2d3e4f5a6b7c8d90')
+    const nominateButton = page.getByRole('button', { name: 'Nominate song' })
+    const capMessage = page.getByText("You've reached your nomination limit for this playlist")
+
+    await expect(nominateButton).toBeVisible()
+    await expect(capMessage).not.toBeVisible()
+
+    await nominateButton.click()
+    const dialog = page.getByRole('dialog')
+    await dialog.locator('#nom-artist').fill('E2E Artist')
+    await dialog.locator('#nom-name').fill('E2E Song F')
+    await dialog.getByRole('button', { name: 'Nominate', exact: true }).click()
+    await expect(dialog).toBeHidden()
+
+    await expect(nominateButton).not.toBeVisible()
+    await expect(capMessage).toBeVisible()
+  })
 })

@@ -250,6 +250,7 @@ async function submitForm() {
             v-model.number="form.maxNominationsPerContributor"
             type="number"
             min="1"
+            max="3"
             step="1"
           />
         </div>

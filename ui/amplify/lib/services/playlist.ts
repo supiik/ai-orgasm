@@ -8,6 +8,7 @@ import { memoize } from '../memo'
 export type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
 
 const DEFAULT_MAX_NOMINATIONS_PER_CONTRIBUTOR = 1
+const MAX_NOMINATIONS_PER_CONTRIBUTOR_LIMIT = 3
 
 // `status` is deliberately absent from both request types: it may only advance through the
 // workflow endpoints (open / start-guessing / publish), which enforce the legal transitions and
@@ -182,8 +183,8 @@ function parseDeadline(value: string, field: string): string {
 
 function parseMaxNominations(value: number | undefined): number | undefined {
   if (value === undefined) return undefined
-  if (!Number.isInteger(value) || value < 1) {
-    throw new ValidationError(['maxNominationsPerContributor must be a positive integer'])
+  if (!Number.isInteger(value) || value < 1 || value > MAX_NOMINATIONS_PER_CONTRIBUTOR_LIMIT) {
+    throw new ValidationError([`maxNominationsPerContributor must be an integer between 1 and ${MAX_NOMINATIONS_PER_CONTRIBUTOR_LIMIT}`])
   }
   return value
 }

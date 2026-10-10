@@ -269,6 +269,10 @@ const eligibleContributors = computed(() =>
   allContributors.value.filter((c) => (activeNominationCounts.value[c.id] ?? 0) < maxNominationsPerContributor.value),
 )
 
+const myNominationCapReached = computed(() =>
+  !!myId.value && (activeNominationCounts.value[myId.value] ?? 0) >= maxNominationsPerContributor.value,
+)
+
 const approvedNoms = computed(() =>
   nominations.value.filter(n => n.status === NominationStatus.Approved)
 )
@@ -724,10 +728,13 @@ function statusClass(s: NominationStatus | undefined) {
       <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Guessing || playlist.status === PlaylistStatus.Published">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-semibold">{{ t('playlist.nominations') }}</h2>
-          <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed" size="sm" @click="showNominate()">
+          <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed && !myNominationCapReached" size="sm" @click="showNominate()">
             <Send class="h-4 w-4" />
             {{ t('playlist.nominateSong') }}
           </Button>
+          <span v-else-if="playlist.status === PlaylistStatus.Open && !deadlinePassed && myNominationCapReached" class="text-sm text-muted-foreground">
+            {{ t('playlist.nominationCapReached') }}
+          </span>
         </div>
 
         <div v-if="visibleNominations.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">

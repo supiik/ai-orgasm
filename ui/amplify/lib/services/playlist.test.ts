@@ -14,7 +14,7 @@ vi.mock('../repositories/contributor', () => ({
 
 import * as playlistRepo from '../repositories/playlist'
 import * as contributorRepo from '../repositories/contributor'
-import { updatePlaylist } from './playlist'
+import { createPlaylist, updatePlaylist } from './playlist'
 
 const TENANT_ID = 1
 const LEAD = 7n
@@ -110,6 +110,40 @@ describe('updatePlaylist', () => {
     vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('OPEN'))
 
     await expect(updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', deadline: 'next tuesday' }))
+      .rejects.toThrow(ValidationError)
+  })
+
+  it('rejects a maxNominationsPerContributor above 3', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('NEW', undefined))
+
+    await expect(updatePlaylist(TENANT_ID, playIdStr(1), OTHER, { name: 'My Mix', maxNominationsPerContributor: 4 }))
+      .rejects.toThrow(ValidationError)
+  })
+
+  it('accepts a maxNominationsPerContributor of 3', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('NEW', undefined))
+
+    const result = await updatePlaylist(TENANT_ID, playIdStr(1), OTHER, { name: 'My Mix', maxNominationsPerContributor: 3 })
+
+    expect(result.maxNominationsPerContributor).toBe(3)
+  })
+})
+
+describe('createPlaylist', () => {
+  it('defaults maxNominationsPerContributor to 1 when not provided', async () => {
+    const result = await createPlaylist(TENANT_ID, { name: 'My Mix' })
+
+    expect(result.maxNominationsPerContributor).toBe(1)
+  })
+
+  it('accepts an explicit maxNominationsPerContributor up to 3', async () => {
+    const result = await createPlaylist(TENANT_ID, { name: 'My Mix', maxNominationsPerContributor: 3 })
+
+    expect(result.maxNominationsPerContributor).toBe(3)
+  })
+
+  it('rejects a maxNominationsPerContributor above 3', async () => {
+    await expect(createPlaylist(TENANT_ID, { name: 'My Mix', maxNominationsPerContributor: 4 }))
       .rejects.toThrow(ValidationError)
   })
 })

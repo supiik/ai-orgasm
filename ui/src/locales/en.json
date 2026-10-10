@@ -130,6 +130,7 @@
     "nominateSong": "Nominate song",
     "nominate": "Nominate",
     "nominating": "Nominating…",
+    "nominationCapReached": "You've reached your nomination limit for this playlist",
     "noNominations": "No nominations yet.",
     "notYetNominated": "Not yet nominated",
     "ratingType": "Rating type",

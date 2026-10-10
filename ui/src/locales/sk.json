@@ -130,6 +130,7 @@
     "nominateSong": "Nominovať skladbu",
     "nominate": "Nominovať",
     "nominating": "Nominuje sa…",
+    "nominationCapReached": "Dosiahli ste limit nominácií pre tento playlist",
     "noNominations": "Zatiaľ žiadne nominácie.",
     "notYetNominated": "Ešte nenominovali",
     "ratingType": "Typ hodnotenia",
