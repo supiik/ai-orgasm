@@ -20,5 +20,6 @@ public record PlaylistResponse(
         String spotifyPlaylistUrl,
         Long version,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Integer maxNominationsPerContributor
 ) {}

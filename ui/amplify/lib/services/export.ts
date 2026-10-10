@@ -76,6 +76,7 @@ export interface ExportedPlaylist extends Audit {
   leadContributorId?: string
   deadline?: string
   guessingDeadline?: string
+  maxNominationsPerContributor: number
 }
 
 export interface ExportedNomination extends Audit {
@@ -135,6 +136,7 @@ const playlist = (p: PlaylistItem): ExportedPlaylist => ({
   leadContributorId: p.leadContributorId === undefined ? undefined : formatId('cont', p.leadContributorId),
   deadline: p.deadline,
   guessingDeadline: p.guessingDeadline,
+  maxNominationsPerContributor: p.maxNominationsPerContributor,
   ...audit(p),
 })
 const nomination = (n: NominationItem): ExportedNomination => ({

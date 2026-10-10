@@ -113,7 +113,8 @@
     "count": "no playlists | {n} playlist | {n} playlists",
     "namePlaceholder": "My playlist",
     "descriptionPlaceholder": "Optional description",
-    "ratingType": "Rating type"
+    "ratingType": "Rating type",
+    "maxNominationsPerContributor": "Max nominations per contributor"
   },
   "playlist": {
     "notFound": "Playlist not found.",

@@ -918,6 +918,9 @@ components:
           type: string
         status:
           $ref: '#/components/schemas/PlaylistStatus'
+        maxNominationsPerContributor:
+          type: integer
+          default: 1
 
     UpdatePlaylistRequest:
       type: object
@@ -936,6 +939,8 @@ components:
         guessingDeadline:
           type: string
           format: date-time
+        maxNominationsPerContributor:
+          type: integer
 
     PlaylistResponse:
       type: object
@@ -959,6 +964,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        maxNominationsPerContributor:
+          type: integer
         version:
           type: integer
           format: int64

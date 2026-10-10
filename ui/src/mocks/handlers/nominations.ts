@@ -37,6 +37,12 @@ export const nominationHandlers = [
     if (alreadyNominated) {
       return HttpResponse.json({ title: 'Conflict', detail: 'Song already nominated' }, { status: 409 })
     }
+    const activeNominationCount = nominationsDb.filter(
+      n => n.playlistId === params.id && n.nominatedById === body.contributorId && n.status !== 'DECLINED',
+    ).length
+    if (activeNominationCount >= playlist.maxNominationsPerContributor) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Contributor has reached the maximum number of nominations for this playlist' }, { status: 409 })
+    }
     const created = {
       id: nextId(),
       playlistId: params.id as string,

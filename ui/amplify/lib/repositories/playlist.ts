@@ -19,6 +19,7 @@ export interface PlaylistItem {
   guessingDeadline?: string
   spotifyPlaylistId?: string
   spotifyPlaylistUrl?: string
+  maxNominationsPerContributor: number
   createdAt: string
   updatedAt: string
   deletedAt?: string

@@ -19,6 +19,7 @@ public interface PlaylistMapper {
     PlaylistResponse toResponse(Playlist playlist);
 
     @Mapping(target = "status", defaultValue = "NEW")
+    @Mapping(target = "maxNominationsPerContributor", defaultValue = "1")
     Playlist toEntity(CreatePlaylistRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)

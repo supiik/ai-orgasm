@@ -68,7 +68,7 @@ class SpotifyServiceTest {
     Playlist playlist(PlaylistStatus status, Long leadId) {
         var p = new Playlist(
                 PLAYLIST_DB_ID, null, "Mix", null, status,
-                leadId == null ? null : contributor(leadId), null, null, null, null, null);
+                leadId == null ? null : contributor(leadId), null, null, null, null, null, 1);
         return p;
     }
 

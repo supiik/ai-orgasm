@@ -26,7 +26,7 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_copiesAllFields() {
-        Playlist playlist = new Playlist(7L, null, "Workout", "Pump up", PlaylistStatus.OPEN, contributor(2L), Instant.EPOCH, null, null, null, null);
+        Playlist playlist = new Playlist(7L, null, "Workout", "Pump up", PlaylistStatus.OPEN, contributor(2L), Instant.EPOCH, null, null, null, null, 1);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 
@@ -43,7 +43,7 @@ class PlaylistMapperTest {
 
     @Test
     void toResponse_handlesNullLeadContributor() {
-        Playlist playlist = new Playlist(1L, null, "Mix", null, PlaylistStatus.NEW, null, null, null, null, null, null);
+        Playlist playlist = new Playlist(1L, null, "Mix", null, PlaylistStatus.NEW, null, null, null, null, null, null, 1);
 
         PlaylistResponse response = mapper.toResponse(playlist);
 
@@ -58,7 +58,7 @@ class PlaylistMapperTest {
 
     @Test
     void toEntity_defaultsStatusToNew_whenNotProvided() {
-        CreatePlaylistRequest request = new CreatePlaylistRequest("Chill", "Lo-fi", null, null);
+        CreatePlaylistRequest request = new CreatePlaylistRequest("Chill", "Lo-fi", null, null, null);
 
         Playlist entity = mapper.toEntity(request);
 
@@ -70,7 +70,7 @@ class PlaylistMapperTest {
 
     @Test
     void toEntity_usesProvidedStatus() {
-        CreatePlaylistRequest request = new CreatePlaylistRequest("Chill", "Lo-fi", PlaylistStatus.OPEN, null);
+        CreatePlaylistRequest request = new CreatePlaylistRequest("Chill", "Lo-fi", PlaylistStatus.OPEN, null, null);
 
         Playlist entity = mapper.toEntity(request);
 
@@ -79,7 +79,7 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_isNoOp_whenRequestNull() {
-        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null, null, null, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null, null, null, null, null, 1);
 
         mapper.updateEntity(null, playlist);
 
@@ -90,10 +90,10 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_updatesAllFields() {
-        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null, null, null, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "Original desc", PlaylistStatus.NEW, null, null, null, null, null, null, 1);
         Instant deadline = Instant.parse("2026-02-01T00:00:00Z");
         Instant guessingDeadline = Instant.parse("2026-02-08T00:00:00Z");
-        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED, deadline, guessingDeadline);
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "New desc", PlaylistStatus.CLOSED, deadline, guessingDeadline, null);
 
         mapper.updateEntity(request, playlist);
 
@@ -109,8 +109,8 @@ class PlaylistMapperTest {
     void updateEntity_preservesDeadlines_whenNullInRequest() {
         Instant deadline = Instant.parse("2026-02-01T00:00:00Z");
         Instant guessingDeadline = deadline.plusSeconds(7 * 24 * 3600);
-        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, deadline, guessingDeadline, null, null, null);
-        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, deadline, guessingDeadline, null, null, null, 1);
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null, null);
 
         mapper.updateEntity(request, playlist);
 
@@ -120,8 +120,8 @@ class PlaylistMapperTest {
 
     @Test
     void updateEntity_preservesStatus_whenNullInRequest() {
-        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, null, null, null, null, null);
-        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null);
+        Playlist playlist = new Playlist(1L, null, "Original", "desc", PlaylistStatus.OPEN, null, null, null, null, null, null, 1);
+        UpdatePlaylistRequest request = new UpdatePlaylistRequest("Renamed", "desc", null, null, null, null);
 
         mapper.updateEntity(request, playlist);
 

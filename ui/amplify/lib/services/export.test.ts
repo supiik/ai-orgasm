@@ -75,8 +75,8 @@ describe('exportOrganization', () => {
       { pk: '1#SONG', sk: '20', id: 20n, tenantId: T, artist: 'Radiohead', name: 'Creep', album: 'Pablo Honey', releaseYear: 1993, version: 1, ...audit(1) },
     ])
     vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([
-      { pk: '1#PLAYLIST', sk: '30', id: 30n, tenantId: T, name: 'Mix', status: 'PUBLISHED', ratingType: 'TOP3', leadContributorId: 10n, deadline: at(3), version: 7, ...audit(1) },
-      { pk: '1#PLAYLIST', sk: '31', id: 31n, tenantId: T, name: 'Draft', status: 'NEW', version: 1, ...audit(2) },
+      { pk: '1#PLAYLIST', sk: '30', id: 30n, tenantId: T, name: 'Mix', status: 'PUBLISHED', ratingType: 'TOP3', leadContributorId: 10n, deadline: at(3), maxNominationsPerContributor: 1, version: 7, ...audit(1) },
+      { pk: '1#PLAYLIST', sk: '31', id: 31n, tenantId: T, name: 'Draft', status: 'NEW', maxNominationsPerContributor: 1, version: 1, ...audit(2) },
     ])
     vi.mocked(nominationRepo.findAllNominationsByTenant).mockResolvedValue([
       { pk: '1#NOMINATION', sk: '40', id: 40n, tenantId: T, playlistId: 30n, songId: 20n, nominatedById: 10n, status: 'APPROVED', version: 2, ...audit(2) },

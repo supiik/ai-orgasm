@@ -254,15 +254,20 @@ const allNominationsReviewed = computed(() =>
   nominations.value.length > 0 && nominations.value.every(n => n.status !== NominationStatus.Pending),
 )
 
-const eligibleContributors = computed(() => {
-  const nominated = new Set(
-    nominations.value
-      .filter(n => n.status !== NominationStatus.Declined)
-      .map(n => n.nominatedById)
-      .filter(Boolean),
-  )
-  return allContributors.value.filter(c => !nominated.has(c.id))
+const activeNominationCounts = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const n of nominations.value) {
+    if (n.status === NominationStatus.Declined || !n.nominatedById) continue
+    counts[n.nominatedById] = (counts[n.nominatedById] ?? 0) + 1
+  }
+  return counts
 })
+
+const maxNominationsPerContributor = computed(() => (playlist.value as any)?.maxNominationsPerContributor ?? 1)
+
+const eligibleContributors = computed(() =>
+  allContributors.value.filter((c) => (activeNominationCounts.value[c.id] ?? 0) < maxNominationsPerContributor.value),
+)
 
 const approvedNoms = computed(() =>
   nominations.value.filter(n => n.status === NominationStatus.Approved)
@@ -719,7 +724,7 @@ function statusClass(s: NominationStatus | undefined) {
       <section v-if="playlist.status === PlaylistStatus.Open || playlist.status === PlaylistStatus.Guessing || playlist.status === PlaylistStatus.Published">
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-semibold">{{ t('playlist.nominations') }}</h2>
-          <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed" size="sm" @click="showNominate">
+          <Button v-if="playlist.status === PlaylistStatus.Open && !deadlinePassed" size="sm" @click="showNominate()">
             <Send class="h-4 w-4" />
             {{ t('playlist.nominateSong') }}
           </Button>

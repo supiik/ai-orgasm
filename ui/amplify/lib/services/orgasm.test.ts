@@ -84,6 +84,7 @@ function playlist(id: number, status: PlaylistStatus): PlaylistItem {
     tenantId: TENANT_ID,
     name: 'My Mix',
     status,
+    maxNominationsPerContributor: 1,
     createdAt: 'now',
     updatedAt: 'now',
   }
@@ -208,6 +209,7 @@ describe('nominateSong', () => {
     vi.mocked(songRepo.findSongById).mockResolvedValue(song(3))
     vi.mocked(contributorRepo.findContributorById).mockResolvedValue(contributor(2))
     vi.mocked(nominationRepo.existsNominationForPlaylistAndSong).mockResolvedValue(false)
+    vi.mocked(nominationRepo.findNominationsByPlaylistId).mockResolvedValue([])
     vi.mocked(nominationRepo.saveNomination).mockImplementation(async (item) => item)
 
     const response = await nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) })
@@ -243,6 +245,18 @@ describe('nominateSong', () => {
     await expect(
       nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) }),
     ).rejects.toThrow(/already been nominated/)
+  })
+
+  it('throws when contributor reached the nomination cap', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist(1, 'OPEN'))
+    vi.mocked(songRepo.findSongById).mockResolvedValue(song(3))
+    vi.mocked(contributorRepo.findContributorById).mockResolvedValue(contributor(2))
+    vi.mocked(nominationRepo.existsNominationForPlaylistAndSong).mockResolvedValue(false)
+    vi.mocked(nominationRepo.findNominationsByPlaylistId).mockResolvedValue([nomination(10, 1, 4, 2, 'PENDING')])
+
+    await expect(
+      nominateSong(TENANT_ID, playIdStr(1), 2n, { songId: songIdStr(3) }),
+    ).rejects.toThrow(/maximum number of nominations/)
   })
 })
 

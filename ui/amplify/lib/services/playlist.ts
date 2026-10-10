@@ -7,6 +7,8 @@ import { memoize } from '../memo'
 
 export type RatingType = 'LINEAR' | 'FIBONACCI' | 'BEST_SONG'
 
+const DEFAULT_MAX_NOMINATIONS_PER_CONTRIBUTOR = 1
+
 // `status` is deliberately absent from both request types: it may only advance through the
 // workflow endpoints (open / start-guessing / publish), which enforce the legal transitions and
 // the lead-contributor checks. Accepting it here let any caller set PUBLISHED directly and skip
@@ -15,6 +17,7 @@ export interface CreatePlaylistRequest {
   name: string
   description?: string
   ratingType?: RatingType
+  maxNominationsPerContributor?: number
 }
 
 // The two deadlines are the exception: they're normally stamped by open / start-guessing, but
@@ -25,6 +28,7 @@ export interface UpdatePlaylistRequest {
   description?: string
   deadline?: string
   guessingDeadline?: string
+  maxNominationsPerContributor?: number
 }
 
 export interface PlaylistResponse {
@@ -40,6 +44,7 @@ export interface PlaylistResponse {
   guessingDeadline?: string
   spotifyPlaylistId?: string
   spotifyPlaylistUrl?: string
+  maxNominationsPerContributor: number
   version?: number
   createdAt: string
   updatedAt: string
@@ -79,6 +84,7 @@ async function buildResponse(
     guessingDeadline: item.guessingDeadline,
     spotifyPlaylistId: item.spotifyPlaylistId,
     spotifyPlaylistUrl: item.spotifyPlaylistUrl,
+    maxNominationsPerContributor: item.maxNominationsPerContributor,
     version: item.version,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
@@ -97,6 +103,7 @@ export async function createPlaylist(tenantId: number, request: CreatePlaylistRe
     description: request.description,
     status: 'NEW',
     ratingType: request.ratingType,
+    maxNominationsPerContributor: parseMaxNominations(request.maxNominationsPerContributor) ?? DEFAULT_MAX_NOMINATIONS_PER_CONTRIBUTOR,
     createdAt: now,
     updatedAt: now,
   }
@@ -145,6 +152,9 @@ export async function updatePlaylist(
     assertDeadlineChangeAllowed(existing, actorId, 'GUESSING', 'guessing deadline')
     existing.guessingDeadline = parseDeadline(request.guessingDeadline, 'guessingDeadline')
   }
+  if (request.maxNominationsPerContributor !== undefined) {
+    existing.maxNominationsPerContributor = parseMaxNominations(request.maxNominationsPerContributor)!
+  }
   existing.updatedAt = new Date().toISOString()
   return toPlaylistResponse(tenantId, await savePlaylist(existing))
 }
@@ -168,6 +178,14 @@ function parseDeadline(value: string, field: string): string {
   if (Number.isNaN(date.getTime())) throw new ValidationError([`${field} must be an ISO-8601 date-time`])
   if (date.getTime() < Date.now()) throw new ValidationError([`${field} must not be in the past`])
   return date.toISOString()
+}
+
+function parseMaxNominations(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined
+  if (!Number.isInteger(value) || value < 1) {
+    throw new ValidationError(['maxNominationsPerContributor must be a positive integer'])
+  }
+  return value
 }
 
 export async function deletePlaylist(tenantId: number, id: string): Promise<void> {

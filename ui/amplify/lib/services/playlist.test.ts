@@ -32,6 +32,7 @@ function playlist(status: PlaylistStatus, leadContributorId: bigint | undefined 
     leadContributorId,
     deadline: '2026-01-01T00:00:00.000Z',
     guessingDeadline: '2026-01-08T00:00:00.000Z',
+    maxNominationsPerContributor: 1,
     createdAt: 'now',
     updatedAt: 'now',
   }

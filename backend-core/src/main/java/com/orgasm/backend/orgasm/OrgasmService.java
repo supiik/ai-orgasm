@@ -105,6 +105,11 @@ public class OrgasmService {
         if (nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), songDbId)) {
             throw new IllegalStateException("Song already nominated to this playlist");
         }
+        long activeNominationCount = nominationRepository.countByPlaylist_IdAndNominatedBy_IdAndStatusNot(
+                playlist.getId(), contributorDbId, NominationStatus.DECLINED);
+        if (activeNominationCount >= playlist.getMaxNominationsPerContributor()) {
+            throw new IllegalStateException("Contributor has reached the maximum number of nominations for this playlist");
+        }
         Song song = songRepository.getReferenceById(songDbId);
         Contributor contributor = contributorRepository.getReferenceById(contributorDbId);
         return nominationMapper.toResponse(

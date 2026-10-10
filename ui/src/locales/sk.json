@@ -113,7 +113,8 @@
     "count": "žiadne playlisty | {n} playlist | {n} playlisty | {n} playlistov",
     "namePlaceholder": "Môj playlist",
     "descriptionPlaceholder": "Nepovinný popis",
-    "ratingType": "Typ hodnotenia"
+    "ratingType": "Typ hodnotenia",
+    "maxNominationsPerContributor": "Max. počet nominácií na prispievateľa"
   },
   "playlist": {
     "notFound": "Playlist sa nenašiel.",

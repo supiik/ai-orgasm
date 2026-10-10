@@ -26,7 +26,7 @@ export const playlistHandlers = [
   }),
 
   http.post('/api/v1/playlists', async ({ request }) => {
-    const body = await request.json() as { name: string; description?: string; ratingType?: string }
+    const body = await request.json() as { name: string; description?: string; ratingType?: string; maxNominationsPerContributor?: number }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -41,6 +41,7 @@ export const playlistHandlers = [
       leadContributorAvatarUrl: null,
       deadline: null,
       guessingDeadline: null,
+      maxNominationsPerContributor: body.maxNominationsPerContributor ?? 1,
       version: 0,
       createdAt: now(),
       updatedAt: now(),
@@ -58,7 +59,7 @@ export const playlistHandlers = [
   http.put('/api/v1/playlists/:id', async ({ params, request }) => {
     const index = playlistsDb.findIndex(p => p.id === params.id)
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    const body = await request.json() as { name: string; description?: string; deadline?: string; guessingDeadline?: string }
+    const body = await request.json() as { name: string; description?: string; deadline?: string; guessingDeadline?: string; maxNominationsPerContributor?: number }
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
@@ -68,6 +69,7 @@ export const playlistHandlers = [
       description: body.description ?? null,
       ...(body.deadline !== undefined && { deadline: body.deadline }),
       ...(body.guessingDeadline !== undefined && { guessingDeadline: body.guessingDeadline }),
+      ...(body.maxNominationsPerContributor !== undefined && { maxNominationsPerContributor: body.maxNominationsPerContributor }),
       version: playlistsDb[index].version + 1,
       updatedAt: now(),
     }

@@ -61,4 +61,7 @@ public class Playlist extends AuditableEntity {
 
     @Column(name = "spotify_playlist_url", length = 2048)
     private String spotifyPlaylistUrl;
+
+    @Column(name = "max_nominations_per_contributor", nullable = false)
+    private Integer maxNominationsPerContributor;
 }

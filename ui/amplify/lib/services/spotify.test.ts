@@ -51,6 +51,7 @@ function playlist(status: PlaylistStatus, leadId: bigint | undefined, overrides:
     name: 'Mix',
     status,
     leadContributorId: leadId,
+    maxNominationsPerContributor: 1,
     createdAt: 'now',
     updatedAt: 'now',
     ...overrides,

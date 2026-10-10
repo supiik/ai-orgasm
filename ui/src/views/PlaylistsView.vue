@@ -7,6 +7,7 @@ import { type PlaylistPage, type PlaylistResponse as BasePlaylistResponse } from
 type PlaylistResponse = BasePlaylistResponse & {
   leadContributorName?: string | null
   leadContributorAvatarUrl?: string | null
+  maxNominationsPerContributor?: number | null
 }
 type EnrichedPlaylistPage = Omit<PlaylistPage, 'content'> & { content?: PlaylistResponse[] }
 import { api } from '@/api'
@@ -67,7 +68,7 @@ const dialogMode = ref<DialogMode>('create')
 const editingId = ref<string | null>(null)
 const RATING_TYPES = ['LINEAR', 'FIBONACCI', 'BEST_SONG'] as const
 
-const form = ref({ name: '', description: '', ratingType: RATING_TYPES[0] as string })
+const form = ref({ name: '', description: '', ratingType: RATING_TYPES[0] as string, maxNominationsPerContributor: 1 })
 const formError = ref<string | null>(null)
 const saving = ref(false)
 
@@ -80,7 +81,7 @@ const submitLabel = computed(() => {
 function openCreate() {
   dialogMode.value = 'create'
   editingId.value = null
-  form.value = { name: '', description: '', ratingType: RATING_TYPES[0] }
+  form.value = { name: '', description: '', ratingType: RATING_TYPES[0], maxNominationsPerContributor: 1 }
   formError.value = null
   dialogOpen.value = true
 }
@@ -88,7 +89,7 @@ function openCreate() {
 function openEdit(playlist: PlaylistResponse) {
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
-  form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: RATING_TYPES[0] }
+  form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: RATING_TYPES[0], maxNominationsPerContributor: playlist.maxNominationsPerContributor ?? 1 }
   formError.value = null
   dialogOpen.value = true
 }
@@ -104,6 +105,7 @@ async function submitForm() {
     const payload = {
       name: form.value.name.trim(),
       description: form.value.description.trim() || undefined,
+      maxNominationsPerContributor: form.value.maxNominationsPerContributor,
       ...(dialogMode.value === 'create'
         ? { ratingType: form.value.ratingType }
         : {}),
@@ -240,6 +242,16 @@ async function submitForm() {
               {{ t(`ratingType.${rt}`) }}
             </SelectItem>
           </Select>
+        </div>
+        <div class="space-y-1.5">
+          <Label for="maxNominationsPerContributor">{{ t('playlists.maxNominationsPerContributor') }}</Label>
+          <Input
+            id="maxNominationsPerContributor"
+            v-model.number="form.maxNominationsPerContributor"
+            type="number"
+            min="1"
+            step="1"
+          />
         </div>
         <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
       </form>

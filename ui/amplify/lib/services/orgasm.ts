@@ -206,6 +206,14 @@ export async function nominateSong(
     throw new ConflictError('Song has already been nominated for this playlist')
   }
 
+  const existingNominations = await findNominationsByPlaylistId(playlistDbId)
+  const activeNominationCount = existingNominations.filter(
+    (n) => n.nominatedById === actorId && n.status !== 'DECLINED',
+  ).length
+  if (activeNominationCount >= playlist.maxNominationsPerContributor) {
+    throw new ConflictError('Contributor has reached the maximum number of nominations for this playlist')
+  }
+
   const now = new Date().toISOString()
   const id = generateId()
   const item: NominationItem = {

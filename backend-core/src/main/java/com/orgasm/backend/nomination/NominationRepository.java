@@ -18,6 +18,8 @@ public interface NominationRepository extends JpaRepository<Nomination, Long> {
 
     List<Nomination> findByPlaylist_IdAndStatus(Long playlistId, NominationStatus status);
 
+    long countByPlaylist_IdAndNominatedBy_IdAndStatusNot(Long playlistId, Long contributorId, NominationStatus status);
+
     List<Nomination> findBySong_Id(Long songId);
 
     boolean existsBySong_Id(Long songId);
