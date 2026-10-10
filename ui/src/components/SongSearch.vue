@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Loader2, Search } from 'lucide-vue-next'
 import { api, type SongSearchHit } from '@/api'
@@ -16,21 +16,32 @@ const { t } = useI18n()
 
 const DEBOUNCE_MS = 400
 const MIN_CHARS = 2
-const LIMIT = 8
+const INITIAL_LIMIT = 8
+const LOAD_MORE_STEP = 10
+// Matches the server's own cap (services/songSearch.ts's MAX_LIMIT) — no point asking past it.
+const MAX_RESULTS = 25
 
 const query = ref('')
 const hits = ref<SongSearchHit[]>([])
+const limit = ref(INITIAL_LIMIT)
 const loading = ref(false)
+const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const searched = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 const itemRefs = ref<HTMLButtonElement[]>([])
+
+// Both providers rank their whole candidate set before truncating to `limit` (see
+// lib/songSearch/{musicbrainz,spotify}.ts), so re-running the same query with a bigger limit
+// deterministically returns a superset — "load more" is just that, never a separate offset/page.
+const canLoadMore = computed(() => hits.value.length >= limit.value && limit.value < MAX_RESULTS)
 
 let timer: ReturnType<typeof setTimeout> | undefined
 let latest = 0
 
 watch(query, (q) => {
   clearTimeout(timer)
+  limit.value = INITIAL_LIMIT
   if (q.trim().length < MIN_CHARS) {
     latest++
     reset()
@@ -45,15 +56,16 @@ function reset() {
   hits.value = []
   error.value = null
   loading.value = false
+  loadingMore.value = false
   searched.value = false
 }
 
-async function search(q: string) {
+async function search(q: string, { silent = false } = {}) {
   const seq = ++latest
-  loading.value = true
+  if (!silent) loading.value = true
   error.value = null
   try {
-    const { data } = await api.songs().search(q, LIMIT)
+    const { data } = await api.songs().search(q, limit.value)
     if (seq !== latest) return // a newer query is in flight; drop this stale answer
     hits.value = data
     searched.value = true
@@ -62,8 +74,17 @@ async function search(q: string) {
     hits.value = []
     error.value = t('songSearch.failed')
   } finally {
-    if (seq === latest) loading.value = false
+    if (seq === latest) {
+      if (!silent) loading.value = false
+      loadingMore.value = false
+    }
   }
+}
+
+function loadMore() {
+  limit.value = Math.min(limit.value + LOAD_MORE_STEP, MAX_RESULTS)
+  loadingMore.value = true
+  search(query.value.trim(), { silent: true })
 }
 
 function choose(hit: SongSearchHit) {
@@ -149,6 +170,16 @@ function subtitle(hit: SongSearchHit) {
         >
           <span class="w-full truncate"><span class="font-medium">{{ hit.artist }}</span> — {{ hit.name }}</span>
           <span v-if="subtitle(hit)" class="w-full truncate text-xs text-muted-foreground">{{ subtitle(hit) }}</span>
+        </button>
+      </li>
+      <li v-if="canLoadMore" role="presentation">
+        <button
+          type="button"
+          class="w-full rounded-sm px-2 py-1.5 text-center text-sm text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+          :disabled="loadingMore"
+          @click="loadMore"
+        >
+          {{ loadingMore ? t('songSearch.loadingMore') : t('songSearch.loadMore') }}
         </button>
       </li>
     </ul>

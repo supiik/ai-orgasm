@@ -192,7 +192,9 @@
     "searching": "Searching…",
     "empty": "No matches found.",
     "failed": "Song lookup is unavailable right now.",
-    "results": "Search results"
+    "results": "Search results",
+    "loadMore": "Load more",
+    "loadingMore": "Loading more…"
   },
   "contributors": {
     "title": "Contributors",

@@ -192,7 +192,9 @@
     "searching": "Vyhľadáva sa…",
     "empty": "Nenašli sa žiadne zhody.",
     "failed": "Vyhľadávanie skladieb momentálne nie je dostupné.",
-    "results": "Výsledky vyhľadávania"
+    "results": "Výsledky vyhľadávania",
+    "loadMore": "Načítať viac",
+    "loadingMore": "Načítava sa viac…"
   },
   "contributors": {
     "title": "Prispievatelia",
