@@ -139,6 +139,18 @@ class PlaylistControllerTest {
     }
 
     @Test
+    void update_returns400_whenDeadlineInPast() throws Exception {
+        mvc.perform(put("/api/v1/playlists/play-0001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new UpdatePlaylistRequest("Updated", "desc", null, Instant.EPOCH, null))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.errors.deadline").exists());
+    }
+
+    @Test
     void delete_returns204_whenFound() throws Exception {
         mvc.perform(delete("/api/v1/playlists/play-0001"))
                 .andExpect(status().isNoContent());

@@ -65,7 +65,7 @@ export const fnSpecs: FnSpec[] = [
   { name: 'list-songs', description: 'List songs',
     tables: ['songs', 'contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
   { name: 'update-song', description: 'Update a song',
-    tables: ['songs', 'contributors'], writes: ['songs'], methods: [HttpMethod.PUT], corsHeaders: ['content-type', 'authorization'] },
+    tables: ['songs', 'contributors', 'nominations'], writes: ['songs'], methods: [HttpMethod.PUT], corsHeaders: ['content-type', 'authorization'] },
   { name: 'delete-song', description: 'Delete (soft) a song',
     tables: ['songs', 'contributors'], writes: ['songs'], methods: [HttpMethod.DELETE], corsHeaders: ['authorization'] },
   { name: 'search-songs', description: 'Look a song up in the external catalogue (lib/songSearch) to pre-fill the song form',

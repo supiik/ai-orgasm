@@ -143,6 +143,17 @@ class SongControllerTest {
     }
 
     @Test
+    void update_returns409_whenSongIsNominated() throws Exception {
+        when(service.update(eq("song-0001"), any(UpdateSongRequest.class)))
+                .thenThrow(new IllegalStateException("Song cannot be edited once it has been nominated: song-0001"));
+
+        mvc.perform(put("/api/v1/songs/song-0001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdateSongRequest("X", "Y", null, null, null))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void delete_returns204_whenFound() throws Exception {
         mvc.perform(delete("/api/v1/songs/song-0001"))
                 .andExpect(status().isNoContent());

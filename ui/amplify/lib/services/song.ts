@@ -1,7 +1,8 @@
-import { NotFoundError } from '../errors'
+import { ConflictError, NotFoundError } from '../errors'
 import { formatId, generateId, parseId } from '../idGenerator'
 import type { PageRequest } from '../http'
 import { findAllSongsByTenant, findSongById, saveSong, type SongItem } from '../repositories/song'
+import { findNominationsBySongId } from '../repositories/nomination'
 
 export interface CreateSongRequest {
   artist: string
@@ -85,6 +86,10 @@ export async function listSongs(
 
 export async function updateSong(tenantId: number, id: string, request: UpdateSongRequest): Promise<SongResponse> {
   const existing = await requireSongItem(tenantId, id)
+  const nominations = await findNominationsBySongId(existing.id)
+  if (nominations.some((n) => !n.deletedAt)) {
+    throw new ConflictError(`Song cannot be edited once it has been nominated: ${id}`)
+  }
   existing.artist = request.artist
   existing.name = request.name
   if (request.album !== undefined) existing.album = request.album

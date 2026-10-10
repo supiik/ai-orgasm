@@ -1,6 +1,7 @@
 package com.orgasm.backend.song;
 
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.nomination.NominationRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class SongService {
 
     private final SongRepository repository;
     private final SongMapper mapper;
+    private final NominationRepository nominationRepository;
 
     @CircuitBreaker(name = "db")
     public SongResponse create(CreateSongRequest request) {
@@ -58,6 +60,9 @@ public class SongService {
     @CircuitBreaker(name = "db")
     public SongResponse update(String id, UpdateSongRequest request) {
         Song existing = requireById(id);
+        if (nominationRepository.existsBySong_Id(existing.getId())) {
+            throw new IllegalStateException("Song cannot be edited once it has been nominated: " + id);
+        }
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }

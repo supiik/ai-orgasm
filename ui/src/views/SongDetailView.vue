@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { type SongResponse } from '@orgasm/backend-client'
@@ -44,6 +44,12 @@ function formatDate(iso: string) {
   return d(new Date(iso), 'dateTime')
 }
 
+// A song's catalogue fields are frozen once any nomination (pending, approved, or declined)
+// references it — editing in place would silently rewrite what every past nomination means,
+// including on playlists this view's caller never sees. See CLAUDE.md's "Known gaps" precedent
+// for why this is enforced server-side too (api.songs().update() rejects it with a 409/ConflictError).
+const isLocked = computed(() => nominations.value.length > 0)
+
 // ── Edit dialog ───────────────────────────────────────────────────────────────
 
 const dialogOpen = ref(false)
@@ -52,6 +58,7 @@ const formError = ref<string | null>(null)
 const saving = ref(false)
 
 function openEdit() {
+  if (isLocked.value) return
   form.value = {
     artist: song.value!.artist ?? '',
     name: song.value!.name ?? '',
@@ -102,11 +109,21 @@ async function submitEdit() {
         <span v-if="loading" class="inline-block w-48 h-7 rounded bg-muted animate-pulse" />
         <span v-else>{{ song?.name }}</span>
       </h1>
-      <Button v-if="song" variant="outline" size="sm" class="ml-auto" @click="openEdit">
+      <Button
+        v-if="song"
+        variant="outline"
+        size="sm"
+        class="ml-auto"
+        :disabled="isLocked"
+        :title="isLocked ? t('songs.lockedTooltip') : undefined"
+        @click="openEdit"
+      >
         <Pencil class="h-4 w-4" />
         {{ t('common.edit') }}
       </Button>
     </div>
+
+    <p v-if="isLocked" class="text-xs text-muted-foreground">{{ t('songs.lockedTooltip') }}</p>
 
     <div v-if="error" class="text-sm text-destructive">{{ error }}</div>
 

@@ -1,6 +1,7 @@
 package com.orgasm.backend.song;
 
 import com.orgasm.backend.domain.IdGenerator;
+import com.orgasm.backend.nomination.NominationRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +28,7 @@ class SongServiceTest {
 
     @Mock SongRepository repository;
     @Mock SongMapper mapper;
+    @Mock NominationRepository nominationRepository;
     @InjectMocks SongService service;
 
     static final long DB_ID = 1L;
@@ -166,6 +168,17 @@ class SongServiceTest {
         assertThatThrownBy(() -> service.update(USER_ID, new UpdateSongRequest("X", "Y", null, null, null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining(USER_ID);
+    }
+
+    @Test
+    void update_throwsConflict_whenSongIsNominated() {
+        var existing = new Song(DB_ID, null, "Old Artist", "Old Name", null, null, null);
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
+        when(nominationRepository.existsBySong_Id(DB_ID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(USER_ID, new UpdateSongRequest("X", "Y", null, null, null)))
+                .isInstanceOf(IllegalStateException.class);
+        verify(repository, org.mockito.Mockito.never()).save(any());
     }
 
     @Test
