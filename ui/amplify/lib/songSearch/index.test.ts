@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createSongSearchProvider } from './index'
 import { MusicBrainzProvider } from './musicbrainz'
+import { SpotifyProvider } from './spotify'
 
 describe('createSongSearchProvider', () => {
   const env = { ...process.env }
@@ -23,6 +24,6 @@ describe('createSongSearchProvider', () => {
   it('creates the Spotify provider from SONG_SEARCH_PROVIDER + its client credentials', () => {
     process.env.SPOTIFY_CLIENT_ID = 'id'
     process.env.SPOTIFY_CLIENT_SECRET = 'secret'
-    expect(createSongSearchProvider('spotify').name).toBe('spotify')
+    expect(createSongSearchProvider('spotify')).toBeInstanceOf(SpotifyProvider)
   })
 })

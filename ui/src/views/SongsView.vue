@@ -75,6 +75,17 @@ function openEdit(song: SongResponse) {
   dialogOpen.value = true
 }
 
+// A song is locked for editing server-side once any nomination references it (see SongService.java
+// / amplify/lib/services/song.ts) — detect that specific failure to show a clear reason instead of
+// a generic "could not save", since in practice almost every song hits this (see the comment above:
+// a song is normally created and nominated in the same flow, so it's locked from the moment it exists).
+function isConflict(e: unknown): boolean {
+  if (e && typeof e === 'object' && 'response' in e) {
+    return (e as { response?: { status?: number } }).response?.status === 409
+  }
+  return e instanceof Error && /409/.test(e.message)
+}
+
 async function submitForm() {
   if (!form.value.artist.trim()) {
     formError.value = t('common.artistRequired')
@@ -97,8 +108,8 @@ async function submitForm() {
     await api.songs().update(editingId.value!, payload)
     fetchPage(page.value)
     dialogOpen.value = false
-  } catch {
-    formError.value = t('songs.saveFailed')
+  } catch (e) {
+    formError.value = isConflict(e) ? t('songs.lockedCannotEdit') : t('songs.saveFailed')
   } finally {
     saving.value = false
   }

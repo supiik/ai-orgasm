@@ -635,6 +635,14 @@ frontend root is `ui/`.
   arrangement as the admin endpoints), i18n under `songSearch.*`, `e2e/song-search.spec.ts`.
   The edit-song dialog deliberately has no lookup. Tests: `lib/songSearch/*.test.ts` and
   `services/songSearch.test.ts` (fetch mocked; no live MusicBrainz calls in the suite).
+  **`spotify` is registered but not the default** (`musicbrainz` is): confirmed 2026-10-10
+  against the real API that Spotify's `/v1/search` rejects a Client Credentials token with
+  `403 "Active premium subscription required for the owner of the app"` unless the Spotify
+  account that *owns the registered app* (not the end user) has an active Premium
+  subscription — the token exchange itself succeeds, only the search call is gated. Switch the
+  default back to `spotify` (in `lib/songSearch/index.ts`'s `createSongSearchProvider`) once
+  that's sorted; its popularity-based ranking is a strictly better match than the Lucene-boost
+  workaround above, this default is purely an availability workaround.
 - **Administration (`admin` AuthMode, Cognito `admins` group).** Added 2026-09-13 so
   organizations and manual memberships no longer have to be written straight into DynamoDB.
   `auth/resource.ts` declares `groups: ['admins']`; nobody is in it after a deploy — an operator

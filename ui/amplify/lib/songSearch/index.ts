@@ -10,7 +10,14 @@ export type { SongSearchHit, SongSearchProvider } from './provider'
  * `backend.ts`), so switching catalogues is a deploy-time setting, not a code change. The
  * `spotify` entry reuses the same `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET` already set for
  * the Spotify playlist-export feature (via the Client Credentials flow, not the per-contributor
- * OAuth connection) — see `lib/songSearch/spotify.ts`.
+ * OAuth connection) — see `lib/songSearch/spotify.ts`. `musicbrainz` is the default rather than
+ * `spotify` because, as of 2026-10-10, Spotify's Search endpoint rejects Client Credentials
+ * tokens with `403 "Active premium subscription required for the owner of the app"` unless the
+ * Spotify account that *owns the registered app* (not the end user) has an active Premium
+ * subscription — confirmed against the real API, not a guess. `spotify` stays registered and
+ * selectable via `SONG_SEARCH_PROVIDER=spotify` for once that's sorted (its popularity-based
+ * ranking is strictly better — see `spotify.ts`'s doc comment — this default is an availability
+ * workaround, not a quality judgement).
  */
 const factories: Record<string, () => SongSearchProvider> = {
   musicbrainz: () =>

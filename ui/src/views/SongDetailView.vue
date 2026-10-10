@@ -69,6 +69,15 @@ function openEdit() {
   dialogOpen.value = true
 }
 
+// Mirrors SongsView.vue's isConflict — the backend rejects the edit with a 409 once any
+// nomination references the song; show that specific reason instead of a generic save failure.
+function isConflict(e: unknown): boolean {
+  if (e && typeof e === 'object' && 'response' in e) {
+    return (e as { response?: { status?: number } }).response?.status === 409
+  }
+  return e instanceof Error && /409/.test(e.message)
+}
+
 async function submitEdit() {
   if (!form.value.artist.trim()) {
     formError.value = t('common.artistRequired')
@@ -90,8 +99,8 @@ async function submitEdit() {
     })
     song.value = data
     dialogOpen.value = false
-  } catch {
-    formError.value = t('common.saveFailed')
+  } catch (e) {
+    formError.value = isConflict(e) ? t('songs.lockedCannotEdit') : t('common.saveFailed')
   } finally {
     saving.value = false
   }
