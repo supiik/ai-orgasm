@@ -757,10 +757,10 @@ function statusClass(s: NominationStatus | undefined) {
             <!-- Status / actions -->
             <div class="flex items-center justify-end gap-1">
               <template v-if="isLead && playlist.status === PlaylistStatus.Open">
-                <Button size="sm" variant="ghost" :class="nom.status === NominationStatus.Approved ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'" @click="reviewNomination(nom.id!, 'approve')">
+                <Button v-if="nom.status !== NominationStatus.Declined" size="sm" variant="ghost" :class="nom.status === NominationStatus.Approved ? 'text-green-600' : 'text-muted-foreground hover:text-green-600'" @click="reviewNomination(nom.id!, 'approve')">
                   <CheckCircle class="h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="ghost" :class="nom.status === NominationStatus.Declined ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'" @click="reviewNomination(nom.id!, 'decline')">
+                <Button v-if="nom.status !== NominationStatus.Approved" size="sm" variant="ghost" :class="nom.status === NominationStatus.Declined ? 'text-destructive' : 'text-muted-foreground hover:text-destructive'" @click="reviewNomination(nom.id!, 'decline')">
                   <XCircle class="h-4 w-4" />
                 </Button>
               </template>
