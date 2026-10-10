@@ -151,10 +151,15 @@ const MAX_TERMS = 8
  *   "bohemian rhapsody" means the song, not the tribute band of that name.
  *
  * `status:official` drops bootleg-only recordings. Terms are escaped, not quoted, so Lucene
- * still stems/normalises them.
+ * still stems/normalises them. The last term gets a trailing Lucene wildcard (`love*`, not
+ * `love`): with debounced search-as-you-type, that term is often still mid-word ("all is full
+ * of l"), and a bare exact term only starts matching again once the whole word is typed —
+ * confirmed against the live API that this made results flicker to empty and back while
+ * typing. A trailing wildcard keeps matching through every keystroke of the final word.
  */
 export function buildLuceneQuery(query: string): string {
   const terms = query.split(/\s+/).map(escapeLucene).filter(Boolean).slice(0, MAX_TERMS)
+  if (terms.length) terms[terms.length - 1] += '*'
   const field = (name: string, ts: string[]) => ts.map((t) => `${name}:${t}`).join(' AND ')
   const required = terms.map((t) => `(recording:${t} OR artist:${t})`).join(' AND ')
   const boosts: string[] = []

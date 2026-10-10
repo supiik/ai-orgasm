@@ -39,9 +39,9 @@ describe('MusicBrainzProvider', () => {
     // Fetches a larger page than asked for — dedupe/ranking happens on our side.
     expect(parsed.searchParams.get('limit')).toBe('100')
     expect(parsed.searchParams.get('query')).toBe(
-      '+((recording:radiohead OR artist:radiohead) AND (recording:creep OR artist:creep)) +status:official '
-      + '(artist:radiohead AND recording:creep)^3 (recording:radiohead AND artist:creep)^3 '
-      + '(recording:radiohead AND recording:creep)^2',
+      '+((recording:radiohead OR artist:radiohead) AND (recording:creep* OR artist:creep*)) +status:official '
+      + '(artist:radiohead AND recording:creep*)^3 (recording:radiohead AND artist:creep*)^3 '
+      + '(recording:radiohead AND recording:creep*)^2',
     )
     expect((init.headers as Record<string, string>)['User-Agent']).toBe('orgasm-test/1.0 (test@example.com)')
     expect(init.signal).toBeInstanceOf(AbortSignal)
@@ -124,24 +124,31 @@ describe('MusicBrainzProvider', () => {
 
 describe('buildLuceneQuery', () => {
   it('escapes Lucene special characters per term', () => {
-    expect(buildLuceneQuery('AC/DC')).toBe('+((recording:AC\\/DC OR artist:AC\\/DC)) +status:official (recording:AC\\/DC)^2')
-    expect(buildLuceneQuery('what? (live)')).toContain('+((recording:what\\? OR artist:what\\?) AND (recording:\\(live\\) OR artist:\\(live\\)))')
+    expect(buildLuceneQuery('AC/DC')).toBe('+((recording:AC\\/DC* OR artist:AC\\/DC*)) +status:official (recording:AC\\/DC*)^2')
+    expect(buildLuceneQuery('what? (live)')).toContain('+((recording:what\\? OR artist:what\\?) AND (recording:\\(live\\)* OR artist:\\(live\\)*))')
   })
 
   it('collapses whitespace and adds one boosting clause per artist/title split (both orders), then the all-title boost', () => {
     expect(buildLuceneQuery('  a   b   c ')).toBe(
-      '+((recording:a OR artist:a) AND (recording:b OR artist:b) AND (recording:c OR artist:c)) +status:official '
-      + '(artist:a AND recording:b AND recording:c)^3 (recording:a AND artist:b AND artist:c)^3 '
-      + '(artist:a AND artist:b AND recording:c)^3 (recording:a AND recording:b AND artist:c)^3 '
-      + '(recording:a AND recording:b AND recording:c)^2',
+      '+((recording:a OR artist:a) AND (recording:b OR artist:b) AND (recording:c* OR artist:c*)) +status:official '
+      + '(artist:a AND recording:b AND recording:c*)^3 (recording:a AND artist:b AND artist:c*)^3 '
+      + '(artist:a AND artist:b AND recording:c*)^3 (recording:a AND recording:b AND artist:c*)^3 '
+      + '(recording:a AND recording:b AND recording:c*)^2',
     )
   })
 
   it('has no split clauses for a single term and caps the number of terms', () => {
-    expect(buildLuceneQuery('wonderwall')).toBe('+((recording:wonderwall OR artist:wonderwall)) +status:official (recording:wonderwall)^2')
+    expect(buildLuceneQuery('wonderwall')).toBe('+((recording:wonderwall* OR artist:wonderwall*)) +status:official (recording:wonderwall*)^2')
     const many = buildLuceneQuery(Array.from({ length: 20 }, (_, i) => `t${i}`).join(' '))
     expect(many).not.toContain('t8')
-    expect(many).toContain('t7')
+    expect(many).toContain('t7*')
+  })
+
+  it('wildcards only the last term, so earlier words still match exactly', () => {
+    expect(buildLuceneQuery('all is full of l')).toContain(
+      '+((recording:all OR artist:all) AND (recording:is OR artist:is) AND (recording:full OR artist:full) '
+      + 'AND (recording:of OR artist:of) AND (recording:l* OR artist:l*))',
+    )
   })
 })
 
