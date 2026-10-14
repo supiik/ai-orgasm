@@ -101,4 +101,22 @@ class NominationRepositoryIT {
     void existsByPlaylist_IdAndSong_Id_returnsFalse_whenNotNominated() {
         assertThat(nominationRepository.existsByPlaylist_IdAndSong_Id(playlist.getId(), song.getId())).isFalse();
     }
+
+    @Test
+    void existsBySong_IdAndStatus_returnsTrue_whenApproved() {
+        Nomination nomination = nominationRepository.save(new Nomination(null, null, playlist, song, contributor, null));
+        nomination.setStatus(NominationStatus.APPROVED);
+        nominationRepository.save(nomination);
+        nominationRepository.flush();
+
+        assertThat(nominationRepository.existsBySong_IdAndStatus(song.getId(), NominationStatus.APPROVED)).isTrue();
+    }
+
+    @Test
+    void existsBySong_IdAndStatus_returnsFalse_whenOnlyPending() {
+        nominationRepository.save(new Nomination(null, null, playlist, song, contributor, null));
+        nominationRepository.flush();
+
+        assertThat(nominationRepository.existsBySong_IdAndStatus(song.getId(), NominationStatus.APPROVED)).isFalse();
+    }
 }

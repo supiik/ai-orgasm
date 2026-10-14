@@ -929,7 +929,12 @@ locks once a lead actually approves one into a playlist.
 - **TypeScript (`ui/amplify`)**: `services/song.ts`'s `songHasApprovedNomination` helper (filters
   `findNominationsBySongId` by `status === 'APPROVED' && !deletedAt`) backs both `updateSong`'s
   lock check and the same `hasApprovedNomination` field on `SongResponse`, set in `getSongById`
-  and `listSongs` (one extra `bySong` GSI query per song — cheap, indexed, not a scan).
+  and `listSongs` (one extra `bySong` GSI query per song — cheap, indexed, not a scan). Both
+  `get-song` and `list-songs` needed their `functions.ts` `tables` entry widened to include
+  `nominations` (they previously only read `songs`/`contributors`) — missing this doesn't fail at
+  build/type-check time, only at runtime with an IAM `AccessDenied` the UI just shows as "Failed
+  to load songs"; whenever a handler starts reading a table it didn't before, check its `fnSpecs`
+  grant alongside the code change, not after deploying and seeing it break.
 - **UI**: `SongDetailView.vue`'s `isLocked` now checks `nominations.some(n => n.status ===
   'APPROVED')` against the nominations it already fetches for display, rather than
   `nominations.length > 0`. `SongsView.vue`'s per-row edit button reads the new
