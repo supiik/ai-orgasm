@@ -89,6 +89,8 @@ export const fnSpecs: FnSpec[] = [
     tables: ['playlists', 'contributors'], writes: ['playlists'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
   { name: 'list-playlists-by-contributor', description: 'List playlists led by a contributor',
     tables: ['playlists', 'contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'list-contributed-playlists-by-contributor', description: 'List playlists a contributor has nominated a song into',
+    tables: ['playlists', 'contributors', 'nominations'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
   { name: 'nominate-song', description: 'Nominate a song for a playlist',
     tables: ['playlists', 'songs', 'contributors', 'nominations'], writes: ['nominations'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
   { name: 'list-nominations', description: 'List nominations for a playlist',

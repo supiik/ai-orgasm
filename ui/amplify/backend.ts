@@ -24,6 +24,7 @@ import { deleteContributorFn } from './functions/delete-contributor/resource'
 import { listOrganizationsFn } from './functions/list-organizations/resource'
 import { openPlaylistFn } from './functions/open-playlist/resource'
 import { listPlaylistsByContributorFn } from './functions/list-playlists-by-contributor/resource'
+import { listContributedPlaylistsByContributorFn } from './functions/list-contributed-playlists-by-contributor/resource'
 import { nominateSongFn } from './functions/nominate-song/resource'
 import { listNominationsFn } from './functions/list-nominations/resource'
 import { listSongNominationsFn } from './functions/list-song-nominations/resource'
@@ -71,6 +72,7 @@ const backend = defineBackend({
   listOrganizationsFn,
   openPlaylistFn,
   listPlaylistsByContributorFn,
+  listContributedPlaylistsByContributorFn,
   nominateSongFn,
   listNominationsFn,
   listSongNominationsFn,
@@ -187,6 +189,7 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'list-organizations': backend.listOrganizationsFn,
   'open-playlist': backend.openPlaylistFn,
   'list-playlists-by-contributor': backend.listPlaylistsByContributorFn,
+  'list-contributed-playlists-by-contributor': backend.listContributedPlaylistsByContributorFn,
   'nominate-song': backend.nominateSongFn,
   'list-nominations': backend.listNominationsFn,
   'list-song-nominations': backend.listSongNominationsFn,

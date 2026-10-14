@@ -85,6 +85,15 @@ public class OrgasmService {
                 .map(playlistMapper::toResponse);
     }
 
+    /** Playlists the contributor has nominated a song into (any status, including declined — historical, not just active). */
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public Page<PlaylistResponse> findPlaylistsContributedByContributor(String contributorId, Pageable pageable) {
+        return playlistRepository
+                .findDistinctByNominations_NominatedBy_Id(IdGenerator.parse(contributorId), pageable)
+                .map(playlistMapper::toResponse);
+    }
+
     @CircuitBreaker(name = "db")
     public NominationResponse nominateSong(String playlistId, NominateSongRequest request) {
         Playlist playlist = requirePlaylist(playlistId);

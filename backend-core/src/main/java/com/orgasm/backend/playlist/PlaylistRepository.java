@@ -22,6 +22,10 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Page<Playlist> findByLeadContributor_Id(Long leadContributorId, Pageable pageable);
 
+    @Query(value = "SELECT DISTINCT n.playlist FROM Nomination n WHERE n.nominatedBy.id = :contributorId",
+            countQuery = "SELECT COUNT(DISTINCT n.playlist) FROM Nomination n WHERE n.nominatedBy.id = :contributorId")
+    Page<Playlist> findDistinctByNominations_NominatedBy_Id(@Param("contributorId") Long contributorId, Pageable pageable);
+
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Playlist p SET p.leadContributor = :contributor WHERE p.id = :id")
     void assignLeadContributor(@Param("id") Long id, @Param("contributor") com.orgasm.backend.contributor.Contributor contributor);

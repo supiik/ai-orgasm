@@ -37,6 +37,12 @@ public class OrgasmController {
         return orgasmService.findPlaylistsByContributor(id, pageable);
     }
 
+    @GetMapping("/contributors/{id}/contributed-playlists")
+    public Page<PlaylistResponse> findPlaylistsContributedByContributor(
+            @PathVariable String id, Pageable pageable) {
+        return orgasmService.findPlaylistsContributedByContributor(id, pageable);
+    }
+
     @PostMapping("/playlists/{id}/nominations")
     @ResponseStatus(HttpStatus.CREATED)
     public NominationResponse nominateSong(

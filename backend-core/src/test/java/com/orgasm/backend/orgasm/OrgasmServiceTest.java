@@ -169,6 +169,21 @@ class OrgasmServiceTest {
         assertThat(result.getContent()).containsExactly(expected);
     }
 
+    // ── findPlaylistsContributedByContributor ───────────────────────────────────
+
+    @Test
+    void findPlaylistsContributedByContributor_returnsMappedPage() {
+        var playlist = openPlaylist();
+        var expected = playlistResponse();
+        when(playlistRepository.findDistinctByNominations_NominatedBy_Id(any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(playlist)));
+        when(playlistMapper.toResponse(playlist)).thenReturn(expected);
+
+        var result = service.findPlaylistsContributedByContributor(CONTRIBUTOR_ID, Pageable.unpaged());
+
+        assertThat(result.getContent()).containsExactly(expected);
+    }
+
     // ── nominateSong ──────────────────────────────────────────────────────────
 
     @Test

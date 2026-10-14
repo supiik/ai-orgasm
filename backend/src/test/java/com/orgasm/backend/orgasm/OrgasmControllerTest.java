@@ -139,6 +139,18 @@ class OrgasmControllerTest {
                 .andExpect(jsonPath("$.content[0].id").value(PLAYLIST_ID));
     }
 
+    // ── findPlaylistsContributedByContributor ───────────────────────────────────
+
+    @Test
+    void findPlaylistsContributedByContributor_returns200() throws Exception {
+        when(service.findPlaylistsContributedByContributor(eq(CONTRIBUTOR_ID), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(playlistResponse())));
+
+        mvc.perform(get("/api/v1/contributors/{id}/contributed-playlists", CONTRIBUTOR_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(PLAYLIST_ID));
+    }
+
     // ── nominateSong ──────────────────────────────────────────────────────────
 
     @Test

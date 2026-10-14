@@ -4,6 +4,7 @@ import { formatId, generateId, parseId } from '../idGenerator'
 import { findContributorById } from '../repositories/contributor'
 import {
   declinePendingNominations,
+  findAllNominationsByTenant,
   findNominationById,
   findNominationsByPlaylistId,
   findNominationsBySongId,
@@ -181,6 +182,25 @@ export async function findPlaylistsByContributor(
   const all = (await findAllPlaylistsByTenant(tenantId))
     .filter((item) => !item.deletedAt)
     .filter((item) => item.leadContributorId === parsedContributorId)
+
+  const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
+  return { content: await toPlaylistResponses(tenantId, paged), totalElements: all.length }
+}
+
+/** Playlists the contributor has nominated into (any status, including DECLINED — "was a contributor" is historical, not just currently-active). */
+export async function findPlaylistsContributedByContributor(
+  tenantId: number,
+  contributorId: string,
+  page: PageRequest | undefined,
+): Promise<{ content: PlaylistResponse[]; totalElements: number }> {
+  const parsedContributorId = parseId(contributorId)
+  const nominations = (await findAllNominationsByTenant(tenantId))
+    .filter((n) => !n.deletedAt && n.nominatedById === parsedContributorId)
+  const playlistIds = new Set(nominations.map((n) => n.playlistId))
+
+  const all = (await findAllPlaylistsByTenant(tenantId))
+    .filter((item) => !item.deletedAt)
+    .filter((item) => playlistIds.has(item.id))
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
   return { content: await toPlaylistResponses(tenantId, paged), totalElements: all.length }
