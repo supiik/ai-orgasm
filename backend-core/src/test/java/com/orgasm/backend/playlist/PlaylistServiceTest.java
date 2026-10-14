@@ -169,6 +169,40 @@ class PlaylistServiceTest {
     }
 
     @Test
+    void create_throwsConflict_whenNameAlreadyExists() {
+        var request = new CreatePlaylistRequest("My Mix", "desc", null, null, null);
+        when(repository.existsByNameIgnoreCase("My Mix")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.create(request))
+                .isInstanceOf(IllegalStateException.class);
+        verify(repository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void update_throwsConflict_whenRenamedToAnExistingName() {
+        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null, null, null, null, 1);
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
+        when(repository.existsByNameIgnoreCaseAndIdNot("New", DB_ID)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.update(USER_ID, new UpdatePlaylistRequest("New", null, null, null, null, null)))
+                .isInstanceOf(IllegalStateException.class);
+        verify(repository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void update_allowsKeepingItsOwnName() {
+        var request = new UpdatePlaylistRequest("Old", "new desc", null, null, null, null);
+        var existing = new Playlist(DB_ID, null, "Old", "old desc", PlaylistStatus.NEW, null, null, null, null, null, null, 1);
+        var saved = new Playlist(DB_ID, null, "Old", "new desc", PlaylistStatus.NEW, null, null, null, null, null, null, 1);
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
+        when(repository.existsByNameIgnoreCaseAndIdNot("Old", DB_ID)).thenReturn(false);
+        when(repository.save(existing)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(response(USER_ID, "Old"));
+
+        assertThat(service.update(USER_ID, request).name()).isEqualTo("Old");
+    }
+
+    @Test
     void delete_softDeletes_whenExists() {
         when(repository.softDeleteById(eq(DB_ID), any())).thenReturn(1);
 

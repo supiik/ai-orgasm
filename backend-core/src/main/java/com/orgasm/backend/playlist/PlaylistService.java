@@ -25,6 +25,9 @@ public class PlaylistService {
 
     @CircuitBreaker(name = "db")
     public PlaylistResponse create(CreatePlaylistRequest request) {
+        if (repository.existsByNameIgnoreCase(request.name())) {
+            throw new IllegalStateException("A playlist with this name already exists: " + request.name());
+        }
         return mapper.toResponse(repository.save(mapper.toEntity(request)));
     }
 
@@ -58,6 +61,9 @@ public class PlaylistService {
     @CircuitBreaker(name = "db")
     public PlaylistResponse update(String id, UpdatePlaylistRequest request) {
         Playlist existing = requireById(id);
+        if (repository.existsByNameIgnoreCaseAndIdNot(request.name(), existing.getId())) {
+            throw new IllegalStateException("A playlist with this name already exists: " + request.name());
+        }
         mapper.updateEntity(request, existing);
         return mapper.toResponse(repository.save(existing));
     }

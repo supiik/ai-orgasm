@@ -33,6 +33,9 @@ export const playlistHandlers = [
     if (body.maxNominationsPerContributor !== undefined && (body.maxNominationsPerContributor < 1 || body.maxNominationsPerContributor > 3)) {
       return HttpResponse.json({ message: 'maxNominationsPerContributor must be between 1 and 3' }, { status: 400 })
     }
+    if (playlistsDb.some(p => p.name.toLowerCase() === body.name.trim().toLowerCase())) {
+      return HttpResponse.json({ title: 'Conflict', detail: `A playlist with this name already exists: ${body.name}` }, { status: 409 })
+    }
     const created = {
       id: nextId(),
       name: body.name,
@@ -68,6 +71,21 @@ export const playlistHandlers = [
     }
     if (body.maxNominationsPerContributor !== undefined && (body.maxNominationsPerContributor < 1 || body.maxNominationsPerContributor > 3)) {
       return HttpResponse.json({ message: 'maxNominationsPerContributor must be between 1 and 3' }, { status: 400 })
+    }
+    const existing = playlistsDb[index]
+    // Name/description/maxNominationsPerContributor are only editable while NEW — matches
+    // PlaylistService.java / amplify/lib/services/playlist.ts. A deadline-only update (the
+    // separate "Edit deadline" dialog) always resends the unchanged name, so it isn't gated here.
+    const changingBaseFields =
+      body.name !== existing.name ||
+      (body.description !== undefined && body.description !== existing.description) ||
+      body.maxNominationsPerContributor !== undefined
+    if (changingBaseFields && existing.status !== 'NEW') {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Playlist name, description, and nomination cap can only be edited while it is NEW' }, { status: 409 })
+    }
+    if (body.name.toLowerCase() !== existing.name.toLowerCase()
+      && playlistsDb.some(p => p.id !== existing.id && p.name.toLowerCase() === body.name.trim().toLowerCase())) {
+      return HttpResponse.json({ title: 'Conflict', detail: `A playlist with this name already exists: ${body.name}` }, { status: 409 })
     }
     playlistsDb[index] = {
       ...playlistsDb[index],

@@ -62,8 +62,9 @@ test.describe('playlists API (via MSW)', () => {
     expect(status).toBe(404)
   })
 
-  test('updates a playlist', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-2d3e4f5a6b7c8d90', {
+  test('updates a playlist that is still NEW', async ({ page }) => {
+    // play-a1b2c3d4e5f60718 (Chill Vibes) is the only seeded playlist still in NEW status.
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-a1b2c3d4e5f60718', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Updated Name' }),
@@ -71,6 +72,37 @@ test.describe('playlists API (via MSW)', () => {
     expect(status).toBe(200)
     expect(body.name).toBe('Updated Name')
     expect(body.version).toBe(1)
+  })
+
+  test('returns 409 when renaming a playlist that is no longer NEW', async ({ page }) => {
+    // play-2d3e4f5a6b7c8d90 (Workout Hits) is OPEN.
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-2d3e4f5a6b7c8d90', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Renamed Mid-flight' }),
+    })
+    expect(status).toBe(409)
+    expect(body.detail).toMatch(/NEW/)
+  })
+
+  test('returns 409 when creating a playlist with a name that already exists', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/playlists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'chill vibes' }),
+    })
+    expect(status).toBe(409)
+    expect(body.detail).toMatch(/already exists/i)
+  })
+
+  test('returns 409 when renaming a playlist to a name another playlist already has', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/playlists/play-a1b2c3d4e5f60718', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Workout Hits' }),
+    })
+    expect(status).toBe(409)
+    expect(body.detail).toMatch(/already exists/i)
   })
 
   test('deletes a playlist', async ({ page }) => {

@@ -117,6 +117,17 @@ class PlaylistControllerTest {
     }
 
     @Test
+    void create_returns409_whenNameAlreadyExists() throws Exception {
+        when(service.create(any(CreatePlaylistRequest.class)))
+                .thenThrow(new IllegalStateException("A playlist with this name already exists: Mix"));
+
+        mvc.perform(post("/api/v1/playlists")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreatePlaylistRequest("Mix", "desc", null, null, null))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void update_returns200_whenFound() throws Exception {
         when(service.update(eq("play-0001"), any(UpdatePlaylistRequest.class))).thenReturn(response("play-0001", "Updated", "new desc"));
 
@@ -125,6 +136,17 @@ class PlaylistControllerTest {
                         .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Updated", "new desc", null, null, null, null))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Updated"));
+    }
+
+    @Test
+    void update_returns409_whenRenamedToAnExistingName() throws Exception {
+        when(service.update(eq("play-0001"), any(UpdatePlaylistRequest.class)))
+                .thenThrow(new IllegalStateException("A playlist with this name already exists: Taken"));
+
+        mvc.perform(put("/api/v1/playlists/play-0001")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new UpdatePlaylistRequest("Taken", null, null, null, null, null))))
+                .andExpect(status().isConflict());
     }
 
     @Test

@@ -16,6 +16,10 @@ public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
     Page<Playlist> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+
     List<Playlist> findByStatusAndDeadlineBetween(PlaylistStatus status, Instant from, Instant to);
 
     List<Playlist> findByStatusAndGuessingDeadlineBetween(PlaylistStatus status, Instant from, Instant to);

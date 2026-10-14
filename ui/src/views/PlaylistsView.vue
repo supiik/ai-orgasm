@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectItem } from '@/components/ui/select'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
@@ -87,11 +88,20 @@ function openCreate() {
 }
 
 function openEdit(playlist: PlaylistResponse) {
+  if (playlist.status !== 'NEW') return
   dialogMode.value = 'edit'
   editingId.value = playlist.id!
   form.value = { name: playlist.name!, description: playlist.description ?? '', ratingType: RATING_TYPES[0], maxNominationsPerContributor: playlist.maxNominationsPerContributor ?? 1 }
   formError.value = null
   dialogOpen.value = true
+}
+
+// Mirrors SongsView.vue's isConflict — the backend rejects a duplicate playlist name with a 409.
+function isConflict(e: unknown): boolean {
+  if (e && typeof e === 'object' && 'response' in e) {
+    return (e as { response?: { status?: number } }).response?.status === 409
+  }
+  return e instanceof Error && /409/.test(e.message)
 }
 
 async function submitForm() {
@@ -118,8 +128,12 @@ async function submitForm() {
       fetchPage(page.value)
     }
     dialogOpen.value = false
-  } catch {
-    formError.value = dialogMode.value === 'create' ? t('playlists.createFailed') : t('playlists.saveFailed')
+  } catch (e) {
+    if (isConflict(e)) {
+      formError.value = t('playlists.nameTaken')
+    } else {
+      formError.value = dialogMode.value === 'create' ? t('playlists.createFailed') : t('playlists.saveFailed')
+    }
   } finally {
     saving.value = false
   }
@@ -184,7 +198,13 @@ async function submitForm() {
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.createdAt!) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(playlist.updatedAt!) }}</TableCell>
               <TableCell>
-                <Button variant="ghost" size="icon" @click.stop="openEdit(playlist)">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :disabled="playlist.status !== 'NEW'"
+                  :title="playlist.status !== 'NEW' ? t('playlists.onlyNewEditable') : undefined"
+                  @click.stop="openEdit(playlist)"
+                >
                   <Pencil class="h-4 w-4" />
                 </Button>
               </TableCell>
@@ -233,7 +253,7 @@ async function submitForm() {
         </div>
         <div class="space-y-1.5">
           <Label for="description">{{ t('common.description') }}</Label>
-          <Input id="description" v-model="form.description" :placeholder="t('playlists.descriptionPlaceholder')" />
+          <Textarea id="description" v-model="form.description" :placeholder="t('playlists.descriptionPlaceholder')" />
         </div>
         <div v-if="dialogMode === 'create'" class="space-y-1.5">
           <Label>{{ t('playlists.ratingType') }}</Label>

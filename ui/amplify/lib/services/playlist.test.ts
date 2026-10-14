@@ -42,6 +42,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(playlistRepo.savePlaylist).mockImplementation(async (item) => item)
   vi.mocked(contributorRepo.findContributorById).mockResolvedValue(undefined)
+  vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([])
 })
 
 describe('updatePlaylist', () => {
@@ -127,6 +128,42 @@ describe('updatePlaylist', () => {
 
     expect(result.maxNominationsPerContributor).toBe(3)
   })
+
+  it('rejects renaming to a name another playlist already has', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('NEW', undefined))
+    vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([
+      playlist('NEW', undefined),
+      { ...playlist('NEW', undefined), id: 2n, name: 'Taken' },
+    ])
+
+    await expect(updatePlaylist(TENANT_ID, playIdStr(1), OTHER, { name: 'Taken' }))
+      .rejects.toThrow(ConflictError)
+    expect(playlistRepo.savePlaylist).not.toHaveBeenCalled()
+  })
+
+  it('allows keeping its own name unchanged (case-insensitively)', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('NEW', undefined))
+    vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([playlist('NEW', undefined)])
+
+    const result = await updatePlaylist(TENANT_ID, playIdStr(1), OTHER, { name: 'MY MIX', description: 'd' })
+
+    expect(result.name).toBe('MY MIX')
+  })
+
+  it('rejects changing name/description once the playlist is no longer NEW', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('OPEN'))
+
+    await expect(updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'Renamed' }))
+      .rejects.toThrow(ConflictError)
+    expect(playlistRepo.savePlaylist).not.toHaveBeenCalled()
+  })
+
+  it('rejects changing maxNominationsPerContributor once the playlist is no longer NEW', async () => {
+    vi.mocked(playlistRepo.findPlaylistById).mockResolvedValue(playlist('OPEN'))
+
+    await expect(updatePlaylist(TENANT_ID, playIdStr(1), LEAD, { name: 'My Mix', maxNominationsPerContributor: 2 }))
+      .rejects.toThrow(ConflictError)
+  })
 })
 
 describe('createPlaylist', () => {
@@ -145,5 +182,13 @@ describe('createPlaylist', () => {
   it('rejects a maxNominationsPerContributor above 3', async () => {
     await expect(createPlaylist(TENANT_ID, { name: 'My Mix', maxNominationsPerContributor: 4 }))
       .rejects.toThrow(ValidationError)
+  })
+
+  it('rejects a name that already exists, case-insensitively', async () => {
+    vi.mocked(playlistRepo.findAllPlaylistsByTenant).mockResolvedValue([playlist('NEW', undefined)])
+
+    await expect(createPlaylist(TENANT_ID, { name: 'my mix' }))
+      .rejects.toThrow(ConflictError)
+    expect(playlistRepo.savePlaylist).not.toHaveBeenCalled()
   })
 })

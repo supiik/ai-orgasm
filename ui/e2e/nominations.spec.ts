@@ -24,13 +24,26 @@ async function createSong(page: import('@playwright/test').Page, name: string) {
 }
 
 // Creates a fresh NEW playlist and opens it (future deadline), independent of seed data —
-// cap tests need an OPEN playlist nobody else has nominated on yet.
-async function createOpenPlaylist(page: import('@playwright/test').Page): Promise<string> {
+// cap tests need an OPEN playlist nobody else has nominated on yet. The name must be unique per
+// call (not just per test): playlist names are now globally unique, and MSW's mock DB can
+// outlive a single test if the Service Worker isn't torn down between them (see CLAUDE.md's
+// "Nomination cap per contributor" mock/e2e note), so two tests reusing the same literal name
+// would otherwise race against each other's leftover row. `maxNominationsPerContributor` must be
+// set before opening — name/description/maxNominationsPerContributor are only editable while a
+// playlist is still NEW (see "Playlist editing restricted to NEW" in CLAUDE.md).
+async function createOpenPlaylist(page: import('@playwright/test').Page, maxNominationsPerContributor?: number): Promise<string> {
   const { body: created } = await browserFetch(page, '/api/v1/playlists', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'E2E Nomination Cap Playlist' }),
+    body: JSON.stringify({ name: `E2E Nomination Cap Playlist ${crypto.randomUUID()}` }),
   })
+  if (maxNominationsPerContributor !== undefined) {
+    await browserFetch(page, `/api/v1/playlists/${created.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: created.name, maxNominationsPerContributor }),
+    })
+  }
   await browserFetch(page, `/api/v1/playlists/${created.id}/open`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -68,14 +81,7 @@ test.describe('nomination cap (via MSW)', () => {
   })
 
   test('allows nominating up to a raised maxNominationsPerContributor', async ({ page }) => {
-    const playlistId = await createOpenPlaylist(page)
-
-    const raised = await browserFetch(page, `/api/v1/playlists/${playlistId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'E2E Nomination Cap Playlist', maxNominationsPerContributor: 2 }),
-    })
-    expect(raised.body.maxNominationsPerContributor).toBe(2)
+    const playlistId = await createOpenPlaylist(page, 2)
 
     const songA = await createSong(page, 'E2E Song C')
     const songB = await createSong(page, 'E2E Song D')

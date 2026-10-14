@@ -92,7 +92,14 @@ async function buildResponse(
   }
 }
 
+async function assertNameAvailable(tenantId: number, name: string, excludeId?: bigint): Promise<void> {
+  const all = await findAllPlaylistsByTenant(tenantId)
+  const taken = all.some((p) => !p.deletedAt && p.id !== excludeId && p.name.toLowerCase() === name.toLowerCase())
+  if (taken) throw new ConflictError(`A playlist with this name already exists: ${name}`)
+}
+
 export async function createPlaylist(tenantId: number, request: CreatePlaylistRequest): Promise<PlaylistResponse> {
+  await assertNameAvailable(tenantId, request.name)
   const id = generateId()
   const now = new Date().toISOString()
   const item: PlaylistItem = {
@@ -143,6 +150,22 @@ export async function updatePlaylist(
   request: UpdatePlaylistRequest,
 ): Promise<PlaylistResponse> {
   const existing = await requirePlaylistItem(tenantId, id)
+
+  // Name/description/maxNominationsPerContributor are only editable while the playlist is NEW
+  // (matches the UI's separate "Edit" dialog, gated the same way) — once opened, this update()
+  // call is only ever reached for a deadline change (see assertDeadlineChangeAllowed below),
+  // which has its own, independent phase gating.
+  const changingBaseFields =
+    request.name !== existing.name ||
+    (request.description !== undefined && request.description !== existing.description) ||
+    request.maxNominationsPerContributor !== undefined
+  if (changingBaseFields && existing.status !== 'NEW') {
+    throw new ConflictError('Playlist name, description, and nomination cap can only be edited while it is NEW')
+  }
+
+  if (request.name !== existing.name) {
+    await assertNameAvailable(tenantId, request.name, existing.id)
+  }
   existing.name = request.name
   if (request.description !== undefined) existing.description = request.description
   if (request.deadline !== undefined) {

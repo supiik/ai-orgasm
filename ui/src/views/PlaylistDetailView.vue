@@ -10,6 +10,7 @@ import { ArrowLeft, Pencil, Play, Send, CheckCircle, XCircle, BookOpen, Headphon
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import PlaylistStatusBadge from '@/components/PlaylistStatusBadge.vue'
 import ContributorSelect from '@/components/ContributorSelect.vue'
@@ -137,13 +138,56 @@ const guessingDeadlinePassed = computed(() => {
   return new Date((playlist.value as any).guessingDeadline) < new Date()
 })
 
-// ── Edit dialog ───────────────────────────────────────────────────────────────
+// ── Edit dialog (name/description/maxNominationsPerContributor) ───────────────
+// Same fields as PlaylistsView.vue's table dialog, and gated the same way: only while the
+// playlist is still NEW. Once opened, this base-fields edit is no longer offered at all —
+// extending a deadline afterward is a separate, lead-only action (see the deadline dialog below).
+
+const canEditBaseFields = computed(() => playlist.value?.status === PlaylistStatus.New)
+
+// Mirrors SongsView.vue's isConflict — the backend rejects a duplicate name with a 409.
+function isConflict(e: unknown): boolean {
+  if (e && typeof e === 'object' && 'response' in e) {
+    return (e as { response?: { status?: number } }).response?.status === 409
+  }
+  return e instanceof Error && /409/.test(e.message)
+}
 
 const editOpen = ref(false)
-const editForm = ref({ name: '', description: '', deadline: '', guessingDeadline: '' })
+const editForm = ref({ name: '', description: '', maxNominationsPerContributor: 1 })
 const editError = ref<string | null>(null)
 const saving = ref(false)
 
+function openEdit() {
+  editForm.value = {
+    name: playlist.value!.name!,
+    description: playlist.value!.description ?? '',
+    maxNominationsPerContributor: (playlist.value as any)?.maxNominationsPerContributor ?? 1,
+  }
+  editError.value = null
+  editOpen.value = true
+}
+
+async function submitEdit() {
+  if (!editForm.value.name.trim()) { editError.value = t('common.nameRequired'); return }
+  saving.value = true
+  editError.value = null
+  try {
+    const { data } = await api.playlists().update(id, {
+      name: editForm.value.name.trim(),
+      description: editForm.value.description.trim() || undefined,
+      maxNominationsPerContributor: editForm.value.maxNominationsPerContributor,
+    })
+    playlist.value = data
+    editOpen.value = false
+  } catch (e) {
+    editError.value = isConflict(e) ? t('playlists.nameTaken') : t('common.saveFailed')
+  } finally {
+    saving.value = false
+  }
+}
+
+// ── Deadline dialog ────────────────────────────────────────────────────────────
 // Deadlines are editable only by the lead, and only while the playlist is in the phase that
 // deadline governs — the same rule the API enforces (see amplify/lib/services/playlist.ts).
 const canEditDeadline = computed(() => isLead.value && playlist.value?.status === PlaylistStatus.Open)
@@ -157,7 +201,7 @@ function toDateInput(iso: string | null | undefined): string {
 }
 
 // A deadline can be extended into the future but never moved back before today — used as the
-// date input's `min` and re-checked in submitEdit() since `min` alone doesn't stop every browser/input.
+// date input's `min` and re-checked in submitDeadlineEdit() since `min` alone doesn't stop every browser/input.
 const todayDateInput = computed(() => toDateInput(new Date().toISOString()))
 
 /** `YYYY-MM-DD` → ISO date-time at the end of that local day, so the whole chosen day counts. */
@@ -165,38 +209,39 @@ function fromDateInput(date: string): string {
   return new Date(`${date}T23:59:59`).toISOString()
 }
 
-function openEdit() {
-  editForm.value = {
-    name: playlist.value!.name!,
-    description: playlist.value!.description ?? '',
+const deadlineEditOpen = ref(false)
+const deadlineEditForm = ref({ deadline: '', guessingDeadline: '' })
+const deadlineEditError = ref<string | null>(null)
+const deadlineSaving = ref(false)
+
+function openDeadlineEdit() {
+  deadlineEditForm.value = {
     deadline: toDateInput(playlist.value!.deadline),
     guessingDeadline: toDateInput((playlist.value as any).guessingDeadline),
   }
-  editError.value = null
-  editOpen.value = true
+  deadlineEditError.value = null
+  deadlineEditOpen.value = true
 }
 
-async function submitEdit() {
-  if (!editForm.value.name.trim()) { editError.value = t('common.nameRequired'); return }
-  if (canEditDeadline.value && !editForm.value.deadline) { editError.value = t('playlist.nominationDeadlineRequired'); return }
-  if (canEditGuessingDeadline.value && !editForm.value.guessingDeadline) { editError.value = t('playlist.guessingDeadlineRequired'); return }
-  if (canEditDeadline.value && editForm.value.deadline < todayDateInput.value) { editError.value = t('playlist.deadlineInPast'); return }
-  if (canEditGuessingDeadline.value && editForm.value.guessingDeadline < todayDateInput.value) { editError.value = t('playlist.deadlineInPast'); return }
-  saving.value = true
-  editError.value = null
+async function submitDeadlineEdit() {
+  if (canEditDeadline.value && !deadlineEditForm.value.deadline) { deadlineEditError.value = t('playlist.nominationDeadlineRequired'); return }
+  if (canEditGuessingDeadline.value && !deadlineEditForm.value.guessingDeadline) { deadlineEditError.value = t('playlist.guessingDeadlineRequired'); return }
+  if (canEditDeadline.value && deadlineEditForm.value.deadline < todayDateInput.value) { deadlineEditError.value = t('playlist.deadlineInPast'); return }
+  if (canEditGuessingDeadline.value && deadlineEditForm.value.guessingDeadline < todayDateInput.value) { deadlineEditError.value = t('playlist.deadlineInPast'); return }
+  deadlineSaving.value = true
+  deadlineEditError.value = null
   try {
     const { data } = await api.playlists().update(id, {
-      name: editForm.value.name.trim(),
-      description: editForm.value.description.trim() || undefined,
-      ...(canEditDeadline.value && { deadline: fromDateInput(editForm.value.deadline) }),
-      ...(canEditGuessingDeadline.value && { guessingDeadline: fromDateInput(editForm.value.guessingDeadline) }),
+      name: playlist.value!.name!,
+      ...(canEditDeadline.value && { deadline: fromDateInput(deadlineEditForm.value.deadline) }),
+      ...(canEditGuessingDeadline.value && { guessingDeadline: fromDateInput(deadlineEditForm.value.guessingDeadline) }),
     })
     playlist.value = data
-    editOpen.value = false
+    deadlineEditOpen.value = false
   } catch {
-    editError.value = t('common.saveFailed')
+    deadlineEditError.value = t('common.saveFailed')
   } finally {
-    saving.value = false
+    deadlineSaving.value = false
   }
 }
 
@@ -634,9 +679,13 @@ function statusClass(s: NominationStatus | undefined) {
           <Music class="h-4 w-4" />
           {{ spotifyExporting ? t('playlist.spotifyExporting') : t('playlist.createSpotifyPlaylist') }}
         </Button>
-        <Button v-if="playlist?.status === PlaylistStatus.New || playlist?.status === PlaylistStatus.Open" variant="outline" size="sm" @click="openEdit">
+        <Button v-if="canEditBaseFields" variant="outline" size="sm" @click="openEdit">
           <Pencil class="h-4 w-4" />
           {{ t('common.edit') }}
+        </Button>
+        <Button v-if="canEditDeadline || canEditGuessingDeadline" variant="outline" size="sm" @click="openDeadlineEdit">
+          <Pencil class="h-4 w-4" />
+          {{ t('playlist.editDeadline') }}
         </Button>
       </div>
     </div>
@@ -919,21 +968,39 @@ function statusClass(s: NominationStatus | undefined) {
         </div>
         <div class="space-y-1.5">
           <Label for="edit-desc">{{ t('common.description') }}</Label>
-          <Input id="edit-desc" v-model="editForm.description" :placeholder="t('playlists.descriptionPlaceholder')" />
+          <Textarea id="edit-desc" v-model="editForm.description" :placeholder="t('playlists.descriptionPlaceholder')" />
         </div>
-        <div v-if="canEditDeadline" class="space-y-1.5">
-          <Label for="edit-deadline">{{ t('playlist.nominationDeadline') }} <span class="text-destructive">*</span></Label>
-          <Input id="edit-deadline" v-model="editForm.deadline" type="date" :min="todayDateInput" />
-        </div>
-        <div v-if="canEditGuessingDeadline" class="space-y-1.5">
-          <Label for="edit-guessing-deadline">{{ t('playlist.guessingDeadline') }} <span class="text-destructive">*</span></Label>
-          <Input id="edit-guessing-deadline" v-model="editForm.guessingDeadline" type="date" :min="todayDateInput" />
+        <div class="space-y-1.5">
+          <Label for="edit-max-nominations">{{ t('playlists.maxNominationsPerContributor') }}</Label>
+          <Input id="edit-max-nominations" v-model.number="editForm.maxNominationsPerContributor" type="number" min="1" max="3" step="1" />
         </div>
         <p v-if="editError" class="text-sm text-destructive">{{ editError }}</p>
       </form>
       <DialogFooter>
         <Button variant="outline" :disabled="saving" @click="editOpen = false">{{ t('common.cancel') }}</Button>
         <Button :disabled="saving" @click="submitEdit">{{ saving ? t('common.saving') : t('common.save') }}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Deadline edit dialog -->
+  <Dialog v-model:open="deadlineEditOpen">
+    <DialogContent>
+      <DialogHeader><DialogTitle>{{ t('playlist.editDeadline') }}</DialogTitle></DialogHeader>
+      <form class="space-y-4" @submit.prevent="submitDeadlineEdit">
+        <div v-if="canEditDeadline" class="space-y-1.5">
+          <Label for="edit-deadline">{{ t('playlist.nominationDeadline') }} <span class="text-destructive">*</span></Label>
+          <Input id="edit-deadline" v-model="deadlineEditForm.deadline" type="date" :min="todayDateInput" autofocus />
+        </div>
+        <div v-if="canEditGuessingDeadline" class="space-y-1.5">
+          <Label for="edit-guessing-deadline">{{ t('playlist.guessingDeadline') }} <span class="text-destructive">*</span></Label>
+          <Input id="edit-guessing-deadline" v-model="deadlineEditForm.guessingDeadline" type="date" :min="todayDateInput" autofocus />
+        </div>
+        <p v-if="deadlineEditError" class="text-sm text-destructive">{{ deadlineEditError }}</p>
+      </form>
+      <DialogFooter>
+        <Button variant="outline" :disabled="deadlineSaving" @click="deadlineEditOpen = false">{{ t('common.cancel') }}</Button>
+        <Button :disabled="deadlineSaving" @click="submitDeadlineEdit">{{ deadlineSaving ? t('common.saving') : t('common.save') }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
