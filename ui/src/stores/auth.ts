@@ -18,6 +18,16 @@ export const useAuthStore = defineStore('auth', () => {
   const isAdmin = ref(false)
   const sessionExpired = ref(false)
   const loading = ref(false)
+  /**
+   * Name of the organization the current contributor belongs to, shown above the current-user
+   * block in SidebarNav. Mock/Keycloak: resolved from the public `GET /api/v1/organizations`
+   * list (mock has exactly one seeded org; Keycloak matches the JWT's `tenant_id` claim against
+   * `Organization.id`). Cognito: the ID token carries no tenant claim at all, so it comes
+   * straight off `getCurrentContributor()`'s response — `get-current-contributor`'s handler
+   * enriches it server-side with a `findOrganizationById(ctx.tenantId)` lookup, same
+   * "lookup-at-read" pattern as `leadContributorName` elsewhere in this codebase.
+   */
+  const organizationName = ref<string | null>(null)
 
   async function load() {
     loading.value = true
@@ -32,24 +42,53 @@ export const useAuthStore = defineStore('auth', () => {
           currentContributor.value = saved as ContributorResponse
           isAuthenticated.value = true
           isAdmin.value = isMockAdmin(savedId)
+          await loadOrganizationName()
         }
         return
       }
       if (authMode === 'cognito') {
         if (!(await loadCognitoSession())) return
         const { getCurrentContributor } = await import('@/lambdaApi')
-        currentContributor.value = (await getCurrentContributor().catch(() => null)) as ContributorResponse | null
+        const contributor = await getCurrentContributor().catch(() => null)
+        currentContributor.value = contributor as ContributorResponse | null
+        organizationName.value = contributor?.organizationName ?? null
         return
       }
       const { api } = await import('@/api')
       const { data } = await api.contributors().me()
       currentContributor.value = data
       isAuthenticated.value = true
+      await loadOrganizationName()
     } catch {
       currentContributor.value = null
       isAuthenticated.value = !isMock
     } finally {
       loading.value = false
+    }
+  }
+
+  /**
+   * Mock: only one seeded org, so it's always `[0]`. Keycloak: `keycloak.tokenParsed` is
+   * already decoded by keycloak-js once authenticated — reads its `tenant_id` claim (see
+   * `TenantResolverFilter.java`) and matches it against the public org list's `id`. Never
+   * throws; a lookup failure just leaves the name unset.
+   */
+  async function loadOrganizationName() {
+    try {
+      if (isMock) {
+        const { organizationsDb } = await import('@/mocks/handlers/organizations')
+        organizationName.value = organizationsDb[0]?.name ?? null
+        return
+      }
+      const keycloak = (await import('@/keycloak')).default
+      const tenantId = keycloak.tokenParsed?.tenant_id as number | undefined
+      if (tenantId == null) return
+      const res = await fetch('/api/v1/organizations')
+      if (!res.ok) return
+      const orgs = await res.json() as { id: number; name: string }[]
+      organizationName.value = orgs.find(o => o.id === tenantId)?.name ?? null
+    } catch {
+      organizationName.value = null
     }
   }
 
@@ -77,12 +116,14 @@ export const useAuthStore = defineStore('auth', () => {
     currentContributor.value = contributor
     isAuthenticated.value = true
     isAdmin.value = isMockAdmin(contributor.id!)
+    await loadOrganizationName()
   }
 
   /** Called by CognitoLoginOverlay once a Contributor is confirmed linked. */
   function setCognitoContributor(contributor: ContributorResponse) {
     currentContributor.value = contributor
     isAuthenticated.value = true
+    organizationName.value = (contributor as ContributorResponse & { organizationName?: string }).organizationName ?? null
   }
 
   async function logout() {
@@ -93,12 +134,14 @@ export const useAuthStore = defineStore('auth', () => {
       currentContributor.value = null
       isAuthenticated.value = false
       isAdmin.value = false
+      organizationName.value = null
     } else if (authMode === 'cognito') {
       const { signOut } = await import('aws-amplify/auth')
       await signOut()
       currentContributor.value = null
       isAuthenticated.value = false
       isAdmin.value = false
+      organizationName.value = null
     } else {
       const keycloak = (await import('@/keycloak')).default
       await keycloak.logout({ redirectUri: window.location.origin })
@@ -113,6 +156,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentContributor.value = null
       isAuthenticated.value = false
       isAdmin.value = false
+      organizationName.value = null
     } else {
       import('@/keycloak').then(m => m.default.login())
     }
@@ -123,5 +167,5 @@ export const useAuthStore = defineStore('auth', () => {
     return currentContributor.value.id === leadId
   }
 
-  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, loading, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
+  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, loading, organizationName, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
 })

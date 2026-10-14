@@ -62,6 +62,10 @@ const activeClass = 'bg-accent text-accent-foreground font-medium'
       </RouterLink>
     </template>
     <div class="mt-auto pt-2 border-t border-border space-y-0.5">
+      <!-- Organization -->
+      <div v-if="authStore.organizationName" class="truncate px-3 text-xs font-medium text-muted-foreground">
+        {{ authStore.organizationName }}
+      </div>
       <!-- Current user -->
       <div v-if="authStore.currentContributor" class="flex items-center gap-3 px-3 py-2 text-sm">
         <img

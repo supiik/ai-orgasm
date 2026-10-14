@@ -39,3 +39,10 @@ test('navigates to stats via sidebar', async ({ page }) => {
   await expect(page).toHaveURL('/stats')
   await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible()
 })
+
+test('shows the current contributor\'s organization above their name in the sidebar', async ({ page }) => {
+  await mockLogin(page)
+  await page.goto('/')
+  await expect(page.getByText('Default Organization')).toBeVisible()
+  await expect(page.getByText('Thom Yorke')).toBeVisible()
+})

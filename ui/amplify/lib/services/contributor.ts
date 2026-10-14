@@ -19,6 +19,8 @@ export interface ContributorResponse {
   version?: number
   createdAt: string
   updatedAt: string
+  /** Set by callers that already have the Organization at hand (e.g. get-current-contributor, link-contributor) — never populated by `toContributorResponse` itself. */
+  organizationName?: string
 }
 
 export function toContributorResponse(item: ContributorItem): ContributorResponse {

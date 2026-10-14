@@ -32,6 +32,7 @@ export interface LambdaContributorResponse {
   version?: number
   createdAt?: string
   updatedAt?: string
+  organizationName?: string
 }
 
 async function authorizedFetch(url: string, init?: RequestInit): Promise<Response> {

@@ -117,7 +117,7 @@ export const fnSpecs: FnSpec[] = [
   { name: 'link-contributor', description: 'Link an authenticated Cognito identity to a Contributor (post sign-up)',
     tables: ['organizations', 'contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
   { name: 'get-current-contributor', description: 'Get the Contributor linked to the calling Cognito identity (/me equivalent)',
-    tables: ['contributors'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+    tables: ['contributors', 'organizations'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
 
   // Administration — `admin` AuthMode (Cognito `admins` group), cross-tenant, no Contributor lookup.
   { name: 'admin-list-organizations', description: 'Admin: list organizations incl. allowedDomain',

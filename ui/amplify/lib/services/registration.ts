@@ -64,7 +64,7 @@ export async function linkContributor(
 
   const existing = await findContributorByEmail(org.id, email)
   const item = existing ? await attach(existing, cognitoSub) : await create(request, org.id, email, cognitoSub)
-  return toContributorResponse(item)
+  return { ...toContributorResponse(item), organizationName: org.name }
 }
 
 async function attach(existing: ContributorItem, cognitoSub: string): Promise<ContributorItem> {
