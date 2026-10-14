@@ -24,9 +24,10 @@ export interface SongResponse {
   version?: number
   createdAt: string
   updatedAt: string
+  hasApprovedNomination: boolean
 }
 
-export function toSongResponse(item: SongItem): SongResponse {
+export function toSongResponse(item: SongItem, hasApprovedNomination = false): SongResponse {
   return {
     id: formatId('song', item.id),
     artist: item.artist,
@@ -37,7 +38,14 @@ export function toSongResponse(item: SongItem): SongResponse {
     version: item.version,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
+    hasApprovedNomination,
   }
+}
+
+/** A song is locked for editing once any of its nominations has been approved — see updateSong. */
+async function songHasApprovedNomination(songId: bigint): Promise<boolean> {
+  const nominations = await findNominationsBySongId(songId)
+  return nominations.some((n) => !n.deletedAt && n.status === 'APPROVED')
 }
 
 export async function createSong(tenantId: number, request: CreateSongRequest): Promise<SongResponse> {
@@ -61,7 +69,8 @@ export async function createSong(tenantId: number, request: CreateSongRequest): 
 
 export async function getSongById(tenantId: number, id: string): Promise<SongResponse | undefined> {
   const item = await findSongById(tenantId, parseId(id))
-  return item && !item.deletedAt ? toSongResponse(item) : undefined
+  if (!item || item.deletedAt) return undefined
+  return toSongResponse(item, await songHasApprovedNomination(item.id))
 }
 
 export async function requireSongItem(tenantId: number, id: string): Promise<SongItem> {
@@ -81,14 +90,14 @@ export async function listSongs(
     .filter((item) => !needle || item.name?.toLowerCase().includes(needle))
 
   const paged = page ? all.slice(page.page * page.size, page.page * page.size + page.size) : all
-  return { content: paged.map(toSongResponse), totalElements: all.length }
+  const content = await Promise.all(paged.map(async (item) => toSongResponse(item, await songHasApprovedNomination(item.id))))
+  return { content, totalElements: all.length }
 }
 
 export async function updateSong(tenantId: number, id: string, request: UpdateSongRequest): Promise<SongResponse> {
   const existing = await requireSongItem(tenantId, id)
-  const nominations = await findNominationsBySongId(existing.id)
-  if (nominations.some((n) => !n.deletedAt)) {
-    throw new ConflictError(`Song cannot be edited once it has been nominated: ${id}`)
+  if (await songHasApprovedNomination(existing.id)) {
+    throw new ConflictError(`Song cannot be edited once it has been approved: ${id}`)
   }
   existing.artist = request.artist
   existing.name = request.name
@@ -96,7 +105,7 @@ export async function updateSong(tenantId: number, id: string, request: UpdateSo
   if (request.releaseYear !== undefined) existing.releaseYear = request.releaseYear
   if (request.url !== undefined) existing.url = request.url
   existing.updatedAt = new Date().toISOString()
-  return toSongResponse(await saveSong(existing))
+  return toSongResponse(await saveSong(existing), false)
 }
 
 export async function deleteSong(tenantId: number, id: string): Promise<void> {

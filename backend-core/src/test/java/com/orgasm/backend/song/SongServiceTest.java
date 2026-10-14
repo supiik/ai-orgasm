@@ -2,6 +2,7 @@ package com.orgasm.backend.song;
 
 import com.orgasm.backend.domain.IdGenerator;
 import com.orgasm.backend.nomination.NominationRepository;
+import com.orgasm.backend.nomination.NominationStatus;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +36,7 @@ class SongServiceTest {
     static final String USER_ID = IdGenerator.format("song", DB_ID);
 
     static SongResponse response(String id, String artist, String name) {
-        return new SongResponse(id, artist, name, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new SongResponse(id, artist, name, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH, false);
     }
 
     @Test
@@ -80,6 +81,16 @@ class SongServiceTest {
         when(repository.findById(DB_ID)).thenReturn(Optional.empty());
 
         assertThat(service.findById(USER_ID)).isEmpty();
+    }
+
+    @Test
+    void findById_setsHasApprovedNomination_whenAnApprovedNominationExists() {
+        var entity = new Song(DB_ID, null, "Radiohead", "Creep", null, null, null);
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(entity));
+        when(mapper.toResponse(entity)).thenReturn(response(USER_ID, "Radiohead", "Creep"));
+        when(nominationRepository.existsBySong_IdAndStatus(DB_ID, NominationStatus.APPROVED)).thenReturn(true);
+
+        assertThat(service.findById(USER_ID)).get().extracting(SongResponse::hasApprovedNomination).isEqualTo(true);
     }
 
     @Test
@@ -171,14 +182,28 @@ class SongServiceTest {
     }
 
     @Test
-    void update_throwsConflict_whenSongIsNominated() {
+    void update_throwsConflict_whenSongHasAnApprovedNomination() {
         var existing = new Song(DB_ID, null, "Old Artist", "Old Name", null, null, null);
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
-        when(nominationRepository.existsBySong_Id(DB_ID)).thenReturn(true);
+        when(nominationRepository.existsBySong_IdAndStatus(DB_ID, NominationStatus.APPROVED)).thenReturn(true);
 
         assertThatThrownBy(() -> service.update(USER_ID, new UpdateSongRequest("X", "Y", null, null, null)))
                 .isInstanceOf(IllegalStateException.class);
         verify(repository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void update_allowsEdit_whenSongOnlyHasPendingOrDeclinedNominations() {
+        var request = new UpdateSongRequest("New Artist", "New Name", null, null, null);
+        var existing = new Song(DB_ID, null, "Old Artist", "Old Name", null, null, null);
+        var saved = new Song(DB_ID, null, "New Artist", "New Name", null, null, null);
+        when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
+        when(nominationRepository.existsBySong_IdAndStatus(DB_ID, NominationStatus.APPROVED)).thenReturn(false);
+        when(repository.save(existing)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(response(USER_ID, "New Artist", "New Name"));
+
+        assertThat(service.update(USER_ID, request).artist()).isEqualTo("New Artist");
+        verify(mapper).updateEntity(request, existing);
     }
 
     @Test

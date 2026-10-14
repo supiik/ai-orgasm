@@ -15,7 +15,7 @@ vi.mock('../repositories/nomination', () => ({
 
 import * as songRepo from '../repositories/song'
 import * as nominationRepo from '../repositories/nomination'
-import { updateSong } from './song'
+import { getSongById, updateSong } from './song'
 
 const TENANT_ID = 1
 const songIdStr = (n: number) => formatId('song', BigInt(n))
@@ -54,6 +54,26 @@ beforeEach(() => {
   vi.mocked(songRepo.saveSong).mockImplementation(async (item) => item)
 })
 
+describe('getSongById', () => {
+  it('sets hasApprovedNomination when an approved nomination exists', async () => {
+    vi.mocked(songRepo.findSongById).mockResolvedValue(song())
+    vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([nomination({ status: 'APPROVED' })])
+
+    const result = await getSongById(TENANT_ID, songIdStr(1))
+
+    expect(result?.hasApprovedNomination).toBe(true)
+  })
+
+  it('leaves hasApprovedNomination false when nominations are only pending', async () => {
+    vi.mocked(songRepo.findSongById).mockResolvedValue(song())
+    vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([nomination({ status: 'PENDING' })])
+
+    const result = await getSongById(TENANT_ID, songIdStr(1))
+
+    expect(result?.hasApprovedNomination).toBe(false)
+  })
+})
+
 describe('updateSong', () => {
   it('updates the song when it has never been nominated', async () => {
     vi.mocked(songRepo.findSongById).mockResolvedValue(song())
@@ -65,7 +85,7 @@ describe('updateSong', () => {
     expect(result.name).toBe('New Name')
   })
 
-  it('rejects an edit once any nomination references the song', async () => {
+  it('rejects an edit once an approved nomination references the song', async () => {
     vi.mocked(songRepo.findSongById).mockResolvedValue(song())
     vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([nomination({ status: 'APPROVED' })])
 
@@ -74,9 +94,21 @@ describe('updateSong', () => {
     expect(songRepo.saveSong).not.toHaveBeenCalled()
   })
 
+  it('allows editing while the song only has pending or declined nominations', async () => {
+    vi.mocked(songRepo.findSongById).mockResolvedValue(song())
+    vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([
+      nomination({ status: 'PENDING' }),
+      nomination({ id: 11n, status: 'DECLINED' }),
+    ])
+
+    const result = await updateSong(TENANT_ID, songIdStr(1), { artist: 'New Artist', name: 'New Name' })
+
+    expect(result.artist).toBe('New Artist')
+  })
+
   it('ignores soft-deleted nominations when deciding whether the song is locked', async () => {
     vi.mocked(songRepo.findSongById).mockResolvedValue(song())
-    vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([nomination({ deletedAt: 'now' })])
+    vi.mocked(nominationRepo.findNominationsBySongId).mockResolvedValue([nomination({ status: 'APPROVED', deletedAt: 'now' })])
 
     const result = await updateSong(TENANT_ID, songIdStr(1), { artist: 'New Artist', name: 'New Name' })
 

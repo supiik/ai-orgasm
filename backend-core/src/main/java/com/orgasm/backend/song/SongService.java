@@ -2,6 +2,7 @@ package com.orgasm.backend.song;
 
 import com.orgasm.backend.domain.IdGenerator;
 import com.orgasm.backend.nomination.NominationRepository;
+import com.orgasm.backend.nomination.NominationStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -38,16 +39,16 @@ public class SongService {
     @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Optional<SongResponse> findById(String id) {
-        return repository.findById(IdGenerator.parse(id)).map(mapper::toResponse);
+        return repository.findById(IdGenerator.parse(id)).map(this::toResponseWithApproval);
     }
 
     @CircuitBreaker(name = "db")
     @Transactional(readOnly = true)
     public Page<SongResponse> findAll(FindSongsRequest request, Pageable pageable) {
         if (request.name() == null || request.name().isBlank()) {
-            return repository.findAll(pageable).map(mapper::toResponse);
+            return repository.findAll(pageable).map(this::toResponseWithApproval);
         }
-        return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(mapper::toResponse);
+        return repository.findByNameContainingIgnoreCase(request.name(), pageable).map(this::toResponseWithApproval);
     }
 
     @CircuitBreaker(name = "db")
@@ -60,11 +61,11 @@ public class SongService {
     @CircuitBreaker(name = "db")
     public SongResponse update(String id, UpdateSongRequest request) {
         Song existing = requireById(id);
-        if (nominationRepository.existsBySong_Id(existing.getId())) {
-            throw new IllegalStateException("Song cannot be edited once it has been nominated: " + id);
+        if (nominationRepository.existsBySong_IdAndStatus(existing.getId(), NominationStatus.APPROVED)) {
+            throw new IllegalStateException("Song cannot be edited once it has been approved: " + id);
         }
         mapper.updateEntity(request, existing);
-        return mapper.toResponse(repository.save(existing));
+        return mapper.toResponse(repository.save(existing)).toBuilder().hasApprovedNomination(false).build();
     }
 
     @CircuitBreaker(name = "db")
@@ -82,5 +83,10 @@ public class SongService {
     private Song requireById(String id) {
         return repository.findById(IdGenerator.parse(id))
                 .orElseThrow(() -> new EntityNotFoundException("Song not found: " + id));
+    }
+
+    private SongResponse toResponseWithApproval(Song song) {
+        boolean hasApprovedNomination = nominationRepository.existsBySong_IdAndStatus(song.getId(), NominationStatus.APPROVED);
+        return mapper.toResponse(song).toBuilder().hasApprovedNomination(hasApprovedNomination).build();
     }
 }

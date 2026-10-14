@@ -909,6 +909,47 @@ at request validation, separately from the per-nominate-call cap check.
   navigation already avoids this by using seeded data for the navigation half; follow that
   pattern rather than creating-then-navigating to a fresh entity.
 
+### Song editing locked on approval, not on nomination
+
+A song's catalogue fields (artist/name/album/releaseYear/url) were previously frozen the moment
+*any* nomination referenced it (`SongService.update()` / TS `updateSong()` threw 409 as soon as a
+single, even `PENDING`, nomination existed). Since a song's only creation path is "nominate it
+into a playlist" (`SongsView.vue`'s dialog is deliberately edit-only — see its own comment), that
+meant **every song was locked from the instant it existed**, making the edit feature effectively
+dead code outside a narrow race window. The rule is now scoped to nominations with status
+`APPROVED` — a song stays editable while its nomination(s) are only `PENDING`/`DECLINED`, and only
+locks once a lead actually approves one into a playlist.
+
+- **Spring (`backend-core`)**: `NominationRepository.existsBySong_Id` → `existsBySong_IdAndStatus`
+  (plain derived query). `SongService.update()`'s lock check now passes `NominationStatus.APPROVED`.
+  `SongResponse` gained a `hasApprovedNomination` field (`@Builder(toBuilder = true)` so the
+  service can enrich the MapStruct-mapped response with one extra lookup per row —
+  `toResponseWithApproval`, same "lookup-at-read" trade-off as elsewhere in this codebase) so the
+  frontend can disable the edit control pre-emptively instead of only on a failed submit.
+- **TypeScript (`ui/amplify`)**: `services/song.ts`'s `songHasApprovedNomination` helper (filters
+  `findNominationsBySongId` by `status === 'APPROVED' && !deletedAt`) backs both `updateSong`'s
+  lock check and the same `hasApprovedNomination` field on `SongResponse`, set in `getSongById`
+  and `listSongs` (one extra `bySong` GSI query per song — cheap, indexed, not a scan).
+- **UI**: `SongDetailView.vue`'s `isLocked` now checks `nominations.some(n => n.status ===
+  'APPROVED')` against the nominations it already fetches for display, rather than
+  `nominations.length > 0`. `SongsView.vue`'s per-row edit button reads the new
+  `hasApprovedNomination` field (via the same local type-extension-over-the-generated-SDK-type
+  pattern as `leadContributorName`/`spotifyPlaylistUrl`) to disable itself and show the
+  `songs.lockedTooltip` tooltip directly in the list, instead of only discovering the lock via a
+  409 on submit — the submit-time `isConflict` check stays as a guard against the race where a
+  nomination is approved between the list loading and the dialog's submit. i18n copy
+  (`songs.lockedCannotEdit`/`songs.lockedTooltip`) updated in both locales to say "approved"
+  instead of "nominated".
+- **Mock/e2e**: `src/mocks/handlers/songs.ts` gained the same `hasApprovedNomination` lookup and
+  a matching lock check on its `PUT` handler (previously had none at all — out of sync with both
+  real backends); validation errors (400) still take precedence over the lock (409), mirroring
+  Spring's Bean Validation running before the service layer. A 4th seeded song ("Life on Mars?",
+  `song-1a1a1a1a1a1a1a1a`) was added with no nomination at all, since the original 3 seeded songs
+  each already carry an approved nomination — UI specs need one reliably-editable song and
+  creating one via `fetch` + `page.goto` in the same test is flaky (see the "Nomination cap per
+  contributor" mock/e2e note on why). **Not** ported to `backend-dynamo`/`lambda` — that reference
+  implementation never had this lock rule to begin with.
+
 ### Contributed playlists on the contributor detail page
 
 `ContributorDetailView.vue` previously only showed playlists a contributor **leads**

@@ -55,8 +55,10 @@ test.describe('song catalogue search', () => {
   })
 
   test('is not offered when editing an existing song', async ({ page }) => {
+    // "Creep" (Radiohead) is approved into a playlist and now has a disabled edit button — use
+    // the one seeded song with no approved nomination (see src/mocks/handlers/songs.ts) instead.
     await page.goto('/songs')
-    await page.locator('table tbody tr').filter({ hasText: 'Radiohead' }).getByRole('button').click()
+    await page.locator('table tbody tr').filter({ hasText: 'David Bowie' }).getByRole('button').click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page.getByRole('combobox')).toHaveCount(0)
   })

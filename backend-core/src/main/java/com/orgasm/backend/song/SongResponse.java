@@ -4,7 +4,7 @@ import lombok.Builder;
 
 import java.time.Instant;
 
-@Builder
+@Builder(toBuilder = true)
 public record SongResponse(
         String id,
         String artist,
@@ -14,5 +14,6 @@ public record SongResponse(
         String url,
         Long version,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean hasApprovedNomination
 ) {}

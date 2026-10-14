@@ -6,6 +6,7 @@ const SEED = [
   { id: 'song-0af3b7c2d1e8f905', artist: 'Radiohead', name: 'Creep' },
   { id: 'song-9b2c5e3a7f1d4680', artist: 'Nirvana', name: 'Smells Like Teen Spirit' },
   { id: 'song-c4d7a8e2f3b16509', artist: 'Oasis', name: 'Wonderwall' },
+  { id: 'song-1a1a1a1a1a1a1a1a', artist: 'David Bowie', name: 'Life on Mars?' },
 ]
 
 // Helper: run a fetch inside the browser (where MSW intercepts it)
@@ -81,8 +82,17 @@ test.describe('songs API (via MSW)', () => {
     expect(status).toBe(404)
   })
 
-  test('updates a song', async ({ page }) => {
-    const { status, body } = await browserFetch(page, '/api/v1/songs/song-9b2c5e3a7f1d4680', {
+  test('updates a song that has not been approved into any playlist', async ({ page }) => {
+    // Create a detached, nomination-free song to exercise a plain update — 3 of the 4 seeded
+    // songs each already have an approved nomination (see src/mocks/handlers/db.ts) and are
+    // therefore locked.
+    const created = await browserFetch(page, '/api/v1/songs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist: 'Nirvana', name: 'Draft Title' }),
+    })
+
+    const { status, body } = await browserFetch(page, `/api/v1/songs/${created.body.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ artist: 'Nirvana', name: 'Come as You Are', album: 'Nevermind', releaseYear: 1992 }),
@@ -91,6 +101,16 @@ test.describe('songs API (via MSW)', () => {
     expect(body.name).toBe('Come as You Are')
     expect(body.releaseYear).toBe(1992)
     expect(body.version).toBe(1)
+  })
+
+  test('returns 409 when updating a song that has been approved into a playlist', async ({ page }) => {
+    const { status, body } = await browserFetch(page, '/api/v1/songs/song-0af3b7c2d1e8f905', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist: 'Radiohead', name: 'Creep (remaster)' }),
+    })
+    expect(status).toBe(409)
+    expect(body.detail).toMatch(/approved/i)
   })
 
   test('returns 400 on update when artist is blank', async ({ page }) => {
@@ -127,7 +147,7 @@ test.describe('songs API (via MSW)', () => {
   test('name filter ignores surrounding whitespace and multi-word queries survive', async ({ page }) => {
     await page.goto('/songs')
     const rows = page.locator('table tbody tr')
-    await expect(rows).toHaveCount(3)
+    await expect(rows).toHaveCount(4)
 
     const filter = page.getByPlaceholder('Filter by name…')
     // Trailing space typed mid-thought must not turn "creep" into a zero-result query.
@@ -141,7 +161,7 @@ test.describe('songs API (via MSW)', () => {
     await expect(rows.first()).toContainText('Smells Like Teen Spirit')
 
     await filter.fill('')
-    await expect(rows).toHaveCount(3)
+    await expect(rows).toHaveCount(4)
   })
 
   test('songs cannot be created detached — only via a playlist nomination', async ({ page }) => {
@@ -158,5 +178,24 @@ test.describe('songs API (via MSW)', () => {
     await page.locator('table tbody tr').filter({ hasText: 'Radiohead' }).click()
     await expect(page).toHaveURL(/\/songs\/song-/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Creep')
+  })
+
+  test('disables the edit button in the songs list for a song approved into a playlist', async ({ page }) => {
+    await page.goto('/songs')
+    const row = page.locator('table tbody tr').filter({ hasText: 'Creep' })
+    await expect(row.getByRole('button')).toBeDisabled()
+  })
+
+  test('leaves the edit button enabled for a song with no approved nomination', async ({ page }) => {
+    await page.goto('/songs')
+    const row = page.locator('table tbody tr').filter({ hasText: 'Life on Mars?' })
+    await expect(row.getByRole('button')).toBeEnabled()
+  })
+
+  test('disables the Edit button on the song detail page once a nomination is approved', async ({ page }) => {
+    await page.goto('/songs/song-0af3b7c2d1e8f905')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Creep')
+    await expect(page.getByRole('button', { name: 'Edit' })).toBeDisabled()
+    await expect(page.getByText('This song has been approved into a playlist and can no longer be edited.')).toBeVisible()
   })
 })

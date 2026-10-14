@@ -44,11 +44,12 @@ function formatDate(iso: string) {
   return d(new Date(iso), 'dateTime')
 }
 
-// A song's catalogue fields are frozen once any nomination (pending, approved, or declined)
-// references it — editing in place would silently rewrite what every past nomination means,
-// including on playlists this view's caller never sees. See CLAUDE.md's "Known gaps" precedent
-// for why this is enforced server-side too (api.songs().update() rejects it with a 409/ConflictError).
-const isLocked = computed(() => nominations.value.length > 0)
+// A song's catalogue fields are frozen once any of its nominations has been approved — editing
+// in place at that point would silently rewrite what an already-accepted nomination means,
+// including on playlists this view's caller never sees. A pending or declined nomination does
+// not lock the song: the catalogue entry can still be corrected before a lead reviews it. This
+// is enforced server-side too (api.songs().update() rejects it with a 409/ConflictError).
+const isLocked = computed(() => nominations.value.some(n => n.status === 'APPROVED'))
 
 // ── Edit dialog ───────────────────────────────────────────────────────────────
 

@@ -14,12 +14,23 @@ interface SongResponse {
   updatedAt: string
 }
 
+/** A song is locked for editing once any of its nominations has been approved (see backend-core's
+ * SongService.java / amplify's services/song.ts) — mirrored here so mock mode matches both. */
+function hasApprovedNomination(songId: string): boolean {
+  return nominationsDb.some(n => n.songId === songId && n.status === 'APPROVED')
+}
+
 const nextId = () => `song-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
 export const db: SongResponse[] = [
   { id: 'song-0af3b7c2d1e8f905', artist: 'Radiohead', name: 'Creep', album: 'Pablo Honey', releaseYear: 1993, url: 'https://www.youtube.com/watch?v=XFkzRNyygfk', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
   { id: 'song-9b2c5e3a7f1d4680', artist: 'Nirvana', name: 'Smells Like Teen Spirit', album: 'Nevermind', releaseYear: 1991, url: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
   { id: 'song-c4d7a8e2f3b16509', artist: 'Oasis', name: 'Wonderwall', album: null, releaseYear: null, url: null, version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  // Deliberately not referenced by any row in nominationsDb (db.ts) — the one seeded song that
+  // is never locked, so UI specs have a reliable "editable" fixture without creating one via a
+  // raw fetch + page.goto in the same test (flaky — MSW's mock DB can reset between the two, see
+  // CLAUDE.md's "Nomination cap per contributor" mock/e2e note).
+  { id: 'song-1a1a1a1a1a1a1a1a', artist: 'David Bowie', name: 'Life on Mars?', album: 'Hunky Dory', releaseYear: 1971, url: null, version: 0, createdAt: '2024-01-04T10:00:00Z', updatedAt: '2024-01-04T10:00:00Z' },
 ]
 
 const now = () => new Date().toISOString()
@@ -54,6 +65,7 @@ export const songHandlers = [
       })
     }
     const content = filtered.slice(page * size, page * size + size)
+      .map(s => ({ ...s, hasApprovedNomination: hasApprovedNomination(s.id) }))
     return HttpResponse.json({
       content,
       totalElements: filtered.length,
@@ -83,7 +95,7 @@ export const songHandlers = [
       updatedAt: now(),
     }
     db.push(created)
-    return HttpResponse.json(created, { status: 201 })
+    return HttpResponse.json({ ...created, hasApprovedNomination: false }, { status: 201 })
   }),
 
   // Must precede `/api/v1/songs/:id`, which would otherwise swallow the literal `search` segment.
@@ -101,7 +113,7 @@ export const songHandlers = [
   http.get('/api/v1/songs/:id', ({ params }) => {
     const song = db.find(s => s.id === params.id)
     if (!song) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
-    return HttpResponse.json(song)
+    return HttpResponse.json({ ...song, hasApprovedNomination: hasApprovedNomination(song.id) })
   }),
 
   http.put('/api/v1/songs/:id', async ({ params, request }) => {
@@ -114,6 +126,11 @@ export const songHandlers = [
     if (!body.name?.trim()) {
       return HttpResponse.json({ message: 'Name is required' }, { status: 400 })
     }
+    // Mirrors the real backends: request validation (handled by the framework before the
+    // service layer runs) takes precedence over the business-rule lock check below.
+    if (hasApprovedNomination(db[index].id)) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'Song cannot be edited once it has been approved' }, { status: 409 })
+    }
     db[index] = {
       ...db[index],
       artist: body.artist,
@@ -124,7 +141,7 @@ export const songHandlers = [
       version: db[index].version + 1,
       updatedAt: now(),
     }
-    return HttpResponse.json(db[index])
+    return HttpResponse.json({ ...db[index], hasApprovedNomination: false })
   }),
 
   http.delete('/api/v1/songs/:id', ({ params }) => {

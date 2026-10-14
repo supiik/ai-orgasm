@@ -2,7 +2,12 @@
 import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { type SongPage, type SongResponse } from '@orgasm/backend-client'
+import { type SongPage, type SongResponse as BaseSongResponse } from '@orgasm/backend-client'
+
+// `hasApprovedNomination` isn't in the generated SDK type (see CLAUDE.md "Updating the spec")
+// but is present on every song the real/mock backends return.
+type SongResponse = BaseSongResponse & { hasApprovedNomination?: boolean }
+type EnrichedSongPage = Omit<SongPage, 'content'> & { content?: SongResponse[] }
 import { api } from '@/api'
 import { parseReleaseYear } from '@/lib/releaseYear'
 import { ChevronLeft, ChevronRight, Pencil } from 'lucide-vue-next'
@@ -20,7 +25,7 @@ const { t, d } = useI18n()
 const PAGE_SIZE = 10
 const page = ref(0)
 const nameFilter = ref('')
-const data = ref<SongPage | null>(null)
+const data = ref<EnrichedSongPage | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
@@ -64,6 +69,7 @@ const saving = ref(false)
 const submitLabel = computed(() => saving.value ? t('common.saving') : t('common.save'))
 
 function openEdit(song: SongResponse) {
+  if (song.hasApprovedNomination) return
   editingId.value = song.id!
   form.value = {
     artist: song.artist ?? '',
@@ -75,10 +81,10 @@ function openEdit(song: SongResponse) {
   dialogOpen.value = true
 }
 
-// A song is locked for editing server-side once any nomination references it (see SongService.java
-// / amplify/lib/services/song.ts) — detect that specific failure to show a clear reason instead of
-// a generic "could not save", since in practice almost every song hits this (see the comment above:
-// a song is normally created and nominated in the same flow, so it's locked from the moment it exists).
+// A song is locked for editing server-side once any of its nominations has been approved (see
+// SongService.java / amplify/lib/services/song.ts) — `hasApprovedNomination` on the list response
+// disables the edit button preemptively (below), but this still guards the rare race where a
+// nomination is approved between the list loading and the dialog's submit.
 function isConflict(e: unknown): boolean {
   if (e && typeof e === 'object' && 'response' in e) {
     return (e as { response?: { status?: number } }).response?.status === 409
@@ -167,7 +173,13 @@ async function submitForm() {
               <TableCell class="text-muted-foreground">{{ song.releaseYear ?? '—' }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatDate(song.createdAt!) }}</TableCell>
               <TableCell>
-                <Button variant="ghost" size="icon" @click.stop="openEdit(song)">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  :disabled="song.hasApprovedNomination"
+                  :title="song.hasApprovedNomination ? t('songs.lockedTooltip') : undefined"
+                  @click.stop="openEdit(song)"
+                >
                   <Pencil class="h-4 w-4" />
                 </Button>
               </TableCell>

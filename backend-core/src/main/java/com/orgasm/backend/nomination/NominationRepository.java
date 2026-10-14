@@ -22,7 +22,7 @@ public interface NominationRepository extends JpaRepository<Nomination, Long> {
 
     List<Nomination> findBySong_Id(Long songId);
 
-    boolean existsBySong_Id(Long songId);
+    boolean existsBySong_IdAndStatus(Long songId, NominationStatus status);
 
     @Modifying
     @Query("UPDATE Nomination n SET n.status = com.orgasm.backend.nomination.NominationStatus.DECLINED WHERE n.playlist.id = :playlistId AND n.status = com.orgasm.backend.nomination.NominationStatus.PENDING")

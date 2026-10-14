@@ -50,7 +50,7 @@ class SongControllerTest {
     }
 
     static SongResponse response(String id, String artist, String name) {
-        return new SongResponse(id, artist, name, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new SongResponse(id, artist, name, null, null, null, 0L, Instant.EPOCH, Instant.EPOCH, false);
     }
 
     @Test
@@ -143,9 +143,9 @@ class SongControllerTest {
     }
 
     @Test
-    void update_returns409_whenSongIsNominated() throws Exception {
+    void update_returns409_whenSongHasBeenApproved() throws Exception {
         when(service.update(eq("song-0001"), any(UpdateSongRequest.class)))
-                .thenThrow(new IllegalStateException("Song cannot be edited once it has been nominated: song-0001"));
+                .thenThrow(new IllegalStateException("Song cannot be edited once it has been approved: song-0001"));
 
         mvc.perform(put("/api/v1/songs/song-0001")
                         .contentType(MediaType.APPLICATION_JSON)
