@@ -177,4 +177,20 @@ export const playlistHandlers = [
       size,
     })
   }),
+
+  http.get('/api/v1/contributors/:id/contributed-playlists', ({ params, request }) => {
+    const url = new URL(request.url)
+    const page = Number(url.searchParams.get('page') ?? 0)
+    const size = Number(url.searchParams.get('size') ?? 20)
+    const playlistIds = new Set(nominationsDb.filter(n => n.nominatedById === params.id).map(n => n.playlistId))
+    const filtered = playlistsDb.filter(p => playlistIds.has(p.id))
+    const content = filtered.slice(page * size, page * size + size)
+    return HttpResponse.json({
+      content,
+      totalElements: filtered.length,
+      totalPages: Math.ceil(filtered.length / size),
+      number: page,
+      size,
+    })
+  }),
 ]

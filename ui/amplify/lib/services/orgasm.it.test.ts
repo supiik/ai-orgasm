@@ -121,5 +121,7 @@ describeIt('Orgasm full workflow (DynamoDB Local)', () => {
     expect(songRatings[0].points).toBe(1)
 
     expect((await orgasm.findPlaylistsByContributor(TENANT_ID, lead.id, undefined)).content).toHaveLength(1)
+    expect((await orgasm.findPlaylistsContributedByContributor(TENANT_ID, guesser1.id, undefined)).content).toHaveLength(1)
+    expect((await orgasm.findPlaylistsContributedByContributor(TENANT_ID, lead.id, undefined)).content).toHaveLength(0)
   })
 })

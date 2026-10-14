@@ -97,6 +97,8 @@ const contributorClient = {
   update:    (id: string, body: UpdateContributorRequest) => req<ContributorResponse>('update-contributor', `/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   delete:    (id: string) => req<void>('delete-contributor', `/${id}`, { method: 'DELETE' }),
   playlists: (id: string, page?: number, size?: number) => req<PlaylistPage>('list-playlists-by-contributor', `/${id}/playlists${pageQuery(page, size)}`),
+  contributedPlaylists: (id: string, page?: number, size?: number) =>
+    req<PlaylistPage>('list-contributed-playlists-by-contributor', `/${id}/contributed-playlists${pageQuery(page, size)}`),
 }
 
 const playlistClient = {

@@ -210,6 +210,8 @@
     "notFound": "Contributor not found.",
     "ledPlaylists": "Led playlists",
     "noLedPlaylists": "No playlists led by this contributor.",
+    "contributedPlaylists": "Contributed playlists",
+    "noContributedPlaylists": "No playlists this contributor has nominated a song into.",
     "selectPlaceholder": "Select contributor…"
   },
   "guessing": {

@@ -6,6 +6,7 @@ import {
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
   type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest, type GuessItem,
+  type PlaylistPage,
 } from '@orgasm/backend-client'
 
 async function getAccessToken(): Promise<string> {
@@ -55,6 +56,16 @@ const contributorClient = {
   update:        (id: string, body: UpdateContributorRequest) => _contributors.updateContributor(id, body),
   delete:        (id: string) => _contributors.deleteContributor(id),
   playlists:     (id: string, page?: number, size?: number) => _contributors.findPlaylistsByContributor(id, page, size),
+  // Not in the generated SDK — see CLAUDE.md "Updating the spec"; same raw-fetch pattern as spotifyClient.
+  contributedPlaylists: async (id: string, page?: number, size?: number): Promise<{ data: PlaylistPage }> => {
+    const params = new URLSearchParams()
+    if (page != null) params.set('page', String(page))
+    if (size != null) params.set('size', String(size))
+    const query = params.size ? `?${params}` : ''
+    const res = await authenticatedFetch(`/api/v1/contributors/${id}/contributed-playlists${query}`)
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
 }
 
 const playlistClient = {

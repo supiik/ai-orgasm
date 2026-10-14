@@ -210,6 +210,8 @@
     "notFound": "Prispievateľ sa nenašiel.",
     "ledPlaylists": "Vedené playlisty",
     "noLedPlaylists": "Tento prispievateľ nevedie žiadne playlisty.",
+    "contributedPlaylists": "Playlisty s príspevkom",
+    "noContributedPlaylists": "Tento prispievateľ nenominoval piesňu do žiadneho playlistu.",
     "selectPlaceholder": "Vyberte prispievateľa…"
   },
   "guessing": {

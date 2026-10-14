@@ -890,6 +890,40 @@ at request validation, separately from the per-nominate-call cap check.
   navigation already avoids this by using seeded data for the navigation half; follow that
   pattern rather than creating-then-navigating to a fresh entity.
 
+### Contributed playlists on the contributor detail page
+
+`ContributorDetailView.vue` previously only showed playlists a contributor **leads**
+(`GET /api/v1/contributors/{id}/playlists`, backed by `findByLeadContributor_Id`). It now also
+shows playlists the contributor has **nominated a song into**, via a new, separate endpoint —
+`findPlaylistsByContributor`/`list-playlists-by-contributor` is unchanged, kept exactly as-is.
+
+- **Spring (`backend-core`/`backend`)**: `GET /api/v1/contributors/{id}/contributed-playlists` →
+  `OrgasmService.findPlaylistsContributedByContributor`, backed by a new
+  `PlaylistRepository.findDistinctByNominations_NominatedBy_Id` — a `@Query` traversing from the
+  `Nomination` side (`SELECT DISTINCT n.playlist FROM Nomination n WHERE n.nominatedBy.id = :id`,
+  with an explicit `countQuery` since Spring Data can't auto-derive one through a `DISTINCT` join).
+  Includes nominations of any status, including `DECLINED` — "was a contributor" is historical,
+  not just currently-active. **Not** regenerated into the OpenAPI spec/SDK clients (same precedent
+  as the Spotify endpoints — see "Spotify playlist export"); the frontend calls it with a raw
+  `authenticatedFetch`, same pattern as `spotifyClient`.
+- **TypeScript (`ui/amplify`)**: `list-contributed-playlists-by-contributor` function →
+  `findPlaylistsContributedByContributor` in `lib/services/orgasm.ts`. No new GSI — it reads the
+  nominations tenant partition via the existing `findAllNominationsByTenant` (already used by
+  org export), filters by `nominatedById`, collects the distinct `playlistId`s, then filters
+  `findAllPlaylistsByTenant` against that set — same "lookup/filter at read" trade-off as every
+  other `list-*` handler in this module. **Not** ported to the frozen Java reference
+  implementation (`backend-dynamo`/`lambda`), same precedent as admin/export/song-search/Spotify/
+  nomination-cap above.
+- **UI**: `ContributorDetailView.vue` fetches both lists in the same `Promise.all` and renders a
+  second "Contributed playlists" section below "Led playlists", same row markup
+  (`PlaylistStatusBadge`, link to `/playlists/{id}`). i18n keys `contributors.contributedPlaylists`
+  / `contributors.noContributedPlaylists` in both locales.
+- **Mock/e2e**: `src/mocks/handlers/playlists.ts` gained a matching
+  `GET /api/v1/contributors/:id/contributed-playlists` handler over the same seeded
+  `nominationsDb`/`playlistsDb`. `e2e/contributors.spec.ts` covers the API (distinct-playlist
+  count for a seeded contributor with nominations across multiple playlists, empty for a freshly
+  created one) and the UI (both sections render on the detail page).
+
 ### API versioning
 
 The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:

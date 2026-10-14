@@ -64,6 +64,24 @@ test.describe('contributors API (via MSW)', () => {
     expect(status).toBe(404)
   })
 
+  test('lists playlists a contributor has nominated into, distinct by playlist', async ({ page }) => {
+    // Nigel Godrich (cont-8f7e6d5c4b3a2019) has seeded nominations across 4 distinct playlists.
+    const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-8f7e6d5c4b3a2019/contributed-playlists')
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(4)
+  })
+
+  test('contributed-playlists is empty for a contributor with no nominations', async ({ page }) => {
+    const created = await browserFetch(page, '/api/v1/contributors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Nobody Nominates' }),
+    })
+    const { status, body } = await browserFetch(page, `/api/v1/contributors/${created.body.id}/contributed-playlists`)
+    expect(status).toBe(200)
+    expect(body.totalElements).toBe(0)
+  })
+
   test('updates a contributor', async ({ page }) => {
     const { status, body } = await browserFetch(page, '/api/v1/contributors/cont-8f7e6d5c4b3a2019', {
       method: 'PUT',
@@ -104,5 +122,21 @@ test.describe('contributors API (via MSW)', () => {
     await page.locator('table tbody tr').filter({ hasText: 'Thom Yorke' }).click()
     await expect(page).toHaveURL(/\/contributors\/cont-/)
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Thom Yorke')
+  })
+
+  test('shows both led and contributed playlists on the detail page', async ({ page }) => {
+    // Nigel Godrich (cont-8f7e6d5c4b3a2019) leads "Summer Classics" and has nominated songs
+    // into "Workout Hits", "Late Night" and "Road Trip Mix" too — see src/mocks/handlers/db.ts.
+    await page.goto('/contributors/cont-8f7e6d5c4b3a2019')
+    await expect(page.getByRole('heading', { name: 'Led playlists' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Contributed playlists' })).toBeVisible()
+
+    const ledSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Led playlists' }) })
+    await expect(ledSection.getByText('Summer Classics')).toBeVisible()
+
+    const contributedSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Contributed playlists' }) })
+    await expect(contributedSection.getByText('Workout Hits')).toBeVisible()
+    await expect(contributedSection.getByText('Late Night')).toBeVisible()
+    await expect(contributedSection.getByText('Road Trip Mix')).toBeVisible()
   })
 })

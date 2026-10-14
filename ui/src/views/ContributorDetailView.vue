@@ -18,6 +18,7 @@ const { t, d } = useI18n()
 const id = route.params.id as string
 const contributor = ref<ContributorResponse | null>(null)
 const playlists = ref<PlaylistResponse[]>([])
+const contributedPlaylists = ref<PlaylistResponse[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
 
@@ -25,12 +26,14 @@ async function load() {
   loading.value = true
   error.value = null
   try {
-    const [contRes, plRes] = await Promise.all([
+    const [contRes, plRes, contribRes] = await Promise.all([
       api.contributors().get(id),
       api.contributors().playlists(id),
+      api.contributors().contributedPlaylists(id),
     ])
     contributor.value = contRes.data
     playlists.value = plRes.data.content ?? []
+    contributedPlaylists.value = contribRes.data.content ?? []
   } catch {
     error.value = t('contributors.notFound')
   } finally {
@@ -154,6 +157,28 @@ async function submitEdit() {
         <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>a:nth-child(even)]:bg-muted/40">
           <RouterLink
             v-for="pl in playlists"
+            :key="pl.id"
+            :to="`/playlists/${pl.id}`"
+            class="flex items-center px-4 py-3 gap-4 text-sm hover:bg-muted/50 transition-colors"
+          >
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">{{ pl.name }}</div>
+              <div v-if="pl.description" class="text-muted-foreground text-xs truncate">{{ pl.description }}</div>
+            </div>
+            <PlaylistStatusBadge v-if="pl.status" :status="pl.status" />
+          </RouterLink>
+        </div>
+      </section>
+
+      <!-- Contributed playlists section -->
+      <section>
+        <h2 class="text-lg font-semibold mb-3">{{ t('contributors.contributedPlaylists') }}</h2>
+        <div v-if="contributedPlaylists.length === 0" class="text-sm text-muted-foreground py-4 text-center border border-border rounded-md">
+          {{ t('contributors.noContributedPlaylists') }}
+        </div>
+        <div v-else class="divide-y divide-border rounded-md border border-border overflow-hidden [&>a:nth-child(even)]:bg-muted/40">
+          <RouterLink
+            v-for="pl in contributedPlaylists"
             :key="pl.id"
             :to="`/playlists/${pl.id}`"
             class="flex items-center px-4 py-3 gap-4 text-sm hover:bg-muted/50 transition-colors"
