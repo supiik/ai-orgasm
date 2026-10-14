@@ -231,6 +231,25 @@ Node 22 is required (enforced via `engines` in `package.json`). Use [fnm](https:
 1. Add a handler in `src/mocks/handlers/<domain>.ts`
 2. Export it from `src/mocks/handlers/index.ts`
 
+**Third-party APIs get a mock handler too, not just `/api/v1/*`.** `src/mocks/handlers/artwork.ts`
+intercepts `https://itunes.apple.com/search` — the real API `HomeView.vue` queries client-side for
+cover artwork — with a deterministic lookup table instead of letting mock mode hit the live
+network. This was needed because **Playwright's `page.route()` cannot intercept a cross-origin
+request that MSW's Service Worker has already picked up and re-issued itself** (confirmed via
+`page.on('request')` logging: the request never reaches `page.route`'s handler, only MSW's own
+"unhandled request" warning fires and passes it straight through to the real API) — so testing
+or demoing anything that depends on the *shape* of a third-party response has to go through an
+MSW handler, not page-level routing, the same as any other mocked endpoint.
+
+**Duplicate-cover guard (`HomeView.vue`):** the iTunes Search API is a best-effort artist+title
+match and can legitimately return the same (often wrong) artwork for two unrelated queries. After
+resolving artwork for all songs in the grid, a dedup pass keeps only the first song (in list
+order) that resolved to a given URL and removes the `artworkMap` entry for every later song with
+the same URL, so that song falls back to the placeholder icon instead of rendering a duplicate
+cover. `artwork.ts`'s mock deliberately gives two of the three seeded songs the same fallback
+artwork so this path is exercised in `e2e/home.spec.ts` without depending on the real API's
+actual (non-deterministic) results.
+
 ### Playwright e2e tests
 
 Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in mock mode (`VITE_MOCK=true`) as the web server before running tests — no manual setup needed.

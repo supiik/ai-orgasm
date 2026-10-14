@@ -33,6 +33,17 @@ onMounted(async () => {
       if (url) artworkMap.value[s.id!] = url
     })
     await Promise.all(lookups)
+
+    // iTunes search can return the same (often wrong) artwork for multiple distinct songs —
+    // keep only the first song that resolved to a given URL so the grid never shows the same
+    // cover twice; later duplicates fall back to the placeholder icon instead.
+    const seenUrls = new Set<string>()
+    for (const s of songs.value) {
+      const url = artworkMap.value[s.id!]
+      if (!url) continue
+      if (seenUrls.has(url)) delete artworkMap.value[s.id!]
+      else seenUrls.add(url)
+    }
   } catch {
     // silent
   } finally {

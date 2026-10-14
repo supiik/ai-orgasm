@@ -8,6 +8,20 @@ test('shows recent songs on home page', async ({ page }) => {
   await expect(page.getByText('Creep')).toBeVisible()
 })
 
+test('does not render the same cover artwork twice when iTunes returns a shared match', async ({ page }) => {
+  // src/mocks/handlers/artwork.ts deliberately gives "Smells Like Teen Spirit" and "Wonderwall"
+  // (two of the three seeded songs) the same generic fallback artwork, mirroring how the real
+  // iTunes search can return the same (often wrong) match for different queries — only the
+  // first of the two in display order should render it; the other falls back to the
+  // placeholder icon instead of showing a duplicate cover.
+  await mockLogin(page)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Recent Songs' })).toBeVisible()
+
+  await expect(page.locator('img[src="https://mock-artwork.test/generic-300x300bb.jpg"]')).toHaveCount(1)
+  await expect(page.locator('img[src="https://mock-artwork.test/creep-300x300bb.jpg"]')).toHaveCount(1)
+})
+
 test('navigates to songs via sidebar', async ({ page }) => {
   await mockLogin(page)
   await page.goto('/')
