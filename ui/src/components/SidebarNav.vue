@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight, Languages, ShieldCheck } from 'lucide-vue-next'
+import { Home, ListMusic, Music, Users, Sun, Moon, Monitor, Gamepad2, BarChart3, LogOut, ArrowLeftRight, Languages, ShieldCheck, Building2 } from 'lucide-vue-next'
 import { useTheme } from '@/composables/useTheme'
 import { useLocale } from '@/composables/useLocale'
 import { useAuthStore } from '@/stores/auth'
@@ -63,8 +63,9 @@ const activeClass = 'bg-accent text-accent-foreground font-medium'
     </template>
     <div class="mt-auto pt-2 border-t border-border space-y-0.5">
       <!-- Organization -->
-      <div v-if="authStore.organizationName" class="truncate px-3 text-xs font-medium text-muted-foreground">
-        {{ authStore.organizationName }}
+      <div v-if="authStore.organizationName" class="flex items-center gap-2 px-3 py-1.5 mb-1 rounded-md bg-accent/60 text-sm font-semibold text-foreground">
+        <Building2 class="h-4 w-4 shrink-0 text-muted-foreground" />
+        <span class="truncate">{{ authStore.organizationName }}</span>
       </div>
       <!-- Current user -->
       <div v-if="authStore.currentContributor" class="flex items-center gap-3 px-3 py-2 text-sm">
