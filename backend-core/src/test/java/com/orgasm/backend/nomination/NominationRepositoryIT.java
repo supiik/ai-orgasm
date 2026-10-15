@@ -66,7 +66,7 @@ class NominationRepositoryIT {
     void setUp() {
         playlist = playlistRepository.save(new Playlist(null, null, "Test Playlist", null, PlaylistStatus.OPEN, null, null, null, null, null, null, 1));
         song = songRepository.save(new Song(null, null, "Artist", "Track", null, null, null));
-        contributor = contributorRepository.save(new Contributor(null, null, "Alice", null, null));
+        contributor = contributorRepository.save(new Contributor(null, null, "Alice", null, null, false));
     }
 
     @Test

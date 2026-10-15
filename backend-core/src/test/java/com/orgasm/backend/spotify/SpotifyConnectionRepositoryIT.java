@@ -51,7 +51,7 @@ class SpotifyConnectionRepositoryIT {
     @Autowired ContributorRepository contributorRepository;
 
     Contributor savedContributor() {
-        return contributorRepository.save(new Contributor(null, null, "Thom Yorke", "thom@example.com", null));
+        return contributorRepository.save(new Contributor(null, null, "Thom Yorke", "thom@example.com", null, false));
     }
 
     @Test

@@ -180,6 +180,19 @@ describe('addOrganizationContributor', () => {
     expect(contributorRepo.saveContributor).toHaveBeenCalledWith(expect.objectContaining({ cognitoSub: 'sub-bob' }))
   })
 
+  it('bootstraps the org\'s first org admin when isOrgAdmin is set', async () => {
+    const result = await addOrganizationContributor(1, { name: 'Bob', email: 'bob@acme.com', isOrgAdmin: true })
+
+    expect(result.isOrgAdmin).toBe(true)
+    expect(contributorRepo.saveContributor).toHaveBeenCalledWith(expect.objectContaining({ orgAdmin: true }))
+  })
+
+  it('defaults isOrgAdmin to false when not specified', async () => {
+    const result = await addOrganizationContributor(1, { name: 'Bob', email: 'bob@acme.com' })
+
+    expect(result.isOrgAdmin).toBe(false)
+  })
+
   it('refuses when that account is already linked to a live contributor', async () => {
     vi.mocked(cognito.findCognitoSubByEmail).mockResolvedValue('sub-bob')
     vi.mocked(contributorRepo.findContributorByCognitoSub).mockResolvedValue(contributor({ tenantId: 2, cognitoSub: 'sub-bob' }))

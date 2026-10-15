@@ -30,14 +30,13 @@ public class RegistrationController {
             @NotBlank String name,
             String email,
             String avatarUrl,
-            @NotBlank String organizationSlug
+            String organizationSlug,
+            String inviteToken
     ) {}
 
     @PostMapping
     public ResponseEntity<ContributorResponse> register(@RequestBody @Valid RegisterRequest request) {
-        Organization org = organizationRepository.findBySlug(request.organizationSlug())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Organization not found: " + request.organizationSlug()));
+        Organization org = resolveOrganization(request);
         assertEmailAllowed(org, request.email());
 
         TenantContext.set(org.getId());
@@ -54,6 +53,20 @@ public class RegistrationController {
         } finally {
             TenantContext.clear();
         }
+    }
+
+    /** Exactly one of {@code inviteToken}/{@code organizationSlug} must be present — the invite-link path takes priority. */
+    private Organization resolveOrganization(RegisterRequest request) {
+        if (request.inviteToken() != null && !request.inviteToken().isBlank()) {
+            return organizationRepository.findByInviteToken(request.inviteToken())
+                    .orElseThrow(() -> new EntityNotFoundException("Invalid or expired invite link"));
+        }
+        if (request.organizationSlug() == null || request.organizationSlug().isBlank()) {
+            throw new IllegalArgumentException("Either organizationSlug or inviteToken is required");
+        }
+        return organizationRepository.findBySlug(request.organizationSlug())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Organization not found: " + request.organizationSlug()));
     }
 
     /** No-op when the organization has no {@code allowedDomain} configured (default: unrestricted). */

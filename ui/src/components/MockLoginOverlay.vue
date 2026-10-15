@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import type { OrganizationResponse } from '@/mocks/handlers/organizations'
+import { getPendingInviteToken, clearPendingInviteToken } from '@/lib/pendingInvite'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -24,6 +25,11 @@ const regOrgSlug = ref('')
 const registering = ref(false)
 const regError = ref<string | null>(null)
 
+// Set when `?token=...` from an org-join invite link resolves to a real org — the slug picker is
+// replaced with a plain confirmation, and register() sends inviteToken instead of organizationSlug.
+const inviteOrg = ref<{ slug: string; name: string } | null>(null)
+const inviteToken = ref<string | null>(null)
+
 onMounted(async () => {
   try {
     const { data } = await api.contributors().list(0, 100)
@@ -36,6 +42,18 @@ onMounted(async () => {
   if (res.ok) {
     organizations.value = await res.json()
   }
+
+  const token = getPendingInviteToken()
+  if (token) {
+    activeTab.value = 'register'
+    const orgRes = await fetch(`/api/v1/organizations/by-invite/${encodeURIComponent(token)}`)
+    if (orgRes.ok) {
+      inviteOrg.value = await orgRes.json()
+      inviteToken.value = token
+    } else {
+      clearPendingInviteToken()
+    }
+  }
 })
 
 function login(contributor: ContributorResponse) {
@@ -43,7 +61,7 @@ function login(contributor: ContributorResponse) {
 }
 
 async function register() {
-  if (!regName.value.trim() || !regOrgSlug.value) return
+  if (!regName.value.trim() || (!regOrgSlug.value && !inviteToken.value)) return
   registering.value = true
   regError.value = null
   try {
@@ -53,7 +71,7 @@ async function register() {
       body: JSON.stringify({
         name: regName.value,
         email: regEmail.value || undefined,
-        organizationSlug: regOrgSlug.value,
+        ...(inviteToken.value ? { inviteToken: inviteToken.value } : { organizationSlug: regOrgSlug.value }),
       }),
     })
     if (!res.ok) {
@@ -62,6 +80,7 @@ async function register() {
       return
     }
     const created: ContributorResponse = await res.json()
+    clearPendingInviteToken()
     authStore.mockLogin(created)
   } catch {
     regError.value = t('login.networkError')
@@ -130,7 +149,10 @@ async function register() {
 
       <template v-else>
         <form class="space-y-4 text-left" @submit.prevent="register">
-          <div class="space-y-1">
+          <div v-if="inviteOrg" class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            {{ t('login.joiningOrganization', { name: inviteOrg.name }) }}
+          </div>
+          <div v-else class="space-y-1">
             <Label for="reg-org">{{ t('login.organization') }}</Label>
             <Select id="reg-org" v-model="regOrgSlug" :placeholder="t('login.selectOrganization')">
               <SelectItem v-for="org in organizations" :key="org.slug" :value="org.slug">
@@ -150,7 +172,7 @@ async function register() {
           <Button
             type="submit"
             class="w-full"
-            :disabled="registering || !regName.trim() || !regOrgSlug"
+            :disabled="registering || !regName.trim() || (!regOrgSlug && !inviteToken)"
           >
             {{ registering ? t('login.registering') : t('login.register') }}
           </Button>

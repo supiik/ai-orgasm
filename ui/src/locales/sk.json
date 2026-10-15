@@ -15,6 +15,7 @@
     "switchUser": "Prepnúť používateľa",
     "logout": "Odhlásiť sa",
     "language": "Jazyk",
+    "organization": "Organizácia",
     "admin": "Administrácia"
   },
   "theme": {
@@ -259,6 +260,7 @@
     "registering": "Registruje sa…",
     "organization": "Organizácia",
     "selectOrganization": "Vyberte organizáciu…",
+    "joiningOrganization": "Pripájate sa k organizácii {name}.",
     "yourName": "Vaše meno",
     "emailOptional": "E-mail (nepovinné)",
     "emailPlaceholder": "vy{'@'}example.com",
@@ -298,6 +300,7 @@
     "addMember": "Pridať člena",
     "addMemberHint": "Ak tento e-mail už má účet, prepojí sa okamžite; inak sa účet prepojí pri registrácii s týmto e-mailom.",
     "emailRequired": "E-mail je povinný.",
+    "makeOrgAdmin": "Urobiť z tohto člena administrátora organizácie",
     "status": "Stav",
     "linked": "Prepojený",
     "pending": "Čaká na registráciu",
@@ -307,5 +310,27 @@
     "exporting": "Exportuje sa…",
     "exportHint": "Export stiahne všetko, čo je pre túto organizáciu uložené — členov, skladby, playlisty, nominácie, tipy, hodnotenia a poradia vrátane vymazaných záznamov — ako jeden súbor JSON.",
     "exportFailed": "Export zlyhal: {message}"
+  },
+  "organization": {
+    "title": "Organizácia",
+    "forbidden": "Nie ste administrátor organizácie. Požiadajte existujúceho administrátora organizácie, aby povýšil váš účet.",
+    "inviteLink": "Pozývací odkaz",
+    "inviteLinkHint": "Každý, kto tento odkaz otvorí počas prihlásenia, sa pridá do vašej organizácie. Opätovným vygenerovaním sa starý odkaz zneplatní.",
+    "noLink": "Zatiaľ žiadny pozývací odkaz.",
+    "generate": "Vygenerovať odkaz",
+    "regenerate": "Vygenerovať znova",
+    "revoke": "Zrušiť",
+    "copy": "Kopírovať",
+    "copied": "Skopírované!",
+    "linkLoadFailed": "Pozývací odkaz sa nepodarilo načítať.",
+    "linkSaveFailed": "Pozývací odkaz sa nepodarilo aktualizovať. Skúste to znova.",
+    "members": "Členovia",
+    "membersEmpty": "Zatiaľ žiadni členovia.",
+    "membersLoadFailed": "Členov sa nepodarilo načítať.",
+    "role": "Rola",
+    "orgAdmin": "Administrátor organizácie",
+    "member": "Člen",
+    "promote": "Povýšiť na administrátora organizácie",
+    "demote": "Odobrať administrátora organizácie"
   }
 }

@@ -32,4 +32,14 @@ public class Organization {
     @JsonIgnore
     @Column(name = "allowed_domain", length = 255)
     private String allowedDomain;
+
+    /**
+     * Opaque token for the org's reusable join link ({@code /join?token=...}). Null means no
+     * active invite link. Regenerating (a new random token) invalidates any previously shared
+     * link; this is the only revocation mechanism — there's no separate "disabled" flag. Never
+     * exposed via {@code GET /api/v1/organizations}, same as {@code allowedDomain}.
+     */
+    @JsonIgnore
+    @Column(name = "invite_token", unique = true, length = 64)
+    private String inviteToken;
 }

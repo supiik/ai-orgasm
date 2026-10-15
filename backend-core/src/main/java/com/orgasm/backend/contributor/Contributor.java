@@ -38,4 +38,7 @@ public class Contributor extends AuditableEntity {
 
     @Column(name = "avatar_url", length = 1024)
     private String avatarUrl;
+
+    @Column(name = "is_org_admin", nullable = false)
+    private boolean orgAdmin;
 }

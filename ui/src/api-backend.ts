@@ -6,7 +6,7 @@ import {
   type CreateSongRequest, type UpdateSongRequest,
   type OpenPlaylistRequest, type PublishPlaylistRequest, type StartGuessingRequest,
   type NominateSongRequest, type ReviewNominationRequest, type SubmitGuessesRequest, type GuessItem,
-  type PlaylistPage,
+  type PlaylistPage, type ContributorResponse,
 } from '@orgasm/backend-client'
 
 async function getAccessToken(): Promise<string> {
@@ -63,6 +63,42 @@ const contributorClient = {
     if (size != null) params.set('size', String(size))
     const query = params.size ? `?${params}` : ''
     const res = await authenticatedFetch(`/api/v1/contributors/${id}/contributed-playlists${query}`)
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  // Self-service promote/demote — caller must already be an org admin. Not in the generated SDK.
+  setOrgAdmin: async (id: string, isOrgAdmin: boolean): Promise<{ data: unknown }> => {
+    const res = await authenticatedFetch(`/api/v1/contributors/${id}/org-admin`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isOrgAdmin }),
+    })
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+}
+
+export type InviteLinkResponse = { inviteToken: string | null }
+export type OrganizationSummary = { id: number; slug: string; name: string }
+
+const organizationClient = {
+  getInviteLink: async (): Promise<{ data: InviteLinkResponse }> => {
+    const res = await authenticatedFetch('/api/v1/organizations/invite-link')
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  createInviteLink: async (): Promise<{ data: InviteLinkResponse }> => {
+    const res = await authenticatedFetch('/api/v1/organizations/invite-link', { method: 'POST' })
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  revokeInviteLink: async (): Promise<void> => {
+    const res = await authenticatedFetch('/api/v1/organizations/invite-link', { method: 'DELETE' })
+    if (!res.ok) await throwApiError(res)
+  },
+  // Public — used by the join-link redemption flow before the caller has a linked Contributor.
+  getByInviteToken: async (token: string): Promise<{ data: OrganizationSummary }> => {
+    const res = await fetch(`/api/v1/organizations/by-invite/${encodeURIComponent(token)}`)
     if (!res.ok) await throwApiError(res)
     return { data: await res.json() }
   },
@@ -192,8 +228,8 @@ const songRatingsClient = {
 export type AdminOrganization = { id: number; slug: string; name: string; allowedDomain?: string | null }
 export type CreateOrganizationRequest = { slug: string; name: string; allowedDomain?: string }
 export type UpdateOrganizationRequest = { name: string; allowedDomain?: string }
-export type AdminContributor = ContributorResponse & { linked: boolean }
-export type AddOrganizationContributorRequest = { name: string; email: string; avatarUrl?: string }
+export type AdminContributor = ContributorResponse & { linked: boolean; isOrgAdmin?: boolean }
+export type AddOrganizationContributorRequest = { name: string; email: string; avatarUrl?: string; isOrgAdmin?: boolean }
 /**
  * `admin-export-organization`'s document (ui/amplify/lib/services/export.ts). The UI only
  * downloads it as a file, so it's typed by its envelope; the per-entity sections are opaque here.
@@ -282,4 +318,5 @@ export const api = {
   songRatings:  () => songRatingsClient,
   admin:        () => adminClient,
   spotify:      () => spotifyClient,
+  organization: () => organizationClient,
 }

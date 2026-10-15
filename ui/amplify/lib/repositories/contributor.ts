@@ -12,6 +12,8 @@ export interface ContributorItem {
   email?: string
   avatarUrl?: string
   cognitoSub?: string
+  /** Self-service promote/demote by another org admin — see services/contributor.ts's setOrgAdmin. */
+  orgAdmin?: boolean
   /** Set once the contributor completes the Spotify OAuth connect flow — see lib/services/spotify.ts. */
   spotify?: SpotifyConnection
   createdAt: string

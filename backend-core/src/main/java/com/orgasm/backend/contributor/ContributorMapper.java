@@ -13,6 +13,7 @@ import org.mapstruct.ReportingPolicy;
 public interface ContributorMapper {
 
     @Mapping(target = "id", expression = "java(IdGenerator.format(\"cont\", contributor.getId()))")
+    @Mapping(target = "isOrgAdmin", expression = "java(contributor.isOrgAdmin())")
     ContributorResponse toResponse(Contributor contributor);
 
     Contributor toEntity(CreateContributorRequest request);

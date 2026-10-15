@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -68,5 +69,18 @@ public class ContributorController {
     public ResponseEntity<Void> delete(@PathVariable String id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Uses @AuthenticationPrincipal Jwt (not JwtAuthenticationToken, unlike me() above) — for a
+    // JWT-authenticated request, Authentication.getPrincipal() is the Jwt itself, not the token
+    // wrapper; with errorOnInvalidType=false the wrapper type silently binds null instead of
+    // throwing. See CLAUDE.md "Spotify playlist export" for the same gotcha and its correct fix.
+    @PutMapping("/{id}/org-admin")
+    public ResponseEntity<ContributorResponse> setOrgAdmin(
+            @PathVariable String id,
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody @Valid SetOrgAdminRequest request) {
+        String email = jwt.getClaimAsString("email");
+        return ResponseEntity.ok(service.setOrgAdmin(email, id, request.isOrgAdmin()));
     }
 }

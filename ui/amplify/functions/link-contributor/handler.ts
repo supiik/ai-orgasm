@@ -3,6 +3,6 @@ import { linkContributor, type LinkContributorRequest } from '../../lib/services
 
 export const handler = withAuth('authenticated', 200, async (event, ctx) => {
   const request = await parseBody<LinkContributorRequest>(event)
-  requireFields({ organizationSlug: request.organizationSlug, name: request.name })
+  requireFields({ name: request.name })
   return linkContributor(request, ctx.cognitoSub!, ctx.cognitoEmail!)
 })

@@ -20,8 +20,13 @@ import { createContributorFn } from './functions/create-contributor/resource'
 import { getContributorFn } from './functions/get-contributor/resource'
 import { listContributorsFn } from './functions/list-contributors/resource'
 import { updateContributorFn } from './functions/update-contributor/resource'
+import { setContributorOrgAdminFn } from './functions/set-contributor-org-admin/resource'
 import { deleteContributorFn } from './functions/delete-contributor/resource'
 import { listOrganizationsFn } from './functions/list-organizations/resource'
+import { getOrganizationByInviteFn } from './functions/get-organization-by-invite/resource'
+import { getInviteLinkFn } from './functions/get-invite-link/resource'
+import { createInviteLinkFn } from './functions/create-invite-link/resource'
+import { deleteInviteLinkFn } from './functions/delete-invite-link/resource'
 import { openPlaylistFn } from './functions/open-playlist/resource'
 import { listPlaylistsByContributorFn } from './functions/list-playlists-by-contributor/resource'
 import { listContributedPlaylistsByContributorFn } from './functions/list-contributed-playlists-by-contributor/resource'
@@ -69,7 +74,12 @@ const backend = defineBackend({
   listContributorsFn,
   updateContributorFn,
   deleteContributorFn,
+  setContributorOrgAdminFn,
   listOrganizationsFn,
+  getOrganizationByInviteFn,
+  getInviteLinkFn,
+  createInviteLinkFn,
+  deleteInviteLinkFn,
   openPlaylistFn,
   listPlaylistsByContributorFn,
   listContributedPlaylistsByContributorFn,
@@ -186,7 +196,12 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'list-contributors': backend.listContributorsFn,
   'update-contributor': backend.updateContributorFn,
   'delete-contributor': backend.deleteContributorFn,
+  'set-contributor-org-admin': backend.setContributorOrgAdminFn,
   'list-organizations': backend.listOrganizationsFn,
+  'get-organization-by-invite': backend.getOrganizationByInviteFn,
+  'get-invite-link': backend.getInviteLinkFn,
+  'create-invite-link': backend.createInviteLinkFn,
+  'delete-invite-link': backend.deleteInviteLinkFn,
   'open-playlist': backend.openPlaylistFn,
   'list-playlists-by-contributor': backend.listPlaylistsByContributorFn,
   'list-contributed-playlists-by-contributor': backend.listContributedPlaylistsByContributorFn,

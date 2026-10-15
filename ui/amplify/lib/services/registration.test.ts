@@ -3,6 +3,7 @@ import type { OrganizationItem } from '../repositories/organization'
 
 vi.mock('../repositories/organization', () => ({
   findOrganizationBySlug: vi.fn(),
+  findOrganizationByInviteToken: vi.fn(),
 }))
 vi.mock('../repositories/contributor', () => ({
   findContributorByEmail: vi.fn(),
@@ -57,6 +58,25 @@ describe('register', () => {
 
     await expect(register({ organizationSlug: 'unknown', name: 'Alice' })).rejects.toThrow(NotFoundError)
   })
+
+  it('creates a contributor via inviteToken instead of organizationSlug', async () => {
+    vi.mocked(organizationRepo.findOrganizationByInviteToken).mockResolvedValue(org({ inviteToken: 'tok-123' }))
+
+    const result = await register({ inviteToken: 'tok-123', name: 'Alice' })
+
+    expect(result.name).toBe('Alice')
+    expect(organizationRepo.findOrganizationBySlug).not.toHaveBeenCalled()
+  })
+
+  it('throws NotFoundError when the inviteToken is invalid', async () => {
+    vi.mocked(organizationRepo.findOrganizationByInviteToken).mockResolvedValue(undefined)
+
+    await expect(register({ inviteToken: 'bad-token', name: 'Alice' })).rejects.toThrow(NotFoundError)
+  })
+
+  it('throws ValidationError when neither organizationSlug nor inviteToken is given', async () => {
+    await expect(register({ name: 'Alice' })).rejects.toThrow(ValidationError)
+  })
 })
 
 describe('linkContributor', () => {
@@ -90,5 +110,15 @@ describe('linkContributor', () => {
     })
 
     await expect(linkContributor({ organizationSlug: 'acme', name: 'Alice' }, 'sub-1', 'alice@gmail.com')).rejects.toThrow(ConflictError)
+  })
+
+  it('resolves the organization via inviteToken instead of organizationSlug', async () => {
+    vi.mocked(organizationRepo.findOrganizationByInviteToken).mockResolvedValue(org({ inviteToken: 'tok-123' }))
+    vi.mocked(contributorRepo.findContributorByEmail).mockResolvedValue(undefined)
+
+    const result = await linkContributor({ inviteToken: 'tok-123', name: 'Alice' }, 'sub-1', 'alice@acme.com')
+
+    expect(result.name).toBe('Alice')
+    expect(organizationRepo.findOrganizationBySlug).not.toHaveBeenCalled()
   })
 })

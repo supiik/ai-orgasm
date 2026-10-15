@@ -52,6 +52,22 @@ test.describe('administration (admin user)', () => {
     await expect(member.getByText('Pending sign-up')).toBeVisible()
   })
 
+  test('bootstraps a new member as org admin via the checkbox', async ({ page }) => {
+    await page.goto('/admin')
+    await expect(page.getByRole('heading', { name: 'Members of Default Organization' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Add member' }).click()
+    const memberDialog = page.getByRole('dialog')
+    await memberDialog.getByLabel('Name').fill('New Org Admin')
+    await memberDialog.getByLabel('Email').fill('neworgadmin@example.com')
+    await memberDialog.getByLabel('Make this member an organization admin').check()
+    await memberDialog.getByRole('button', { name: 'Add', exact: true }).click()
+
+    const member = page.getByRole('row', { name: /New Org Admin/ })
+    await expect(member).toBeVisible()
+    await expect(member.getByText('Organization admin')).toBeVisible()
+  })
+
   test('exports the selected organization as a JSON file', async ({ page }) => {
     await page.goto('/admin')
     await expect(page.getByRole('heading', { name: 'Members of Default Organization' })).toBeVisible()

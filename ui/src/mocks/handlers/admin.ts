@@ -80,7 +80,7 @@ export const adminHandlers = [
     const id = Number(params.id)
     const org = organizationsDb.find(o => o.id === id)
     if (!org) return error(404, `Organization not found: ${params.id}`)
-    const body = await request.json() as { name?: string; email?: string; avatarUrl?: string }
+    const body = await request.json() as { name?: string; email?: string; avatarUrl?: string; isOrgAdmin?: boolean }
     const name = body.name?.trim() ?? ''
     const email = body.email?.trim().toLowerCase() ?? ''
     if (!name || !email) return error(400, 'name and email must not be blank')
@@ -101,6 +101,7 @@ export const adminHandlers = [
       version: 0,
       createdAt: now,
       updatedAt: now,
+      isOrgAdmin: body.isOrgAdmin ?? false,
     }
     db.push(created)
     membership.set(created.id, id)

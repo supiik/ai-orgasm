@@ -11,6 +11,7 @@ const functionUrls = (outputs as { custom?: { functionUrls?: Record<string, stri
 const LINK_URL = functionUrls['link-contributor']
 const ME_URL = functionUrls['get-current-contributor']
 const ORGANIZATIONS_URL = functionUrls['list-organizations']
+const ORGANIZATION_BY_INVITE_URL = functionUrls['get-organization-by-invite']
 
 export interface OrganizationResponse {
   id: number
@@ -19,7 +20,8 @@ export interface OrganizationResponse {
 }
 
 export interface LinkContributorRequest {
-  organizationSlug: string
+  organizationSlug?: string
+  inviteToken?: string
   name: string
   avatarUrl?: string
 }
@@ -75,5 +77,13 @@ export async function listOrganizations(): Promise<OrganizationResponse[]> {
   if (!ORGANIZATIONS_URL) throw new Error('amplify_outputs.json custom.functionUrls["list-organizations"] is not configured')
   const res = await authorizedFetch(ORGANIZATIONS_URL)
   if (!res.ok) throw new Error(`Failed to load organizations: ${res.status}`)
+  return res.json()
+}
+
+/** Resolves an org-join invite token to its org name, before the caller commits to linking. */
+export async function getOrganizationByInvite(token: string): Promise<OrganizationResponse | null> {
+  if (!ORGANIZATION_BY_INVITE_URL) throw new Error('amplify_outputs.json custom.functionUrls["get-organization-by-invite"] is not configured')
+  const res = await authorizedFetch(`${ORGANIZATION_BY_INVITE_URL.replace(/\/+$/, '')}/${encodeURIComponent(token)}`)
+  if (!res.ok) return null
   return res.json()
 }

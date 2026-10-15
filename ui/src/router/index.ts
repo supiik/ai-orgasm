@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import { setPendingInviteToken } from '@/lib/pendingInvite'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -59,6 +60,28 @@ const router = createRouter({
       path: '/spotify/callback',
       name: 'spotify-callback',
       component: () => import('../views/SpotifyCallbackView.vue'),
+    },
+    {
+      path: '/organization',
+      name: 'organization',
+      component: () => import('../views/OrganizationSettingsView.vue'),
+      meta: { requiresOrgAdmin: true },
+    },
+    {
+      // Org-join invite link (e.g. /join?token=xxx). `beforeEnter` runs even while a login
+      // overlay gates <RouterView> off (navigation guards resolve independently of what's
+      // currently rendered) — stashes the token for MockLoginOverlay/CognitoLoginOverlay to pick
+      // up, then redirects home. There is deliberately no rendered JoinView: by the time this
+      // guard would let a component through (the caller already signed in and linked), there's
+      // nothing left for a dedicated page to do.
+      path: '/join',
+      name: 'join',
+      component: HomeView,
+      beforeEnter: (to) => {
+        const token = to.query.token
+        if (typeof token === 'string' && token) setPendingInviteToken(token)
+        return { path: '/' }
+      },
     },
   ],
 })

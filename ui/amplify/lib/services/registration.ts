@@ -1,14 +1,30 @@
 import { ConflictError, NotFoundError, ValidationError } from '../errors'
 import { generateId } from '../idGenerator'
 import { findContributorByEmail, saveContributor, type ContributorItem } from '../repositories/contributor'
-import { findOrganizationBySlug, type OrganizationItem } from '../repositories/organization'
+import { findOrganizationByInviteToken, findOrganizationBySlug, type OrganizationItem } from '../repositories/organization'
 import { createContributor, toContributorResponse, type ContributorResponse } from './contributor'
 
 export interface RegisterContributorRequest {
-  organizationSlug: string
+  organizationSlug?: string
+  inviteToken?: string
   name: string
   email?: string
   avatarUrl?: string
+}
+
+/** Exactly one of `inviteToken`/`organizationSlug` must be present — the invite-link path takes priority. */
+async function resolveOrganization(request: { organizationSlug?: string; inviteToken?: string }): Promise<OrganizationItem> {
+  if (request.inviteToken) {
+    const org = await findOrganizationByInviteToken(request.inviteToken)
+    if (!org) throw new NotFoundError('Invalid or expired invite link')
+    return org
+  }
+  if (!request.organizationSlug) {
+    throw new ValidationError(['Either organizationSlug or inviteToken is required'])
+  }
+  const org = await findOrganizationBySlug(request.organizationSlug)
+  if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)
+  return org
 }
 
 /**
@@ -34,15 +50,15 @@ export function assertEmailAllowed(org: OrganizationItem, email: string | undefi
  * Kept — with its tests — as the parity reference; wire it back up only behind real abuse controls.
  */
 export async function register(request: RegisterContributorRequest): Promise<ContributorResponse> {
-  const org = await findOrganizationBySlug(request.organizationSlug)
-  if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)
+  const org = await resolveOrganization(request)
   assertEmailAllowed(org, request.email)
 
   return createContributor(org.id, { name: request.name, email: request.email, avatarUrl: request.avatarUrl })
 }
 
 export interface LinkContributorRequest {
-  organizationSlug: string
+  organizationSlug?: string
+  inviteToken?: string
   name: string
   avatarUrl?: string
 }
@@ -58,8 +74,7 @@ export async function linkContributor(
   cognitoSub: string,
   email: string,
 ): Promise<ContributorResponse> {
-  const org = await findOrganizationBySlug(request.organizationSlug)
-  if (!org) throw new NotFoundError(`Organization not found: ${request.organizationSlug}`)
+  const org = await resolveOrganization(request)
   assertEmailAllowed(org, email)
 
   const existing = await findContributorByEmail(org.id, email)

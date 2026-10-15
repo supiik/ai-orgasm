@@ -42,21 +42,21 @@ class RegistrationControllerTest {
     }
 
     static ContributorResponse contributor(String id, String name) {
-        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH, false);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     void register_returns201WithLocation() throws Exception {
         when(orgRepository.findBySlug("default"))
-                .thenReturn(Optional.of(new Organization(1L, "default", "Default Organization", null)));
+                .thenReturn(Optional.of(new Organization(1L, "default", "Default Organization", null, null)));
         when(contributorService.create(any(UnaryOperator.class)))
                 .thenReturn(contributor("cont-abc123", "Alice"));
 
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", "alice@example.com", null, "default"))))
+                                new RegistrationController.RegisterRequest("Alice", "alice@example.com", null, "default", null))))
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", endsWith("/api/v1/contributors/cont-abc123")))
                 .andExpect(jsonPath("$.id").value("cont-abc123"))
@@ -67,38 +67,38 @@ class RegistrationControllerTest {
     @SuppressWarnings("unchecked")
     void register_returns201_whenEmailMatchesAllowedDomain() throws Exception {
         when(orgRepository.findBySlug("acme"))
-                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com", null)));
         when(contributorService.create(any(UnaryOperator.class)))
                 .thenReturn(contributor("cont-abc123", "Alice"));
 
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", "alice@acme.com", null, "acme"))))
+                                new RegistrationController.RegisterRequest("Alice", "alice@acme.com", null, "acme", null))))
                 .andExpect(status().isCreated());
     }
 
     @Test
     void register_returns400_whenEmailDomainDoesNotMatchAllowedDomain() throws Exception {
         when(orgRepository.findBySlug("acme"))
-                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com", null)));
 
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", "alice@gmail.com", null, "acme"))))
+                                new RegistrationController.RegisterRequest("Alice", "alice@gmail.com", null, "acme", null))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
     void register_returns400_whenAllowedDomainSetAndEmailMissing() throws Exception {
         when(orgRepository.findBySlug("acme"))
-                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com")));
+                .thenReturn(Optional.of(new Organization(2L, "acme", "ACME Corp", "acme.com", null)));
 
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", null, null, "acme"))))
+                                new RegistrationController.RegisterRequest("Alice", null, null, "acme", null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -109,7 +109,7 @@ class RegistrationControllerTest {
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", null, null, "unknown"))))
+                                new RegistrationController.RegisterRequest("Alice", null, null, "unknown", null))))
                 .andExpect(status().isNotFound());
     }
 
@@ -118,7 +118,7 @@ class RegistrationControllerTest {
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("", null, null, "default"))))
+                                new RegistrationController.RegisterRequest("", null, null, "default", null))))
                 .andExpect(status().isBadRequest());
     }
 
@@ -127,7 +127,34 @@ class RegistrationControllerTest {
         mvc.perform(post("/api/v1/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                new RegistrationController.RegisterRequest("Alice", null, null, ""))))
+                                new RegistrationController.RegisterRequest("Alice", null, null, "", null))))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void register_returns201_viaInviteToken() throws Exception {
+        when(orgRepository.findByInviteToken("tok-123"))
+                .thenReturn(Optional.of(new Organization(1L, "default", "Default Organization", null, "tok-123")));
+        when(contributorService.create(any(UnaryOperator.class)))
+                .thenReturn(contributor("cont-abc123", "Alice"));
+
+        mvc.perform(post("/api/v1/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationController.RegisterRequest("Alice", "alice@example.com", null, null, "tok-123"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Alice"));
+    }
+
+    @Test
+    void register_returns404_whenInviteTokenUnknown() throws Exception {
+        when(orgRepository.findByInviteToken("bad-token")).thenReturn(Optional.empty());
+
+        mvc.perform(post("/api/v1/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegistrationController.RegisterRequest("Alice", null, null, null, "bad-token"))))
+                .andExpect(status().isNotFound());
     }
 }

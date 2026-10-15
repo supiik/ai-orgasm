@@ -54,6 +54,8 @@ export interface AddOrganizationContributorRequest {
   name: string
   email: string
   avatarUrl?: string
+  /** Bootstraps the org's first org admin — see "Organization admin + invite links" in CLAUDE.md. */
+  isOrgAdmin?: boolean
 }
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -175,6 +177,7 @@ export async function addOrganizationContributor(
     email,
     avatarUrl: request.avatarUrl?.trim() || undefined,
     cognitoSub,
+    orgAdmin: request.isOrgAdmin ?? false,
     createdAt: now,
     updatedAt: now,
   }

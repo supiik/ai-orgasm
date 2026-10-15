@@ -8,4 +8,5 @@ export type {
   GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
   AdminOrganization, AdminContributor, CreateOrganizationRequest, UpdateOrganizationRequest, AddOrganizationContributorRequest,
   SpotifyStatus, SpotifyAuthorize, SpotifyCallbackResult, SpotifyExportResult,
+  InviteLinkResponse, OrganizationSummary,
 } from './api-backend'

@@ -40,6 +40,11 @@ export function createTables(stack: Stack, envName: string) {
     partitionKey: { name: 'slug', type: AttributeType.STRING },
     projectionType: ProjectionType.ALL,
   })
+  organizations.addGlobalSecondaryIndex({
+    indexName: 'byInviteToken',
+    partitionKey: { name: 'inviteToken', type: AttributeType.STRING },
+    projectionType: ProjectionType.ALL,
+  })
 
   const nominations = simple('NominationsTable', 'nominations')
   nominations.addGlobalSecondaryIndex({

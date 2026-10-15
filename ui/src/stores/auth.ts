@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { ContributorResponse } from '@orgasm/backend-client'
 import { authMode } from '@/authMode'
 
@@ -28,6 +28,15 @@ export const useAuthStore = defineStore('auth', () => {
    * "lookup-at-read" pattern as `leadContributorName` elsewhere in this codebase.
    */
   const organizationName = ref<string | null>(null)
+
+  /**
+   * Unlocks the organization-settings nav entry (invite link + member promote/demote). Backed by
+   * `ContributorResponse.isOrgAdmin`, present in all 3 modes' `currentContributor` payload — unlike
+   * `organizationName`, this needs no mode-specific resolution. Not in the generated SDK type, same
+   * type-extension-over-the-SDK-type workaround as `leadContributorName`/`spotifyPlaylistUrl`.
+   */
+  const isOrgAdmin = computed(() =>
+    (currentContributor.value as (ContributorResponse & { isOrgAdmin?: boolean }) | null)?.isOrgAdmin ?? false)
 
   async function load() {
     loading.value = true
@@ -167,5 +176,5 @@ export const useAuthStore = defineStore('auth', () => {
     return currentContributor.value.id === leadId
   }
 
-  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, loading, organizationName, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
+  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, loading, organizationName, isOrgAdmin, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
 })

@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.orgasm.backend.config.GlobalExceptionHandler;
 import com.orgasm.backend.config.VersionTestSupport;
+import com.orgasm.backend.domain.ForbiddenException;
 import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -15,6 +17,10 @@ import org.springframework.data.web.config.SpringDataJacksonConfiguration;
 import org.springframework.data.web.config.SpringDataWebSettings;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -44,13 +50,23 @@ class ContributorControllerTest {
                 .standaloneSetup(new ContributorController(service))
                 .setApiVersionStrategy(VersionTestSupport.pathVersionStrategy())
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver(), new AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(
+                Jwt.withTokenValue("t").header("alg", "none")
+                        .subject("sub-1")
+                        .claim("email", "admin@example.com")
+                        .build()));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     static ContributorResponse response(String id, String name) {
-        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH, false);
     }
 
     @Test
@@ -146,5 +162,27 @@ class ContributorControllerTest {
 
         mvc.perform(delete("/api/v1/contributors/cont-9999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void setOrgAdmin_returns200_andResolvesActorFromJwt() throws Exception {
+        when(service.setOrgAdmin("admin@example.com", "cont-0002", true)).thenReturn(response("cont-0002", "Bob"));
+
+        mvc.perform(put("/api/v1/contributors/cont-0002/org-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SetOrgAdminRequest(true))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Bob"));
+    }
+
+    @Test
+    void setOrgAdmin_returns403_whenActorIsNotOrgAdmin() throws Exception {
+        when(service.setOrgAdmin("admin@example.com", "cont-0002", true))
+                .thenThrow(new ForbiddenException("Only an organization admin can do this"));
+
+        mvc.perform(put("/api/v1/contributors/cont-0002/org-admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new SetOrgAdminRequest(true))))
+                .andExpect(status().isForbidden());
     }
 }

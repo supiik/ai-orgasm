@@ -1,5 +1,6 @@
 package com.orgasm.backend.contributor;
 
+import com.orgasm.backend.domain.ForbiddenException;
 import com.orgasm.backend.domain.IdGenerator;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -33,14 +34,14 @@ class ContributorServiceTest {
     static final String USER_ID = IdGenerator.format("cont", DB_ID);
 
     static ContributorResponse response(String id, String name) {
-        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH);
+        return new ContributorResponse(id, name, null, null, 0L, Instant.EPOCH, Instant.EPOCH, false);
     }
 
     @Test
     void create_savesAndReturnsResponse() {
         var request = new CreateContributorRequest("Alice", null, null);
-        var entity = new Contributor(null, null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(null, null, "Alice", null, null, false);
+        var saved = new Contributor(DB_ID, null, "Alice", null, null, false);
         var expected = response(USER_ID, "Alice");
 
         when(mapper.toEntity(request)).thenReturn(entity);
@@ -52,8 +53,8 @@ class ContributorServiceTest {
 
     @Test
     void create_savesAndReturnsResponse_viaBuilder() {
-        var entity = new Contributor(null, null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(null, null, "Alice", null, null, false);
+        var saved = new Contributor(DB_ID, null, "Alice", null, null, false);
         var expected = response(USER_ID, "Alice");
 
         when(mapper.toEntity(any(CreateContributorRequest.class))).thenReturn(entity);
@@ -65,7 +66,7 @@ class ContributorServiceTest {
 
     @Test
     void findById_returnsResponse_whenExists() {
-        var entity = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null, false);
         var expected = response(USER_ID, "Alice");
         when(repository.findById(DB_ID)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(expected);
@@ -82,7 +83,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsNull() {
-        var entity = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null, false);
         var mapped = response(USER_ID, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -94,7 +95,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_returnsMappedPage_whenNameIsBlank() {
-        var entity = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null, false);
         var mapped = response(USER_ID, "Alice");
         when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
         when(mapper.toResponse(entity)).thenReturn(mapped);
@@ -106,7 +107,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name() {
-        var entity = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null, false);
         var mapped = response(USER_ID, "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -119,7 +120,7 @@ class ContributorServiceTest {
 
     @Test
     void findAll_filtersBy_name_viaBuilder() {
-        var entity = new Contributor(DB_ID, null, "Alice", null, null);
+        var entity = new Contributor(DB_ID, null, "Alice", null, null, false);
         var mapped = response(USER_ID, "Alice");
         when(repository.findByNameContainingIgnoreCase(eq("ali"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(entity)));
@@ -133,8 +134,8 @@ class ContributorServiceTest {
     @Test
     void update_appliesMappingAndReturnsResponse() {
         var request = new UpdateContributorRequest("Bob", null, null);
-        var existing = new Contributor(DB_ID, null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, null, "Bob", null, null);
+        var existing = new Contributor(DB_ID, null, "Alice", null, null, false);
+        var saved = new Contributor(DB_ID, null, "Bob", null, null, false);
         var expected = response(USER_ID, "Bob");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
@@ -147,8 +148,8 @@ class ContributorServiceTest {
 
     @Test
     void update_appliesMappingAndReturnsResponse_viaBuilder() {
-        var existing = new Contributor(DB_ID, null, "Alice", null, null);
-        var saved = new Contributor(DB_ID, null, "Bob", null, null);
+        var existing = new Contributor(DB_ID, null, "Alice", null, null, false);
+        var saved = new Contributor(DB_ID, null, "Bob", null, null, false);
         var expected = response(USER_ID, "Bob");
 
         when(repository.findById(DB_ID)).thenReturn(Optional.of(existing));
@@ -184,5 +185,54 @@ class ContributorServiceTest {
         assertThatThrownBy(() -> service.delete(USER_ID))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining(USER_ID);
+    }
+
+    @Test
+    void isOrgAdmin_returnsTrue_whenContributorIsOrgAdmin() {
+        when(repository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(new Contributor(DB_ID, null, "Alice", "admin@example.com", null, true)));
+
+        assertThat(service.isOrgAdmin("admin@example.com")).isTrue();
+    }
+
+    @Test
+    void isOrgAdmin_returnsFalse_whenNotLinked() {
+        when(repository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        assertThat(service.isOrgAdmin("nobody@example.com")).isFalse();
+    }
+
+    @Test
+    void setOrgAdmin_promotesTarget_whenActingContributorIsOrgAdmin() {
+        var acting = new Contributor(DB_ID, null, "Admin", "admin@example.com", null, true);
+        var target = new Contributor(2L, null, "Bob", null, null, false);
+        var saved = new Contributor(2L, null, "Bob", null, null, true);
+        when(repository.findByEmail("admin@example.com")).thenReturn(Optional.of(acting));
+        when(repository.findById(2L)).thenReturn(Optional.of(target));
+        when(repository.save(target)).thenReturn(saved);
+        when(mapper.toResponse(saved)).thenReturn(response(IdGenerator.format("cont", 2L), "Bob"));
+
+        service.setOrgAdmin("admin@example.com", IdGenerator.format("cont", 2L), true);
+
+        assertThat(target.isOrgAdmin()).isTrue();
+        verify(repository).save(target);
+    }
+
+    @Test
+    void setOrgAdmin_throwsForbidden_whenActingContributorIsNotOrgAdmin() {
+        when(repository.findByEmail("plain@example.com"))
+                .thenReturn(Optional.of(new Contributor(DB_ID, null, "Plain", "plain@example.com", null, false)));
+
+        assertThatThrownBy(() -> service.setOrgAdmin("plain@example.com", IdGenerator.format("cont", 2L), true))
+                .isInstanceOf(ForbiddenException.class);
+        verify(repository, org.mockito.Mockito.never()).save(any());
+    }
+
+    @Test
+    void setOrgAdmin_throwsForbidden_whenActingAccountIsNotLinked() {
+        when(repository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.setOrgAdmin("nobody@example.com", IdGenerator.format("cont", 2L), true))
+                .isInstanceOf(ForbiddenException.class);
     }
 }

@@ -1028,6 +1028,83 @@ Both are declared in `SecurityConfig.permitAll()`. `TenantResolverFilter` alread
 
 The same gate is mirrored in the deployed TypeScript Cognito path (`ui/amplify/lib/services/registration.ts`'s `assertEmailAllowed`, used by both `register()` and `linkContributor()`) against `OrganizationItem.allowedDomain`, using the Cognito-verified email for `linkContributor`. **Not** ported to the frozen Java reference implementation (`backend-dynamo`'s `RegistrationService`/`LinkContributorService`) — that module tracks the original 34-endpoint parity snapshot the TS port was checked against, not every subsequent app-level feature.
 
+### Organization admin + invite links
+
+Previously the only way into an organization was self-service (pick an org from the public list)
+or the platform admin manually adding a member (see "Administration" below). Added a lighter-
+weight, per-org role — **org admin** — that can generate a reusable join link for its own org and
+promote/demote other members, without platform-admin involvement for either.
+
+- **Data model, both backends**: a plain boolean on the Contributor (`Contributor.orgAdmin` /
+  `ContributorItem.orgAdmin`, column `is_org_admin`), and an opaque `inviteToken` on the
+  Organization (`Organization.inviteToken` / `OrganizationItem.inviteToken`, both `@JsonIgnore`d
+  / never returned from the public org list, same precedent as `allowedDomain`). Deliberately
+  **not** a generic roles/permissions table — this is a single on/off capability, the same shape
+  as the existing `isLead` (per-playlist) and Cognito `admins` group (platform) checks already in
+  this codebase; revisit only if org-level permissions ever need to be separately grantable (e.g.
+  "can invite" vs "can rename the org" as different abilities).
+- **Invite link is reusable, not single-use or email-bound**: one token per org, like a
+  Discord/Slack invite link — anyone who opens `/join?token=...` while signed in joins that org.
+  Regenerating the token (`POST /api/v1/organizations/invite-link` /
+  TS `create-invite-link`) is the only revocation mechanism (no separate "disabled" flag);
+  `DELETE` clears it outright. `GET /api/v1/organizations/by-invite/{token}` /
+  TS `get-organization-by-invite` resolves a token to `{slug, name}` for the redemption UI to
+  show "You're joining X" before the caller commits — public on the Spring side (same
+  unauthenticated tier as `POST /register`, since a brand-new caller has no tenant yet),
+  `'authenticated'` AuthMode on the TS side (Cognito session exists, Contributor doesn't yet).
+- **Self-service promote/demote, platform-admin-only bootstrap**: `PUT
+  /api/v1/contributors/{id}/org-admin` (Spring) / `set-contributor-org-admin` (TS) requires the
+  *acting* contributor (resolved from the JWT/Cognito session, never the request body — same
+  actor-from-token discipline as everywhere else, see "TypeScript Lambda API via Amplify Gen 2"'s
+  body-supplied-actor note) to already be an org admin; the target is resolved by id through the
+  normal tenant-scoped lookup, so a cross-tenant id simply 404s with no extra check needed. This
+  is a chicken-and-egg problem for an org's *first* org admin, solved the same way the platform
+  `admins` Cognito group itself is bootstrapped: `admin-add-org-contributor`
+  (`AddOrganizationContributorRequest.isOrgAdmin`, Cognito-only — the Spring/Keycloak path has no
+  platform-admin endpoints at all) gained an optional checkbox-backed flag so the platform admin
+  can designate the first org admin when adding a member. On Spring/MariaDB there is no
+  platform-admin UI at all (same as `allowedDomain`), so bootstrapping there means setting
+  `is_org_admin` directly in the database.
+- **Resolving the organization by invite token instead of slug**: `RegistrationController`'s
+  `RegisterRequest` (Spring, `/register` — unused by any real UI, kept for parity, see "Public
+  registration endpoints" above) and `LinkContributorRequest` (TS, the actually-deployed path)
+  both gained an optional `inviteToken` alongside the existing `organizationSlug`, with a shared
+  `resolveOrganization` helper on each side: token takes priority when present, otherwise falls
+  back to slug, and it's a 400/`ValidationError` if neither is given. `assertEmailAllowed`'s
+  domain gate still applies either way.
+- **DynamoDB GSI**: `organizations` table gained a `byInviteToken` GSI (sparse — an org with no
+  active link simply isn't in it, so an unknown/revoked token cleanly resolves to "not found"
+  with no extra filtering), mirroring the existing `bySlug` index.
+- **UI**: a new `/organization` route + `OrganizationSettingsView.vue` (gated by
+  `authStore.isOrgAdmin`, cosmetic-only like `/admin`'s gate — the API is the real enforcement),
+  showing the current invite link (copy/regenerate/revoke) and the org's member list with a
+  promote/demote toggle. `authStore.isOrgAdmin` reads straight off
+  `currentContributor.isOrgAdmin` (present in all 3 modes' response shape) — unlike
+  `organizationName`, it needed no mode-specific resolution logic.
+- **Invite-link redemption UI, mock + Cognito modes only**: Keycloak mode has **no
+  self-registration UI in this app at all** (confirmed by grepping for callers of
+  `/api/v1/register` — the only caller is `MockLoginOverlay`), so there was no existing entry
+  point to extend there; the backend endpoint exists for API parity only. `App.vue`'s
+  `loginRequired` gate means `<RouterView>` doesn't render while a login overlay is up, so a
+  `/join` *route* can't rely on a mounted component to read the token — instead `/join`'s
+  `beforeEnter` guard (which still runs regardless of what's rendered; navigation resolution is
+  independent of the parent template's `v-if`) stashes `?token=...` into
+  `sessionStorage` (`src/lib/pendingInvite.ts`) and redirects home. `MockLoginOverlay.vue` and
+  `CognitoLoginOverlay.vue` each read the stashed token on mount, resolve it via the by-invite
+  lookup, and if valid replace their org-slug `<Select>` with a plain "You're joining X"
+  confirmation, sending `inviteToken` instead of `organizationSlug` on submit.
+- **e2e testing a cross-identity, cross-page-load flow in mock mode is intentionally avoided.**
+  MSW's mock DB lives in page-level JS module state (the handler closures run in the page's own
+  realm, not the Service Worker script itself — see the "Nomination cap per contributor" mock/e2e
+  note for the related, narrower case), so it fully resets on every `page.goto`/full navigation.
+  A runtime-generated invite token would be wiped by a reload between "org admin generates it"
+  and "new user redeems it" on a different identity. `e2e/join.spec.ts`'s redemption test instead
+  does the whole thing in one continuous page load — log in as the seeded org admin via the UI,
+  generate the link via a direct fetch, stash the token into `sessionStorage` itself (the
+  `/join` guard's own stashing mechanism is covered separately, in isolation, by a different
+  test), then click "Switch User" (`authStore.logout()`, which doesn't reload the page) so
+  `MockLoginOverlay` remounts and picks up the stashed token without any state loss.
+
 ### Structured logging and correlation ids
 
 Both APIs emit one JSON object per line in **Elastic Common Schema** (ECS) shape, with the same

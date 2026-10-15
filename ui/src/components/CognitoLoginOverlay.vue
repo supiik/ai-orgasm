@@ -7,7 +7,8 @@ import '@/amplify'
 import { Authenticator, useAuthenticator, translations } from '@aws-amplify/ui-vue'
 import { I18n } from 'aws-amplify/utils'
 import '@aws-amplify/ui-vue/styles.css'
-import { getCurrentContributor, linkContributor, listOrganizations, type LambdaContributorResponse, type OrganizationResponse } from '@/lambdaApi'
+import { getCurrentContributor, getOrganizationByInvite, linkContributor, listOrganizations, type LambdaContributorResponse, type OrganizationResponse } from '@/lambdaApi'
+import { getPendingInviteToken, clearPendingInviteToken } from '@/lib/pendingInvite'
 import { useAuthStore } from '@/stores/auth'
 import { Select, SelectItem } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -37,6 +38,11 @@ const linkName = ref('')
 const linkOrgSlug = ref('')
 const linking = ref(false)
 
+// Set when `?token=...` from an org-join invite link resolves to a real org — the slug picker is
+// replaced with a plain confirmation, and completeLink() sends inviteToken instead of organizationSlug.
+const inviteOrg = ref<OrganizationResponse | null>(null)
+const inviteToken = ref<string | null>(null)
+
 // useAuthenticator() must not be called before <authenticator> itself has mounted and run its
 // own init — calling it earlier steals the first subscription to the shared auth state machine,
 // and it never receives its INIT event (the state machine gets stuck in "setup" forever, and
@@ -60,6 +66,17 @@ async function onSignedIn() {
   await authStore.loadCognitoSession()
   await checkLinkedContributor()
   if (contributor.value) return
+
+  const token = getPendingInviteToken()
+  if (token) {
+    const org = await getOrganizationByInvite(token).catch(() => null)
+    if (org) {
+      inviteOrg.value = org
+      inviteToken.value = token
+      return
+    }
+    clearPendingInviteToken()
+  }
   try {
     // list-organizations needs a bearer token, so this can't run on mount like it used to.
     organizations.value = await listOrganizations()
@@ -88,14 +105,15 @@ async function checkLinkedContributor() {
 }
 
 async function completeLink() {
-  if (!linkName.value.trim() || !linkOrgSlug.value) return
+  if (!linkName.value.trim() || (!linkOrgSlug.value && !inviteToken.value)) return
   linking.value = true
   linkError.value = null
   try {
     const linked = await linkContributor({
-      organizationSlug: linkOrgSlug.value,
       name: linkName.value,
+      ...(inviteToken.value ? { inviteToken: inviteToken.value } : { organizationSlug: linkOrgSlug.value }),
     })
+    clearPendingInviteToken()
     onContributorResolved(linked)
     router.push({ name: 'home' })
   } catch (e) {
@@ -130,7 +148,10 @@ async function completeLink() {
               <p class="text-sm text-muted-foreground">
                 {{ t('login.completeProfile') }}
               </p>
-              <div class="space-y-1">
+              <div v-if="inviteOrg" class="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                {{ t('login.joiningOrganization', { name: inviteOrg.name }) }}
+              </div>
+              <div v-else class="space-y-1">
                 <Label for="link-org">{{ t('login.organization') }}</Label>
                 <Select id="link-org" v-model="linkOrgSlug" :placeholder="t('login.selectOrganization')">
                   <SelectItem v-for="org in organizations" :key="org.slug" :value="org.slug">
@@ -143,7 +164,7 @@ async function completeLink() {
                 <Input id="link-name" v-model="linkName" :placeholder="t('login.yourName')" required />
               </div>
               <p v-if="linkError" class="text-sm text-destructive">{{ linkError }}</p>
-              <Button type="submit" class="w-full" :disabled="linking || !linkName.trim() || !linkOrgSlug">
+              <Button type="submit" class="w-full" :disabled="linking || !linkName.trim() || (!linkOrgSlug && !inviteToken)">
                 {{ linking ? t('login.linking') : t('login.continue') }}
               </Button>
               <!-- An admin has to be able to create the first organization before anyone (themselves

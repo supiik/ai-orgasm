@@ -15,6 +15,7 @@
     "switchUser": "Switch User",
     "logout": "Logout",
     "language": "Language",
+    "organization": "Organization",
     "admin": "Administration"
   },
   "theme": {
@@ -259,6 +260,7 @@
     "registering": "Registering…",
     "organization": "Organization",
     "selectOrganization": "Select organization…",
+    "joiningOrganization": "You're joining {name}.",
     "yourName": "Your name",
     "emailOptional": "Email (optional)",
     "emailPlaceholder": "you{'@'}example.com",
@@ -298,6 +300,7 @@
     "addMember": "Add member",
     "addMemberHint": "If this email already has an account it is linked right away; otherwise the account is linked when they sign up with it.",
     "emailRequired": "Email is required.",
+    "makeOrgAdmin": "Make this member an organization admin",
     "status": "Status",
     "linked": "Linked",
     "pending": "Pending sign-up",
@@ -307,5 +310,27 @@
     "exporting": "Exporting…",
     "exportHint": "Export downloads everything stored for this organization — members, songs, playlists, nominations, guesses, ratings and rankings, including deleted records — as one JSON file.",
     "exportFailed": "Export failed: {message}"
+  },
+  "organization": {
+    "title": "Organization",
+    "forbidden": "You are not an organization admin. Ask an existing organization admin to promote your account.",
+    "inviteLink": "Invite link",
+    "inviteLinkHint": "Anyone who opens this link while signed in joins your organization. Regenerating it invalidates the old link.",
+    "noLink": "No invite link yet.",
+    "generate": "Generate link",
+    "regenerate": "Regenerate",
+    "revoke": "Revoke",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "linkLoadFailed": "Failed to load the invite link.",
+    "linkSaveFailed": "Failed to update the invite link. Please try again.",
+    "members": "Members",
+    "membersEmpty": "No members yet.",
+    "membersLoadFailed": "Failed to load members.",
+    "role": "Role",
+    "orgAdmin": "Organization admin",
+    "member": "Member",
+    "promote": "Make organization admin",
+    "demote": "Remove organization admin"
   }
 }

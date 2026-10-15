@@ -1,5 +1,6 @@
 package com.orgasm.backend.contributor;
 
+import com.orgasm.backend.domain.ForbiddenException;
 import com.orgasm.backend.domain.IdGenerator;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.persistence.EntityNotFoundException;
@@ -71,6 +72,30 @@ public class ContributorService {
     @CircuitBreaker(name = "db")
     public ContributorResponse update(String id, UnaryOperator<UpdateContributorRequest.UpdateContributorRequestBuilder> customizer) {
         return update(id, customizer.apply(UpdateContributorRequest.builder()).build());
+    }
+
+    @CircuitBreaker(name = "db")
+    @Transactional(readOnly = true)
+    public boolean isOrgAdmin(String email) {
+        return repository.findByEmail(email).map(Contributor::isOrgAdmin).orElse(false);
+    }
+
+    /**
+     * Self-service promote/demote: the acting contributor (resolved by their own email, same as
+     * {@link #findByEmail}) must already be an org admin themselves. The target is resolved by id
+     * through the same Hibernate tenant filter as every other lookup, so a cross-tenant id simply
+     * 404s rather than needing an explicit same-org check here.
+     */
+    @CircuitBreaker(name = "db")
+    public ContributorResponse setOrgAdmin(String actingEmail, String targetId, boolean isOrgAdmin) {
+        Contributor acting = repository.findByEmail(actingEmail)
+                .orElseThrow(() -> new ForbiddenException("No contributor linked to this account"));
+        if (!acting.isOrgAdmin()) {
+            throw new ForbiddenException("Only an organization admin can do this");
+        }
+        Contributor target = requireById(targetId);
+        target.setOrgAdmin(isOrgAdmin);
+        return mapper.toResponse(repository.save(target));
     }
 
     @CircuitBreaker(name = "db")

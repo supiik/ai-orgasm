@@ -13,6 +13,7 @@ import type {
   GuessEntry, RankingEntry, SongRatingEntry, SongNomination, SongSearchHit,
   AdminOrganization, CreateOrganizationRequest, UpdateOrganizationRequest, AdminContributor, AddOrganizationContributorRequest, OrganizationExport,
   SpotifyStatus, SpotifyAuthorize, SpotifyCallbackResult, SpotifyExportResult,
+  InviteLinkResponse, OrganizationSummary,
 } from './api-backend'
 
 // Lambda-backed mirror of api-backend.ts's `api` object — same method names/shapes, so the view
@@ -99,6 +100,15 @@ const contributorClient = {
   playlists: (id: string, page?: number, size?: number) => req<PlaylistPage>('list-playlists-by-contributor', `/${id}/playlists${pageQuery(page, size)}`),
   contributedPlaylists: (id: string, page?: number, size?: number) =>
     req<PlaylistPage>('list-contributed-playlists-by-contributor', `/${id}/contributed-playlists${pageQuery(page, size)}`),
+  setOrgAdmin: (id: string, isOrgAdmin: boolean) =>
+    req<ContributorResponse>('set-contributor-org-admin', `/${id}/org-admin`, { method: 'PUT', body: JSON.stringify({ isOrgAdmin }) }),
+}
+
+const organizationClient = {
+  getInviteLink:     () => req<InviteLinkResponse>('get-invite-link', ''),
+  createInviteLink:  () => req<InviteLinkResponse>('create-invite-link', '', { method: 'POST' }),
+  revokeInviteLink:  async () => { await req<void>('delete-invite-link', '', { method: 'DELETE' }) },
+  getByInviteToken:  (token: string) => req<OrganizationSummary>('get-organization-by-invite', `/${encodeURIComponent(token)}`),
 }
 
 const playlistClient = {
@@ -209,4 +219,5 @@ export const api = {
   songRatings:  () => songRatingsClient,
   admin:        () => adminClient,
   spotify:      () => spotifyClient,
+  organization: () => organizationClient,
 }

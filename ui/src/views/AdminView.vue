@@ -126,12 +126,12 @@ async function fetchMembers(orgId: number | null) {
 watch(selectedOrgId, fetchMembers, { immediate: true })
 
 const memberDialogOpen = ref(false)
-const memberForm = ref({ name: '', email: '' })
+const memberForm = ref({ name: '', email: '', isOrgAdmin: false })
 const memberFormError = ref<string | null>(null)
 const memberSaving = ref(false)
 
 function openAddMember() {
-  memberForm.value = { name: '', email: '' }
+  memberForm.value = { name: '', email: '', isOrgAdmin: false }
   memberFormError.value = null
   memberDialogOpen.value = true
 }
@@ -151,6 +151,7 @@ async function submitMemberForm() {
     await api.admin().addContributor(selectedOrgId.value!, {
       name: memberForm.value.name.trim(),
       email: memberForm.value.email.trim(),
+      isOrgAdmin: memberForm.value.isOrgAdmin,
     })
     await fetchMembers(selectedOrgId.value)
     memberDialogOpen.value = false
@@ -326,6 +327,12 @@ function formatDate(iso: string) {
                       >
                         {{ member.linked ? t('admin.linked') : t('admin.pending') }}
                       </span>
+                      <span
+                        v-if="member.isOrgAdmin"
+                        class="ml-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                      >
+                        {{ t('organization.orgAdmin') }}
+                      </span>
                     </TableCell>
                     <TableCell class="text-muted-foreground">{{ formatDate(member.createdAt!) }}</TableCell>
                   </TableRow>
@@ -401,6 +408,10 @@ function formatDate(iso: string) {
         <div class="space-y-1.5">
           <Label for="member-email">{{ t('common.email') }} <span class="text-destructive">*</span></Label>
           <Input id="member-email" v-model="memberForm.email" :placeholder="t('fields.emailPlaceholder')" type="email" />
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="member-org-admin" v-model="memberForm.isOrgAdmin" type="checkbox" class="h-4 w-4 rounded border-input" />
+          <Label for="member-org-admin" class="font-normal">{{ t('admin.makeOrgAdmin') }}</Label>
         </div>
         <p v-if="memberFormError" class="text-sm text-destructive">{{ memberFormError }}</p>
       </form>

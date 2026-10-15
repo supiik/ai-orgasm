@@ -21,6 +21,13 @@ export interface OrganizationItem {
    * gate, not part of the public contract (see `services/organization.ts`'s mapper).
    */
   allowedDomain?: string
+  /**
+   * Opaque token for the org's reusable join link (`/join?token=...`). Undefined means no active
+   * invite link. Regenerating (a new random token) invalidates any previously shared link — the
+   * only revocation mechanism, no separate "disabled" flag. Never returned from
+   * `listOrganizations()`, same as `allowedDomain`.
+   */
+  inviteToken?: string
 }
 
 export async function findOrganizationById(id: number): Promise<OrganizationItem | undefined> {
@@ -36,6 +43,19 @@ export async function findOrganizationBySlug(slug: string): Promise<Organization
       IndexName: 'bySlug',
       KeyConditionExpression: 'slug = :slug',
       ExpressionAttributeValues: { ':slug': slug },
+    }),
+  )
+  return (res.Items?.[0] as OrganizationItem) ?? undefined
+}
+
+/** Sparse GSI — orgs without an active invite link simply aren't in it, so an unknown/revoked token cleanly returns undefined. */
+export async function findOrganizationByInviteToken(inviteToken: string): Promise<OrganizationItem | undefined> {
+  const res = await ddb.send(
+    new QueryCommand({
+      TableName: TABLE(),
+      IndexName: 'byInviteToken',
+      KeyConditionExpression: 'inviteToken = :inviteToken',
+      ExpressionAttributeValues: { ':inviteToken': inviteToken },
     }),
   )
   return (res.Items?.[0] as OrganizationItem) ?? undefined

@@ -12,5 +12,6 @@ public record ContributorResponse(
         String avatarUrl,
         Long version,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        boolean isOrgAdmin
 ) {}

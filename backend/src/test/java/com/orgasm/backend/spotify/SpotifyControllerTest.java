@@ -39,7 +39,7 @@ class SpotifyControllerTest {
     ContributorRepository contributorRepository = mock(ContributorRepository.class);
     ObjectMapper objectMapper = new ObjectMapper();
 
-    static final Contributor CONTRIBUTOR = new Contributor(2L, null, "Alice", "alice@example.com", null);
+    static final Contributor CONTRIBUTOR = new Contributor(2L, null, "Alice", "alice@example.com", null, false);
 
     @BeforeEach
     void setUp() {

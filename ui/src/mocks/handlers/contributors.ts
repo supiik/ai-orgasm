@@ -8,14 +8,17 @@ interface ContributorResponse {
   version: number
   createdAt: string
   updatedAt: string
+  isOrgAdmin: boolean
 }
 
 const nextId = () => `cont-${Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}`
 
+// Nigel is the seeded org admin — deliberately not Thom, who is the seeded *platform* admin
+// (isMockAdmin below), so e2e specs can tell the two roles apart.
 export const db: ContributorResponse[] = [
-  { id: 'cont-1a2b3c4d5e6f7089', name: 'Thom Yorke', email: 'thom@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=thom', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z' },
-  { id: 'cont-8f7e6d5c4b3a2019', name: 'Nigel Godrich', email: null, avatarUrl: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z' },
-  { id: 'cont-0c1d2e3f4a5b6c7d', name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z' },
+  { id: 'cont-1a2b3c4d5e6f7089', name: 'Thom Yorke', email: 'thom@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=thom', version: 0, createdAt: '2024-01-01T10:00:00Z', updatedAt: '2024-01-01T10:00:00Z', isOrgAdmin: false },
+  { id: 'cont-8f7e6d5c4b3a2019', name: 'Nigel Godrich', email: null, avatarUrl: null, version: 0, createdAt: '2024-01-02T12:00:00Z', updatedAt: '2024-01-02T12:00:00Z', isOrgAdmin: true },
+  { id: 'cont-0c1d2e3f4a5b6c7d', name: 'Jonny Greenwood', email: 'jonny@example.com', avatarUrl: 'https://i.pravatar.cc/150?u=jonny', version: 1, createdAt: '2024-01-03T23:00:00Z', updatedAt: '2024-01-10T01:00:00Z', isOrgAdmin: false },
 ]
 
 let mockCurrentContributorId: string | null = null
@@ -26,6 +29,7 @@ export function isMockAdmin(id: string): boolean { return MOCK_ADMIN_IDS.has(id)
 
 export function setMockCurrentContributor(id: string) { mockCurrentContributorId = id }
 export function clearMockCurrentContributor() { mockCurrentContributorId = null }
+export function getMockCurrentContributorId() { return mockCurrentContributorId }
 
 const now = () => new Date().toISOString()
 
@@ -68,6 +72,7 @@ export const contributorHandlers = [
       version: 0,
       createdAt: now(),
       updatedAt: now(),
+      isOrgAdmin: false,
     }
     db.push(created)
     return HttpResponse.json(created, { status: 201 })
@@ -102,5 +107,18 @@ export const contributorHandlers = [
     if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
     db.splice(index, 1)
     return new HttpResponse(null, { status: 204 })
+  }),
+
+  // Self-service promote/demote: the logged-in mock contributor must already be an org admin.
+  http.put('/api/v1/contributors/:id/org-admin', async ({ params, request }) => {
+    const acting = db.find(c => c.id === mockCurrentContributorId)
+    if (!acting?.isOrgAdmin) {
+      return HttpResponse.json({ title: 'Forbidden', detail: 'Only an organization admin can do this' }, { status: 403 })
+    }
+    const index = db.findIndex(c => c.id === params.id)
+    if (index === -1) return HttpResponse.json({ message: 'Not found' }, { status: 404 })
+    const body = await request.json() as { isOrgAdmin: boolean }
+    db[index] = { ...db[index], isOrgAdmin: body.isOrgAdmin, version: db[index].version + 1, updatedAt: now() }
+    return HttpResponse.json(db[index])
   }),
 ]
