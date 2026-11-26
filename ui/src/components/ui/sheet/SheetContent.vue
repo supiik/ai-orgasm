@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { DialogPortal, DialogOverlay, DialogContent, DialogClose, DialogTitle } from 'radix-vue'
+import { DialogPortal, DialogOverlay, DialogContent, DialogClose, DialogTitle } from 'reka-ui'
 import { X } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import { useI18n } from 'vue-i18n'
 
-// A side drawer built on the same radix-vue Dialog primitives as `ui/dialog`. The slide-in is a
-// plain CSS transition keyed off radix's data-state attribute — this project has no
+// A side drawer built on the same Reka UI (formerly radix-vue) Dialog primitives as `ui/dialog`. The slide-in is a
+// plain CSS transition keyed off Reka's data-state attribute — this project has no
 // tailwindcss-animate plugin, so the `animate-in`/`slide-in-*` utilities are unavailable.
 const props = withDefaults(defineProps<{ side?: 'left' | 'right'; title: string; class?: string }>(), {
   side: 'left',
@@ -25,7 +25,7 @@ const { t } = useI18n()
       )"
       :data-side="side"
     >
-      <!-- Radix requires a title for screen readers; visually the slot renders its own header -->
+      <!-- Reka requires a title for screen readers; visually the slot renders its own header -->
       <DialogTitle class="sr-only">{{ title }}</DialogTitle>
       <slot />
       <DialogClose

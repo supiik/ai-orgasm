@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
-import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'radix-vue'
+import { PopoverRoot, PopoverTrigger, PopoverPortal, PopoverContent } from 'reka-ui'
 import { ChevronDown, Check, Search } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import { useI18n } from 'vue-i18n'
@@ -105,7 +105,7 @@ function onItemKeydown(e: KeyboardEvent, index: number) {
       <PopoverContent
         align="start"
         :side-offset="4"
-        class="z-50 min-w-48 w-[var(--radix-popover-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 p-0"
+        class="z-50 min-w-48 w-[var(--reka-popover-trigger-width)] overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 p-0"
       >
         <div class="flex items-center border-b border-border px-3 gap-2">
           <Search class="h-4 w-4 opacity-50 shrink-0" />

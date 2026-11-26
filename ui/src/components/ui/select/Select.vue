@@ -2,7 +2,7 @@
 import {
   SelectRoot, SelectTrigger, SelectValue, SelectPortal,
   SelectContent, SelectViewport, SelectScrollUpButton, SelectScrollDownButton,
-} from 'radix-vue'
+} from 'reka-ui'
 import { ChevronDown, ChevronUp } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import { useI18n } from 'vue-i18n'

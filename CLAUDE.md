@@ -262,12 +262,12 @@ Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in
 
 `App.vue` owns the layout only; the nav links + user/theme/logout footer live in
 `src/components/SidebarNav.vue`, rendered twice: inside the persistent `<aside>` (`hidden md:flex`)
-and inside a `Sheet` drawer (`src/components/ui/sheet/`, built on the same radix-vue `Dialog`
+and inside a `Sheet` drawer (`src/components/ui/sheet/`, built on the same Reka UI `Dialog`
 primitives as `ui/dialog`) opened from a mobile-only top bar (`md:hidden`) with an `Open menu`
 hamburger. Add new nav entries to `SidebarNav.vue` once — never to `App.vue`. The drawer closes on
 every route change (`watch(route.fullPath)`) and when the viewport crosses the `md` breakpoint.
 
-The drawer's slide-in is a scoped CSS `@keyframes` on radix's `data-state` attribute — this
+The drawer's slide-in is a scoped CSS `@keyframes` on Reka's `data-state` attribute — this
 project has no `tailwindcss-animate` plugin, so the `animate-in`/`slide-in-*` utilities used in
 `DialogContent.vue` are inert (Tailwind v4 ignores unknown classes; they do nothing).
 
@@ -341,6 +341,11 @@ npx shadcn-vue@latest add dialog
 ```
 
 Components are scaffolded into `src/components/ui/`. The `cn()` utility (`src/lib/utils.ts`) merges Tailwind classes and is used by all shadcn components.
+
+**Primitives: Reka UI** (`reka-ui` ^2.11, the renamed successor of `radix-vue`, which shadcn-vue 2.x
+targets) — upgraded 2026-11-26. The API is the same (`DialogRoot`, `SelectRoot`, `PopoverRoot`…); the only
+rename that touched this code was the CSS variable `--radix-popover-trigger-width` → `--reka-popover-trigger-width`
+(`ContributorSelect.vue`). Import primitives from `reka-ui`, never `radix-vue`.
 
 **Tailwind v4 theme tokens:** CSS custom properties (e.g. `--background`, `--primary`) are declared in `src/assets/index.css` and registered as Tailwind utility classes via `@theme inline`. This is required in Tailwind v4 — without `@theme inline`, classes like `bg-background` or `border-border` are unknown and cause a build error.
 
@@ -1309,7 +1314,7 @@ Always override `driver-class-name` — the test profile sets it to `org.h2.Driv
 | Vue | 3.5.x |
 | Vite | 6.x |
 | Tailwind CSS | 4.x (via `@tailwindcss/vite` plugin) |
-| shadcn-vue | configured via `ui/components.json` |
+| shadcn-vue | configured via `ui/components.json`; primitives `reka-ui` ^2.11 |
 | MSW | 2.x |
 | vue-i18n | ^11.4 (+ `@intlify/unplugin-vue-i18n` ^11.2) |
 | Playwright | 1.x |
