@@ -994,6 +994,26 @@ shows playlists the contributor has **nominated a song into**, via a new, separa
   count for a seeded contributor with nominations across multiple playlists, empty for a freshly
   created one) and the UI (both sections render on the detail page).
 
+### Shared look with aquarium (@supiik/pico-ui), announcements and maintenance mode
+
+Added 2026-11-26. The UI shares its theme and basic components with aquarium and the admin apps through the source
+package `@supiik/pico-ui` (pinned to a commit tarball, `https://codeload.github.com/supiik/pico-ui/tar.gz/<commit>`).
+
+- **Theme:** `src/assets/index.css` only imports `@supiik/pico-ui/theme.css` (light + dark tokens, oklch) and adds
+  `--color-destructive-foreground` for orgasm's own components. New colours go to pico-ui, not here.
+- **Components:** `components/ui/{button,table,input,label,textarea}/index.ts` re-export pico-ui (tables get zebra rows);
+  `dialog`, `sheet` and `select` stay orgasm's own (different props). orgasm keeps its own sidebar (customer app).
+- **Locale and theme:** vue-i18n stays; `setLocale` in `src/i18n.ts` also sets pico-ui's locale (same `locale` cookie) and
+  `@supiik/pico-ui/prefs` takes `?lang=&theme=` from links coming from aquarium. `useTheme` wraps pico-ui `colorTheme`
+  (same `theme` localStorage key).
+- **Announcements / maintenance** are managed in aquarium (Operations → Announcements) and published as static JSON on
+  CloudFront; `amplify/backend.ts` reads `/aquarium/<main|test>/noticesUrl` from SSM into `custom.noticesUrl` (aquarium
+  must be deployed first). `src/maintenance.ts`: if maintenance is active at start-up, `main.ts` mounts only
+  `MaintenanceScreen` (no API calls, no sign-in) and reloads when it ends; while the app runs, `App.vue` shows `NoticeBar`
+  and switches to `MaintenanceScreen` when maintenance starts.
+- `tsconfig.app.json` has `allowImportingTsExtensions` (pico-ui sources import `./x.ts`); Vite excludes the package from
+  dependency pre-bundling.
+
 ### Organization licences
 
 Added 2026-11-26 (Lambda API only — not the Spring `backend`, not the frozen Java modules). Same model

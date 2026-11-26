@@ -6,8 +6,16 @@ import router from './router'
 import { i18n } from './i18n'
 import { authMode } from './authMode'
 import { installStaleChunkRecovery } from './staleChunkRecovery'
+import { activeMaintenance, mountMaintenance } from './maintenance'
 
 async function bootstrap() {
+  // Maintenance announced in aquarium: show the static page instead of the app (no API calls, no sign-in).
+  const maintenance = await activeMaintenance()
+  if (maintenance) {
+    mountMaintenance(maintenance)
+    return
+  }
+
   if (authMode === 'mock') {
     const { worker } = await import('./mocks/browser')
     await worker.start({ onUnhandledRequest: 'warn' })

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useNotices } from '@supiik/pico-ui/notices'
+import NoticeBar from '@supiik/pico-ui/NoticeBar.vue'
+import MaintenanceScreen from '@supiik/pico-ui/MaintenanceScreen.vue'
+import { noticesUrl, NOTICES_FILE } from './maintenance'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import LicenseBanner from '@/components/LicenseBanner.vue'
@@ -34,6 +38,10 @@ const authStore = useAuthStore()
 const isMock = authMode === 'mock'
 const appVersion = __APP_VERSION__
 
+// Announcements from aquarium (bar above the content) and maintenance started while the app is open
+// (maintenance active at start-up is handled in main.ts before anything mounts).
+const notices = useNotices({ url: noticesUrl, file: NOTICES_FILE, product: 'orgasm' })
+
 // While a login overlay is up, the routed view must not mount: it would fetch on mount, get a
 // 401, latch onto its "not found" error state and never refetch once the user signs in — so a
 // deep link opened before login (e.g. a shared /playlists/{id} URL) showed "Playlist not found."
@@ -49,6 +57,8 @@ const loginRequired = computed(() =>
 </script>
 
 <template>
+  <MaintenanceScreen v-if="notices.maintenance.value" :notice="notices.maintenance.value" title="orgasm" />
+  <template v-else>
   <!-- Mock login overlay -->
   <MockLoginOverlay v-if="loginRequired && isMock" />
 
@@ -94,6 +104,7 @@ const loginRequired = computed(() =>
         <span class="font-semibold text-sm tracking-wide truncate">{{ APP_TITLE }}</span>
       </header>
 
+      <NoticeBar :notices="notices" />
       <main class="flex-1 overflow-y-auto p-4 md:p-6">
         <LicenseBanner v-if="!loginRequired" />
         <RouterView v-if="!loginRequired" />
@@ -106,4 +117,5 @@ const loginRequired = computed(() =>
     </div>
 
   </div>
+  </template>
 </template>

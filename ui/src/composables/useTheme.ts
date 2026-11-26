@@ -1,29 +1,11 @@
-import { ref, watchEffect } from 'vue'
-
-type Theme = 'system' | 'light' | 'dark'
-
-const theme = ref<Theme>((localStorage.getItem('theme') as Theme) ?? 'system')
-
-const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-
-function apply(t: Theme) {
-  const dark = t === 'dark' || (t === 'system' && mediaQuery.matches)
-  document.documentElement.classList.toggle('dark', dark)
-}
-
-mediaQuery.addEventListener('change', () => {
-  if (theme.value === 'system') apply('system')
-})
-
-watchEffect(() => {
-  if (theme.value === 'system') localStorage.removeItem('theme')
-  else localStorage.setItem('theme', theme.value)
-  apply(theme.value)
-})
+// Light / dark / system theme is shared with aquarium and the admin apps (@supiik/pico-ui/colorTheme):
+// same localStorage key (`theme`) and `dark` class on <html>. orgasm keeps its own cycle order.
+import { colorTheme, setColorTheme } from '@supiik/pico-ui/colorTheme'
 
 export function useTheme() {
   function cycle() {
-    theme.value = theme.value === 'system' ? 'light' : theme.value === 'light' ? 'dark' : 'system'
+    const t = colorTheme.value
+    setColorTheme(t === 'system' ? 'light' : t === 'light' ? 'dark' : 'system')
   }
-  return { theme, cycle }
+  return { theme: colorTheme, cycle }
 }

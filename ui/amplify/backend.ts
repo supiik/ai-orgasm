@@ -294,8 +294,14 @@ for (const spec of fnSpecs) {
   functionUrls[spec.name] = url.url
 }
 
+// Announcements and maintenance mode are managed in aquarium and published as static JSON on CloudFront
+// (/aquarium/<branch>/noticesUrl). main/test read their own branch; a sandbox reads test.
+const aquariumEnv = envName === 'main' ? 'main' : 'test'
+const noticesUrl = StringParameter.valueForStringParameter(stack, `/aquarium/${aquariumEnv}/noticesUrl`)
+
 backend.addOutput({
   custom: {
     functionUrls,
+    noticesUrl,
   },
 })

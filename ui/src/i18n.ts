@@ -1,4 +1,8 @@
 import { createI18n } from 'vue-i18n'
+// Shared components (@supiik/pico-ui) carry their own texts; they follow the same locale (same `locale` cookie).
+import { setLocale as setPicoLocale } from '@supiik/pico-ui/locale'
+// Language and theme handed over in links from aquarium (?lang=&theme=) — must be taken before the cookie is read.
+import '@supiik/pico-ui/prefs'
 import en from './locales/en.json'
 import sk from './locales/sk.json'
 
@@ -82,6 +86,8 @@ export function setLocale(locale: Locale) {
   i18n.global.locale.value = locale
   writeLocaleCookie(locale)
   document.documentElement.lang = locale
+  setPicoLocale(locale)
 }
 
 document.documentElement.lang = i18n.global.locale.value
+setPicoLocale(i18n.global.locale.value)

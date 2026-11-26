@@ -41,6 +41,8 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['@orgasm/backend-client'],
+      // @supiik/pico-ui ships sources (Vue SFC + TS) — compiled by Vite with the app, not pre-bundled
+      exclude: ['@supiik/pico-ui'],
     },
     build: {
       outDir: 'dist',
