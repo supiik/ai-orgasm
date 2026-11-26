@@ -3,6 +3,7 @@ import { FunctionUrlAuthType, type CfnFunction, type IFunction, type Function as
 import { auth } from './auth/resource'
 import { fnSpecs } from './functions'
 import { createTables } from './tables'
+import { StringParameter } from 'aws-cdk-lib/aws-ssm'
 
 import { helloFn } from './functions/hello/resource'
 import { createPlaylistFn } from './functions/create-playlist/resource'
@@ -118,6 +119,15 @@ const tables = createTables(stack, envName)
 
 const userPool = backend.auth.resources.userPool
 const userPoolClient = backend.auth.resources.userPoolClient
+
+// Administration lives in the separate orgasm-admin app (supiik/orgasm-admin, sign-in via aquarium SSO). It
+// finds this branch's customer pool here (cognito-idp:ListUsers when adding a member by email); the table names
+// are deterministic (`orgasm-<name>-<branch>`), so they need no parameter.
+new StringParameter(stack, 'ProductUserPoolIdParam', {
+  parameterName: `/products/orgasm/${envName}/userPoolId`,
+  stringValue: userPool.userPoolId,
+  description: 'orgasm customer pool id for orgasm-admin',
+})
 
 const sharedEnv: Record<string, string> = {
   DYNAMODB_TABLE_PLAYLISTS: tables.playlists.tableName,
