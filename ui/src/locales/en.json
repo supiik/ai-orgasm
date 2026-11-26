@@ -331,6 +331,22 @@
     "orgAdmin": "Organization admin",
     "member": "Member",
     "promote": "Make organization admin",
-    "demote": "Remove organization admin"
+    "demote": "Remove organization admin",
+    "license": "Licence",
+    "licenseHint": "The licence sets how many members the organization can have and until when it is valid.",
+    "licenseLoadFailed": "Failed to load the licence.",
+    "licenseNone": "No licence is active yet.",
+    "licenseActive": "Active until {date}.",
+    "licenseGrace": "Expired on {date} — grace period until {until}. Activate a new key to keep full access.",
+    "licenseExpired": "Expired on {date}. The organization is read-only until a new key is activated.",
+    "licenseMembers": "Members: {members} of {max}",
+    "licenseKey": "Licence key",
+    "licenseKeyPlaceholder": "ORG-XXXX-XXXX-XXXX",
+    "activate": "Activate",
+    "activated": "Licence activated.",
+    "activateFailed": "The licence could not be activated: {reason}",
+    "bannerGrace": "Your organization's licence expired on {date}. Full access ends on {until} — ask an organization admin to activate a new key.",
+    "bannerExpired": "Your organization's licence has expired. The app is read-only until an organization admin activates a new key.",
+    "bannerNone": "Your organization has no licence. The app is read-only until an organization admin activates a key."
   }
 }

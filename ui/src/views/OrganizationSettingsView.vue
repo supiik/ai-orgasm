@@ -4,15 +4,17 @@ import { useI18n } from 'vue-i18n'
 import { type ContributorPage, type ContributorResponse as BaseContributorResponse } from '@orgasm/backend-client'
 import { api } from '@/api'
 import { useAuthStore } from '@/stores/auth'
-import { Link, Copy, Check, RefreshCw, Ban, ShieldOff, ShieldCheck, Shield } from 'lucide-vue-next'
+import { KeyRound, Link, Copy, Check, RefreshCw, Ban, ShieldOff, ShieldCheck, Shield } from 'lucide-vue-next'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import type { LicenseStatus } from '@/api-backend'
 
 // `isOrgAdmin` isn't in the generated SDK type (see CLAUDE.md "Updating the spec") but is
 // present on every contributor the real/mock backends return.
 type ContributorResponse = BaseContributorResponse & { isOrgAdmin?: boolean }
 
-const { t } = useI18n()
+const { t, d } = useI18n()
 const authStore = useAuthStore()
 
 // ── Invite link ───────────────────────────────────────────────────────────────
@@ -70,6 +72,41 @@ async function copyLink() {
   setTimeout(() => { copied.value = false }, 2000)
 }
 
+// ── Licence ───────────────────────────────────────────────────────────────────
+
+const license = ref<LicenseStatus | null>(null)
+const licenseError = ref<string | null>(null)
+const licenseMessage = ref<string | null>(null)
+const licenseKey = ref('')
+const activating = ref(false)
+
+const day = (s?: string) => (s ? d(new Date(`${s}T00:00:00`), 'date') : '')
+
+async function fetchLicense() {
+  licenseError.value = null
+  try {
+    license.value = (await api.organization().getLicense()).data
+  } catch {
+    licenseError.value = t('organization.licenseLoadFailed')
+  }
+}
+
+async function activateLicense() {
+  if (!licenseKey.value.trim()) return
+  activating.value = true
+  licenseError.value = null
+  licenseMessage.value = null
+  try {
+    license.value = (await api.organization().activateLicense(licenseKey.value)).data
+    licenseKey.value = ''
+    licenseMessage.value = t('organization.activated')
+  } catch (e) {
+    licenseError.value = t('organization.activateFailed', { reason: (e as Error).message })
+  } finally {
+    activating.value = false
+  }
+}
+
 // ── Members ───────────────────────────────────────────────────────────────────
 
 const members = ref<ContributorResponse[]>([])
@@ -104,6 +141,7 @@ async function toggleOrgAdmin(member: ContributorResponse) {
 
 onMounted(() => {
   if (authStore.isOrgAdmin) {
+    fetchLicense()
     fetchInviteLink()
     fetchMembers()
   }
@@ -120,6 +158,42 @@ onMounted(() => {
     </div>
 
     <template v-else>
+      <!-- Licence -->
+      <section class="space-y-2" aria-labelledby="license-heading">
+        <h2 id="license-heading" class="text-lg font-medium">{{ t('organization.license') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('organization.licenseHint') }}</p>
+        <div v-if="licenseError" role="alert" class="text-sm text-destructive">{{ licenseError }}</div>
+        <div v-if="licenseMessage" role="status" class="text-sm">{{ licenseMessage }}</div>
+        <div v-if="license" class="flex items-start gap-2 rounded-md border border-border p-3 text-sm" data-testid="license-status">
+          <KeyRound class="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+          <div class="space-y-1">
+            <p v-if="license.state === 'active'">{{ t('organization.licenseActive', { date: day(license.validUntil) }) }}</p>
+            <p v-else-if="license.state === 'grace'" class="text-amber-700 dark:text-amber-300">
+              {{ t('organization.licenseGrace', { date: day(license.validUntil), until: day(license.graceUntil) }) }}
+            </p>
+            <p v-else-if="license.state === 'expired'" class="text-destructive">{{ t('organization.licenseExpired', { date: day(license.validUntil) }) }}</p>
+            <p v-else>{{ t('organization.licenseNone') }}</p>
+            <p v-if="license.maxMembers" class="text-muted-foreground">
+              {{ t('organization.licenseMembers', { members: license.members, max: license.maxMembers }) }}
+            </p>
+          </div>
+        </div>
+        <form class="flex items-center gap-2" @submit.prevent="activateLicense">
+          <label for="license-key" class="sr-only">{{ t('organization.licenseKey') }}</label>
+          <Input
+            id="license-key"
+            v-model="licenseKey"
+            class="max-w-xs font-mono"
+            autocomplete="off"
+            spellcheck="false"
+            :placeholder="t('organization.licenseKeyPlaceholder')"
+          />
+          <Button type="submit" variant="outline" size="sm" :disabled="activating || !licenseKey.trim()">
+            {{ t('organization.activate') }}
+          </Button>
+        </form>
+      </section>
+
       <!-- Invite link -->
       <section class="space-y-2">
         <h2 class="text-lg font-medium">{{ t('organization.inviteLink') }}</h2>

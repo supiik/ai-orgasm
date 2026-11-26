@@ -3,6 +3,7 @@ import { generateId } from '../idGenerator'
 import { findContributorByEmail, saveContributor, type ContributorItem } from '../repositories/contributor'
 import { findOrganizationByInviteToken, findOrganizationBySlug, type OrganizationItem } from '../repositories/organization'
 import { createContributor, toContributorResponse, type ContributorResponse } from './contributor'
+import { assertMemberCapacity } from './license'
 
 export interface RegisterContributorRequest {
   organizationSlug?: string
@@ -92,6 +93,8 @@ async function attach(existing: ContributorItem, cognitoSub: string): Promise<Co
 }
 
 async function create(request: LinkContributorRequest, tenantId: number, email: string, cognitoSub: string): Promise<ContributorItem> {
+  // a new member — attaching an existing record (pre-added by an admin) doesn't grow the organization
+  await assertMemberCapacity(tenantId)
   const id = generateId()
   const now = new Date().toISOString()
   const item: ContributorItem = {

@@ -84,6 +84,22 @@ export function createTables(stack: Stack, envName: string) {
     projectionType: ProjectionType.ALL,
   })
 
+  // Organization licences (issued by the operator in orgasm-admin, activated by an org admin with the key) —
+  // see lib/services/license.ts. Not tenant-partitioned: the key is the partition key; the sparse
+  // `byOrganization` GSI finds the licence an organization activated (unactivated keys aren't in it).
+  const licenses = new Table(stack, 'LicensesTable', {
+    tableName: `orgasm-licenses-${envName}`,
+    billingMode: BillingMode.PAY_PER_REQUEST,
+    partitionKey: { name: 'key', type: AttributeType.STRING },
+    removalPolicy: RemovalPolicy.RETAIN,
+  })
+  licenses.addGlobalSecondaryIndex({
+    indexName: 'byOrganization',
+    partitionKey: { name: 'organizationId', type: AttributeType.NUMBER },
+    sortKey: { name: 'activatedAt', type: AttributeType.STRING },
+    projectionType: ProjectionType.ALL,
+  })
+
   const playlistRankings = simple('PlaylistRankingsTable', 'playlist-rankings')
   playlistRankings.addGlobalSecondaryIndex({
     indexName: 'byPlaylist',
@@ -93,6 +109,7 @@ export function createTables(stack: Stack, envName: string) {
   })
 
   return {
+    licenses,
     playlists,
     songs,
     contributors,

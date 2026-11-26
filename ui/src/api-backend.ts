@@ -80,6 +80,15 @@ const contributorClient = {
 
 export type InviteLinkResponse = { inviteToken: string | null }
 export type OrganizationSummary = { id: number; slug: string; name: string }
+/** Mirrors ui/amplify/lib/services/license.ts's LicenseStatusResponse. */
+export type LicenseStatus = {
+  state: 'active' | 'grace' | 'expired' | 'none'
+  enforced: boolean
+  validUntil?: string
+  graceUntil?: string
+  maxMembers?: number
+  members: number
+}
 
 const organizationClient = {
   getInviteLink: async (): Promise<{ data: InviteLinkResponse }> => {
@@ -95,6 +104,20 @@ const organizationClient = {
   revokeInviteLink: async (): Promise<void> => {
     const res = await authenticatedFetch('/api/v1/organizations/invite-link', { method: 'DELETE' })
     if (!res.ok) await throwApiError(res)
+  },
+  // Licences exist only on the Lambda API; the Spring backend has no such endpoint (MSW serves
+  // dev/e2e, same arrangement as the admin endpoints).
+  getLicense: async (): Promise<{ data: LicenseStatus }> => {
+    const res = await authenticatedFetch('/api/v1/organizations/license')
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
+  },
+  activateLicense: async (key: string): Promise<{ data: LicenseStatus }> => {
+    const res = await authenticatedFetch('/api/v1/organizations/license', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }),
+    })
+    if (!res.ok) await throwApiError(res)
+    return { data: await res.json() }
   },
   // Public — used by the join-link redemption flow before the caller has a linked Contributor.
   getByInviteToken: async (token: string): Promise<{ data: OrganizationSummary }> => {

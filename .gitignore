@@ -27,6 +27,7 @@ ui/coverage/
 ui/*.local
 ui/playwright-report/
 ui/test-results/
+ui/.amplify/
 admin-ui/dist/
 admin-ui/.vite/
 admin-ui/*.local

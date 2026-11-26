@@ -18,7 +18,47 @@ function resolveOrg(body: { organizationSlug?: string; inviteToken?: string }): 
   return organizationsDb.find(o => o.slug === body.organizationSlug) ?? null
 }
 
+// Licences (Lambda API only — see ui/amplify/lib/services/license.ts). One unused key is seeded
+// so dev/e2e can exercise activation; the default organization starts without a licence and
+// enforcement off, exactly like an existing organization after the feature is deployed.
+interface MockLicense { key: string; maxMembers: number; validUntil: string; organizationId?: number }
+export const licensesDb: MockLicense[] = [
+  { key: 'ORG-2222-3333-4444', maxMembers: 10, validUntil: '2099-12-31' },
+]
+
+function licenseStatus(orgId: number) {
+  const lic = licensesDb.find(l => l.organizationId === orgId)
+  return {
+    state: lic ? 'active' : 'none',
+    enforced: false,
+    ...(lic ? { validUntil: lic.validUntil, maxMembers: lic.maxMembers } : {}),
+    members: db.length,
+  }
+}
+
 export const organizationHandlers = [
+  http.get('/api/v1/organizations/license', () => HttpResponse.json(licenseStatus(organizationsDb[0].id))),
+
+  http.post('/api/v1/organizations/license', async ({ request }) => {
+    const acting = db.find(c => c.id === getMockCurrentContributorId())
+    if (!acting?.isOrgAdmin) {
+      return HttpResponse.json({ title: 'Forbidden', detail: 'Only an organization admin can activate a licence' }, { status: 403 })
+    }
+    const { key } = await request.json() as { key?: string }
+    const c = (key ?? '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+    const norm = c.length === 15 ? `${c.slice(0, 3)}-${c.slice(3, 7)}-${c.slice(7, 11)}-${c.slice(11)}` : ''
+    if (!/^ORG(-[2-9ABCDEFGHJKMNPQRSTUVWXYZ]{4}){3}$/.test(norm)) {
+      return HttpResponse.json({ title: 'Bad Request', detail: 'key: format ORG-XXXX-XXXX-XXXX' }, { status: 400 })
+    }
+    const lic = licensesDb.find(l => l.key === norm)
+    if (!lic) return HttpResponse.json({ title: 'Not Found', detail: 'Licence key not found' }, { status: 404 })
+    if (lic.organizationId !== undefined) {
+      return HttpResponse.json({ title: 'Conflict', detail: 'This licence key has already been used' }, { status: 409 })
+    }
+    lic.organizationId = organizationsDb[0].id
+    return HttpResponse.json(licenseStatus(organizationsDb[0].id))
+  }),
+
   http.get('/api/v1/organizations', () => {
     return HttpResponse.json(organizationsDb.map(({ inviteToken, ...rest }) => rest))
   }),

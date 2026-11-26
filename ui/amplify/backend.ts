@@ -45,6 +45,8 @@ import { listSongRatingsFn } from './functions/list-song-ratings/resource'
 import { publishPlaylistFn } from './functions/publish-playlist/resource'
 import { linkContributorFn } from './functions/link-contributor/resource'
 import { getCurrentContributorFn } from './functions/get-current-contributor/resource'
+import { getOrganizationLicenseFn } from './functions/get-organization-license/resource'
+import { activateOrganizationLicenseFn } from './functions/activate-organization-license/resource'
 import { adminListOrganizationsFn } from './functions/admin-list-organizations/resource'
 import { adminCreateOrganizationFn } from './functions/admin-create-organization/resource'
 import { adminUpdateOrganizationFn } from './functions/admin-update-organization/resource'
@@ -98,6 +100,8 @@ const backend = defineBackend({
   publishPlaylistFn,
   linkContributorFn,
   getCurrentContributorFn,
+  getOrganizationLicenseFn,
+  activateOrganizationLicenseFn,
   adminListOrganizationsFn,
   adminCreateOrganizationFn,
   adminUpdateOrganizationFn,
@@ -131,6 +135,10 @@ new StringParameter(stack, 'ProductUserPoolIdParam', {
 
 const sharedEnv: Record<string, string> = {
   DYNAMODB_TABLE_PLAYLISTS: tables.playlists.tableName,
+  DYNAMODB_TABLE_LICENSES: tables.licenses.tableName,
+  // Organization licences: 'on' = expired/missing licence makes members read-only and the member
+  // cap is enforced. Off by default — switch on once every existing organization has a licence.
+  LICENSE_ENFORCEMENT: process.env.LICENSE_ENFORCEMENT ?? 'off',
   DYNAMODB_TABLE_SONGS: tables.songs.tableName,
   DYNAMODB_TABLE_CONTRIBUTORS: tables.contributors.tableName,
   DYNAMODB_TABLE_ORGANIZATIONS: tables.organizations.tableName,
@@ -229,6 +237,8 @@ const fnResources: Record<string, { resources: { lambda: IFunction } }> = {
   'publish-playlist': backend.publishPlaylistFn,
   'link-contributor': backend.linkContributorFn,
   'get-current-contributor': backend.getCurrentContributorFn,
+  'get-organization-license': backend.getOrganizationLicenseFn,
+  'activate-organization-license': backend.activateOrganizationLicenseFn,
   'admin-list-organizations': backend.adminListOrganizationsFn,
   'admin-create-organization': backend.adminCreateOrganizationFn,
   'admin-update-organization': backend.adminUpdateOrganizationFn,
@@ -253,7 +263,11 @@ for (const spec of fnSpecs) {
   // else it touches — including the `contributors` read `withAuth` performs on every
   // authenticated request — is read-only.
   const writes = new Set(spec.writes ?? [])
-  for (const tableKey of spec.tables) {
+  // withAuth reads the organization licence on every non-GET request of a member (services/license.ts),
+  // and joining/creating a member checks the cap — so every function that touches `contributors`
+  // also reads `licenses` (read-only unless listed in `writes`).
+  const tableKeys = spec.tables.includes('contributors') && !spec.tables.includes('licenses') ? [...spec.tables, 'licenses' as const] : spec.tables
+  for (const tableKey of tableKeys) {
     if (writes.has(tableKey)) tables[tableKey].grantReadWriteData(fn)
     else tables[tableKey].grantReadData(fn)
   }

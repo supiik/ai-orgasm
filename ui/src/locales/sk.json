@@ -331,6 +331,22 @@
     "orgAdmin": "Administrátor organizácie",
     "member": "Člen",
     "promote": "Povýšiť na administrátora organizácie",
-    "demote": "Odobrať administrátora organizácie"
+    "demote": "Odobrať administrátora organizácie",
+    "license": "Licencia",
+    "licenseHint": "Licencia určuje, koľko členov môže organizácia mať a dokedy platí.",
+    "licenseLoadFailed": "Licenciu sa nepodarilo načítať.",
+    "licenseNone": "Zatiaľ nie je aktívna žiadna licencia.",
+    "licenseActive": "Platí do {date}.",
+    "licenseGrace": "Platnosť skončila {date} – tolerancia do {until}. Aktivujte nový kľúč, aby ste nestratili plný prístup.",
+    "licenseExpired": "Platnosť skončila {date}. Organizácia je len na čítanie, kým sa neaktivuje nový kľúč.",
+    "licenseMembers": "Členovia: {members} z {max}",
+    "licenseKey": "Licenčný kľúč",
+    "licenseKeyPlaceholder": "ORG-XXXX-XXXX-XXXX",
+    "activate": "Aktivovať",
+    "activated": "Licencia je aktivovaná.",
+    "activateFailed": "Licenciu sa nepodarilo aktivovať: {reason}",
+    "bannerGrace": "Licencia vašej organizácie skončila {date}. Plný prístup trvá do {until} – požiadajte správcu organizácie o nový kľúč.",
+    "bannerExpired": "Licencia vašej organizácie skončila. Aplikácia je len na čítanie, kým správca organizácie neaktivuje nový kľúč.",
+    "bannerNone": "Vaša organizácia nemá licenciu. Aplikácia je len na čítanie, kým správca organizácie neaktivuje kľúč."
   }
 }

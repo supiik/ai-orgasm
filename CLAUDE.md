@@ -989,6 +989,29 @@ shows playlists the contributor has **nominated a song into**, via a new, separa
   count for a seeded contributor with nominations across multiple playlists, empty for a freshly
   created one) and the UI (both sections render on the detail page).
 
+### Organization licences
+
+Added 2026-11-26 (Lambda API only — not the Spring `backend`, not the frozen Java modules). Same model
+as a school licence in Sharpn: organization ↔ members like teacher ↔ students.
+
+- **Keys** `ORG-XXXX-XXXX-XXXX` (digits 2–9, letters without I/L/O; `normLicenseKey` accepts any
+  spacing/case). The three-letter prefix is registered in aquarium (`config/apps.ts` `licensePrefix`) and
+  must stay unique across products. Keys are issued in **orgasm-admin**, never here.
+- **Table** `orgasm-licenses-<env>` (pk `key`, GSI `byOrganization`). `LicenseItem {key, note?, maxMembers,
+  validUntil, createdAt, organizationId?, activatedAt?}`; the newest activated licence is the current one.
+- **States** (`lib/services/license.ts`): `active` through `validUntil`, `grace` for 14 more days
+  (`GRACE_DAYS`), then `expired` = read-only; `none` = never activated.
+- **Enforcement** only when `LICENSE_ENFORCEMENT=on` (default `off`, because existing organizations have no
+  licence yet). Then `withAuth` calls `assertWritable` for every non-GET member request (403 in
+  `none`/`expired`) unless the handler passes `{ allowWithoutLicense: true }`; `createContributor` and
+  `link-contributor` check the member cap (`assertMemberCapacity`).
+- **Endpoints**: `get-organization-license` (any member) and `activate-organization-license` (org admin,
+  `POST {key}`; 400 format, 404 unknown, 409 used). Every function that reads `contributors` also gets
+  read on `licenses` in `backend.ts`.
+- **UI**: licence section in `OrganizationSettingsView.vue`, `LicenseBanner.vue` above the routed view
+  (only when enforced and not active), i18n `organization.license*`/`banner*`; MSW serves
+  `/api/v1/organizations/license` with one seeded unused key `ORG-2222-3333-4444`.
+
 ### API versioning
 
 The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:

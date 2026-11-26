@@ -1,6 +1,7 @@
 import { ForbiddenError, NotFoundError } from '../errors'
 import { formatId, generateId, parseId } from '../idGenerator'
 import type { PageRequest } from '../http'
+import { assertMemberCapacity } from './license'
 import { findAllContributorsByTenant, findContributorById, saveContributor, type ContributorItem } from '../repositories/contributor'
 
 export interface CreateContributorRequest {
@@ -38,6 +39,7 @@ export function toContributorResponse(item: ContributorItem): ContributorRespons
 }
 
 export async function createContributor(tenantId: number, request: CreateContributorRequest): Promise<ContributorResponse> {
+  await assertMemberCapacity(tenantId)
   const id = generateId()
   const now = new Date().toISOString()
   const item: ContributorItem = {

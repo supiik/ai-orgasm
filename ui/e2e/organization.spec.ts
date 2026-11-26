@@ -60,3 +60,27 @@ test.describe('organization settings (org admin)', () => {
     await expect(jonnyRow.getByText('Member', { exact: true })).toBeVisible()
   })
 })
+
+test.describe('organization licence', () => {
+  test('org admin activates a licence key; a bad key is rejected', async ({ page }) => {
+    await mockLoginAsOrgAdmin(page)
+    await page.goto('/organization')
+    await expect(page.getByTestId('license-status')).toContainText('No licence is active yet.')
+
+    const keyInput = page.getByLabel('Licence key')
+    await keyInput.fill('ORG-LLLL-3333-4444')
+    await page.getByRole('button', { name: 'Activate' }).click()
+    await expect(page.getByRole('alert')).toContainText('format ORG-XXXX-XXXX-XXXX')
+
+    await keyInput.fill('org 2222 3333 4444')
+    await page.getByRole('button', { name: 'Activate' }).click()
+    await expect(page.getByText('Licence activated.')).toBeVisible()
+    await expect(page.getByTestId('license-status')).toContainText('Members: 3 of 10')
+  })
+
+  test('no banner while enforcement is off', async ({ page }) => {
+    await mockLoginAsOrgAdmin(page)
+    await page.goto('/')
+    await expect(page.getByText(/read-only until/)).toHaveCount(0)
+  })
+})

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import LicenseBanner from '@/components/LicenseBanner.vue'
 import { useI18n } from 'vue-i18n'
 import { Menu } from 'lucide-vue-next'
 import { useTokenRefresh } from '@/composables/useTokenRefresh'
@@ -94,6 +95,7 @@ const loginRequired = computed(() =>
       </header>
 
       <main class="flex-1 overflow-y-auto p-4 md:p-6">
+        <LicenseBanner v-if="!loginRequired" />
         <RouterView v-if="!loginRequired" />
       </main>
 

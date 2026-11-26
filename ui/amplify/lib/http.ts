@@ -4,6 +4,7 @@ import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, Unauthori
 import { Fields, addLogContext, log, runWithLogContext } from './logger'
 import { REQUEST_ID_HEADER, newSpanId, resolveRequestId, resolveTrace } from './tracing'
 import { findContributorByCognitoSub } from './repositories/contributor'
+import { assertWritable } from './services/license'
 
 /**
  * Port of BaseHandler.java's AuthMode. 'public': no token check. 'authenticated': valid token
@@ -25,7 +26,16 @@ export interface AuthContext {
 
 type Handler = (event: APIGatewayProxyEventV2, ctx: AuthContext) => Promise<unknown>
 
-async function authenticate(mode: AuthMode, event: APIGatewayProxyEventV2): Promise<AuthContext> {
+export interface AuthOptions {
+  /**
+   * Skip the licence check `authenticate` does for every non-GET request of a member (see
+   * services/license.ts). Only for activate-organization-license — activating a new key must work
+   * precisely when the current licence has expired.
+   */
+  allowWithoutLicense?: boolean
+}
+
+async function authenticate(mode: AuthMode, event: APIGatewayProxyEventV2, opts: AuthOptions = {}): Promise<AuthContext> {
   if (mode === 'public') return {}
 
   const claims = await verifyRequest(event.headers)
@@ -50,6 +60,9 @@ async function authenticate(mode: AuthMode, event: APIGatewayProxyEventV2): Prom
     ctx.contributorId = contributor.id
     // Opaque ids only — the Cognito email/sub stay out of the log context.
     addLogContext({ [Fields.TENANT_ID]: contributor.tenantId, [Fields.USER_ID]: contributor.id })
+    // Expired licence (after the grace period) = read-only: every write of a member is refused.
+    const method = event.requestContext?.http?.method ?? 'GET'
+    if (method !== 'GET' && method !== 'OPTIONS' && !opts.allowWithoutLicense) await assertWritable(contributor.tenantId)
   }
 
   return ctx
@@ -65,7 +78,7 @@ let coldStart = true
  * "HTTP request completed" line per invocation with status and duration, and echoes the
  * request id back in `X-Request-ID` so a client can quote it.
  */
-export function withAuth(mode: AuthMode, successStatus: number, fn: Handler) {
+export function withAuth(mode: AuthMode, successStatus: number, fn: Handler, opts: AuthOptions = {}) {
   return async (event: APIGatewayProxyEventV2, context?: Context): Promise<APIGatewayProxyStructuredResultV2> => {
     const requestId = resolveRequestId(event.headers, context?.awsRequestId)
     const isColdStart = coldStart
@@ -81,7 +94,7 @@ export function withAuth(mode: AuthMode, successStatus: number, fn: Handler) {
       },
       async () => {
         const start = process.hrtime.bigint()
-        const result = await handle(mode, successStatus, fn, event)
+        const result = await handle(mode, successStatus, fn, event, opts)
         log.info('HTTP request completed', {
           [Fields.RESPONSE_STATUS]: result.statusCode,
           [Fields.EVENT_DURATION]: process.hrtime.bigint() - start,
@@ -98,9 +111,10 @@ async function handle(
   successStatus: number,
   fn: Handler,
   event: APIGatewayProxyEventV2,
+  opts: AuthOptions = {},
 ): Promise<APIGatewayProxyStructuredResultV2> {
   try {
-    const ctx = await authenticate(mode, event)
+    const ctx = await authenticate(mode, event, opts)
     const body = await fn(event, ctx)
     return respond(successStatus, body)
   } catch (e) {

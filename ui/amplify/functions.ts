@@ -128,6 +128,12 @@ export const fnSpecs: FnSpec[] = [
 
   { name: 'link-contributor', description: 'Link an authenticated Cognito identity to a Contributor (post sign-up)',
     tables: ['organizations', 'contributors'], writes: ['contributors'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
+  // Organization licence — see lib/services/license.ts. Any member may read the status; only an org
+  // admin may activate a key (checked in the service).
+  { name: 'get-organization-license', description: "The caller's organization licence: state, validity, member cap and count",
+    tables: ['contributors', 'licenses'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
+  { name: 'activate-organization-license', description: 'Org admin activates a licence key for their organization',
+    tables: ['contributors', 'licenses'], writes: ['licenses'], methods: [HttpMethod.POST], corsHeaders: ['content-type', 'authorization'] },
   { name: 'get-current-contributor', description: 'Get the Contributor linked to the calling Cognito identity (/me equivalent)',
     tables: ['contributors', 'organizations'], methods: [HttpMethod.GET], corsHeaders: ['authorization'] },
 
