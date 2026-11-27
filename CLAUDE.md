@@ -262,14 +262,12 @@ Tests live in `ui/e2e/`. The `playwright.config.ts` automatically starts Vite in
 
 `App.vue` owns the layout only; the nav links + user/theme/logout footer live in
 `src/components/SidebarNav.vue`, rendered twice: inside the persistent `<aside>` (`hidden md:flex`)
-and inside a `Sheet` drawer (`src/components/ui/sheet/`, built on the same Reka UI `Dialog`
-primitives as `ui/dialog`) opened from a mobile-only top bar (`md:hidden`) with an `Open menu`
-hamburger. Add new nav entries to `SidebarNav.vue` once — never to `App.vue`. The drawer closes on
+and inside a `Sheet` drawer (pico-ui `ui/sheet`) opened by the `Open menu` hamburger. The top bar is always visible
+(same as aquarium's AppShell): the hamburger (mobile only), the current section (route name → `nav.*`, `SECTION` in
+`App.vue`) and pico-ui's `NoticeBell` with announcements from aquarium. Add new nav entries to `SidebarNav.vue` once — never to `App.vue`. The drawer closes on
 every route change (`watch(route.fullPath)`) and when the viewport crosses the `md` breakpoint.
 
-The drawer's slide-in is a scoped CSS `@keyframes` on Reka's `data-state` attribute — this
-project has no `tailwindcss-animate` plugin, so the `animate-in`/`slide-in-*` utilities used in
-`DialogContent.vue` are inert (Tailwind v4 ignores unknown classes; they do nothing).
+Dialog and drawer animations come from `tw-animate-css`, imported by pico-ui's `theme.css`.
 
 Phone-width shell behaviour is covered by `e2e/mobile.spec.ts` (`test.use({ viewport: 390×844 })`);
 desktop specs in `home.spec.ts` keep clicking sidebar links directly, which works because the

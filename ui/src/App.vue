@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useNotices } from '@supiik/pico-ui/notices'
 import NoticeBar from '@supiik/pico-ui/NoticeBar.vue'
+import NoticeBell from '@supiik/pico-ui/NoticeBell.vue'
 import MaintenanceScreen from '@supiik/pico-ui/MaintenanceScreen.vue'
 import { noticesUrl, NOTICES_FILE } from './maintenance'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
@@ -22,11 +23,19 @@ useTokenRefresh()
 const { t } = useI18n()
 const APP_TITLE = computed(() => t('app.title'))
 
+// Always-visible top bar (same as aquarium's AppShell): current section on the left, announcement bell on the right.
+const SECTION: Record<string, string> = {
+  home: 'nav.home', playlists: 'nav.playlists', 'playlist-detail': 'nav.playlists', songs: 'nav.songs', 'song-detail': 'nav.songs',
+  contributors: 'nav.contributors', 'contributor-detail': 'nav.contributors', guessing: 'nav.guessing', stats: 'nav.stats',
+  organization: 'nav.organization', admin: 'nav.admin',
+}
+
 // Mobile nav drawer (< md). Closed on every route change, not just link clicks, so back/forward
 // navigation and programmatic pushes (e.g. row clicks in a table) never leave it hanging open.
 const route = useRoute()
 const mobileNavOpen = ref(false)
 watch(() => route.fullPath, () => { mobileNavOpen.value = false })
+const heading = computed(() => { const k = SECTION[String(route.name ?? '')]; return k ? t(k) : APP_TITLE.value })
 // Also close it if the viewport grows past md (rotation, window resize) — the persistent sidebar
 // takes over there and an open drawer would sit on top of it.
 const mdQuery = window.matchMedia('(min-width: 768px)')
@@ -96,12 +105,13 @@ const loginRequired = computed(() =>
 
     <!-- Content area -->
     <div class="flex flex-1 flex-col overflow-hidden min-w-0">
-      <!-- Top bar (mobile only) -->
-      <header class="md:hidden h-14 shrink-0 flex items-center gap-2 px-2 border-b border-border">
-        <Button variant="ghost" size="icon" :aria-label="t('app.openMenu')" @click="mobileNavOpen = true">
+      <!-- Top bar, always visible: menu button (mobile), current section, announcement bell -->
+      <header class="h-14 shrink-0 flex items-center gap-2 px-2 md:px-6 border-b border-border bg-card">
+        <Button variant="ghost" size="icon" class="md:hidden" :aria-label="t('app.openMenu')" @click="mobileNavOpen = true">
           <Menu class="h-5 w-5" />
         </Button>
-        <span class="font-semibold text-sm tracking-wide truncate">{{ APP_TITLE }}</span>
+        <span class="min-w-0 flex-1 font-semibold text-sm tracking-wide truncate">{{ heading }}</span>
+        <NoticeBell :notices="notices" />
       </header>
 
       <NoticeBar :notices="notices" />
