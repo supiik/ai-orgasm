@@ -57,6 +57,7 @@ import { spotifyConnectFn } from './functions/spotify-connect/resource'
 import { spotifyStatusFn } from './functions/spotify-status/resource'
 import { spotifyCallbackFn } from './functions/spotify-callback/resource'
 import { spotifyExportFn } from './functions/spotify-export/resource'
+import { backendHash } from '../scripts/backend-deploy.ts'
 
 const backend = defineBackend({
   auth,
@@ -301,6 +302,8 @@ const noticesUrl = StringParameter.valueForStringParameter(stack, `/aquarium/${a
 
 backend.addOutput({
   custom: {
+    // odtlačok backendu – build porovná a pri zhode nasadenie preskočí (scripts/backend-deploy.ts)
+    backendHash: backendHash(),
     functionUrls,
     noticesUrl,
   },

@@ -744,6 +744,9 @@ frontend root is `ui/`.
   values, overwritten by every `ampx sandbox`/`ampx pipeline-deploy`. Never hand-edit it.
   `ui/src/amplify.ts` and `ui/src/lambdaApi.ts` read from it directly instead of `VITE_*`
   build-time env vars.
+- **Backend deploys only when it changed** (saves Amplify build minutes): `ui/scripts/backend-deploy.ts` compares a hash of the backend
+  inputs with the deployed one (`custom.backendHash`) and skips `ampx pipeline-deploy` when equal. Add new backend inputs (folders, env vars)
+  to `INPUTS`/`ENV` there. After changing a secret env var or SSM values owned by other apps, run one build with `FORCE_BACKEND_DEPLOY=1`.
 - **Adding a new endpoint:** add a `functions/<name>/` pair (copy an existing simple one, e.g.
   `hello/`), add its service function to the relevant `lib/services/*.ts`, add one `fnSpecs` entry
   in `functions.ts`, then wire the new `*Fn` import into `backend.ts`'s `defineBackend({...})` and

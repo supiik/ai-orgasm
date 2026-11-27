@@ -6,7 +6,8 @@ backend:
     build:
       commands:
         - (cd ui && npm install)
-        - (cd ui && npx ampx pipeline-deploy --branch "$AWS_BRANCH" --app-id "$AWS_APP_ID")
+        # deploys only when ui/amplify or the lockfile changed (ui/scripts/backend-deploy.ts); FORCE_BACKEND_DEPLOY=1 forces it
+        - (cd ui && npx tsx scripts/backend-deploy.ts)
 frontend:
   phases:
     preBuild:
