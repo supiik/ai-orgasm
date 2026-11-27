@@ -1,3 +1,2 @@
-export { default as Select } from './Select.vue'
-export { default as SelectItem } from './SelectItem.vue'
-export { SelectLabel, SelectSeparator } from 'reka-ui'
+// Shared with aquarium and the admin apps (@supiik/pico-ui); the component originally came from orgasm.
+export { Select, SelectItem, SelectGroup, SelectLabel, SelectSeparator } from '@supiik/pico-ui/ui/select'

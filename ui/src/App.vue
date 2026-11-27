@@ -86,7 +86,7 @@ const loginRequired = computed(() =>
 
     <!-- Nav drawer (mobile, below md) -->
     <Sheet v-model:open="mobileNavOpen">
-      <SheetContent side="left" :title="APP_TITLE">
+      <SheetContent side="left" :title="APP_TITLE" class="w-72 max-w-[85vw] gap-0">
         <div class="h-14 flex items-center px-4 pr-12 border-b border-border font-semibold text-sm tracking-wide truncate">
           {{ APP_TITLE }}
         </div>

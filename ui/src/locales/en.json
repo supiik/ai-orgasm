@@ -2,8 +2,7 @@
   "app": {
     "title": "ORGAnized Spotify Mediabuilding",
     "brand": "Orgasm",
-    "openMenu": "Open menu",
-    "closeMenu": "Close menu"
+    "openMenu": "Open menu"
   },
   "nav": {
     "home": "Home",
@@ -63,7 +62,6 @@
     "playlist": "Playlist",
     "contributor": "Contributor",
     "filterByName": "Filter by name…",
-    "select": "Select…",
     "search": "Search…",
     "pageOf": "page {page} of {total}",
     "passed": "(passed)",

@@ -24,7 +24,7 @@
     "@aws-sdk/lib-dynamodb": "^3.1130.0",
     "@lucide/vue": "^1.81.0",
     "@orgasm/backend-client": "file:../sdk-typescript/target/typescript-client",
-    "@supiik/pico-ui": "https://codeload.github.com/supiik/pico-ui/tar.gz/993ca908a4681708ac26622d3ec2623cd5973404",
+    "@supiik/pico-ui": "https://codeload.github.com/supiik/pico-ui/tar.gz/d15a70adb7addcca1be20876f707892f6050f421",
     "@tailwindcss/vite": "^4.3.0",
     "@vueuse/core": "^15.1.0",
     "aws-amplify": "^6.20.0",

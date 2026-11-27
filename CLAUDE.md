@@ -1001,8 +1001,9 @@ package `@supiik/pico-ui` (pinned to a commit tarball, `https://codeload.github.
 
 - **Theme:** `src/assets/index.css` only imports `@supiik/pico-ui/theme.css` (light + dark tokens, oklch) and adds
   `--color-destructive-foreground` for orgasm's own components. New colours go to pico-ui, not here.
-- **Components:** `components/ui/{button,table,input,label,textarea}/index.ts` re-export pico-ui (tables get zebra rows);
-  `dialog`, `sheet` and `select` stay orgasm's own (different props). orgasm keeps its own sidebar (customer app).
+- **Components:** `components/ui/{button,table,input,label,textarea,dialog,sheet,select}/index.ts` re-export pico-ui (tables get
+  zebra rows; `SheetContent`'s `title` is the screen-reader name; `Select` originally came from orgasm and moved to pico-ui).
+  orgasm keeps its own sidebar (customer app).
 - **Locale and theme:** vue-i18n stays; `setLocale` in `src/i18n.ts` also sets pico-ui's locale (same `locale` cookie) and
   `@supiik/pico-ui/prefs` takes `?lang=&theme=` from links coming from aquarium. `useTheme` wraps pico-ui `colorTheme`
   (same `theme` localStorage key).

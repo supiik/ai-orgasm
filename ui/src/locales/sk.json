@@ -2,8 +2,7 @@
   "app": {
     "title": "ORGAnized Spotify Mediabuilding",
     "brand": "Orgasm",
-    "openMenu": "Otvoriť menu",
-    "closeMenu": "Zavrieť menu"
+    "openMenu": "Otvoriť menu"
   },
   "nav": {
     "home": "Domov",
@@ -63,7 +62,6 @@
     "playlist": "Playlist",
     "contributor": "Prispievateľ",
     "filterByName": "Filtrovať podľa názvu…",
-    "select": "Vybrať…",
     "search": "Hľadať…",
     "pageOf": "strana {page} z {total}",
     "passed": "(uplynul)",
