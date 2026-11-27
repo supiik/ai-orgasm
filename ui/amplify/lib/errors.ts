@@ -22,6 +22,17 @@ export class NotLinkedError extends Error {
   }
 }
 
+/**
+ * The organization is suspended from aquarium's CRM (orgasm-admin POST /suspend) — every member request is refused
+ * (403 with `code: 'suspended'`) until it is resumed. The reason is internal and never sent to members.
+ */
+export class SuspendedError extends Error {
+  constructor(message = 'Organizácia je pozastavená. Kontaktujte podporu.') {
+    super(message)
+    this.name = 'SuspendedError'
+  }
+}
+
 /** Valid token, but the caller lacks the role the endpoint requires (e.g. the `admins` group). */
 export class ForbiddenError extends Error {
   constructor(message = 'Insufficient permissions') {

@@ -346,5 +346,10 @@
     "bannerGrace": "Your organization's licence expired on {date}. Full access ends on {until} — ask an organization admin to activate a new key.",
     "bannerExpired": "Your organization's licence has expired. The app is read-only until an organization admin activates a new key.",
     "bannerNone": "Your organization has no licence. The app is read-only until an organization admin activates a key."
+  },
+  "suspended": {
+    "title": "Organization suspended",
+    "body": "Your organization's access has been suspended. Your data is kept. Please contact support.",
+    "logout": "Sign out"
   }
 }

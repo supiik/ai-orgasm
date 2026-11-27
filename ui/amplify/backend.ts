@@ -266,8 +266,10 @@ for (const spec of fnSpecs) {
   const writes = new Set(spec.writes ?? [])
   // withAuth reads the organization licence on every non-GET request of a member (services/license.ts),
   // and joining/creating a member checks the cap — so every function that touches `contributors`
-  // also reads `licenses` (read-only unless listed in `writes`).
-  const tableKeys = spec.tables.includes('contributors') && !spec.tables.includes('licenses') ? [...spec.tables, 'licenses' as const] : spec.tables
+  // also reads `licenses` (read-only unless listed in `writes`). withAuth also checks the organization's suspension
+  // (services/suspension.ts) on every member request — so those functions read `organizations` too.
+  const extra = spec.tables.includes('contributors') ? (['licenses', 'organizations'] as const).filter((t) => !spec.tables.includes(t)) : []
+  const tableKeys = [...spec.tables, ...extra]
   for (const tableKey of tableKeys) {
     if (writes.has(tableKey)) tables[tableKey].grantReadWriteData(fn)
     else tables[tableKey].grantReadData(fn)

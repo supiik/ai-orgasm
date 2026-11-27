@@ -6,6 +6,7 @@ import { ConflictError, UpstreamError, ValidationError } from './errors'
 // user pool id — irrelevant to the pure helpers under test here.
 vi.mock('./auth', () => ({ verifyRequest: vi.fn(), ADMIN_GROUP: 'admins' }))
 vi.mock('./repositories/contributor', () => ({ findContributorByCognitoSub: vi.fn() }))
+vi.mock('./repositories/organization', () => ({ findOrganizationById: vi.fn(async () => ({ id: 3, slug: 'o', name: 'O' })) }))
 
 import { verifyRequest } from './auth'
 import { findContributorByCognitoSub } from './repositories/contributor'
@@ -194,5 +195,19 @@ describe('pageable', () => {
     { size: '10', page: '-1' },
   ])('rejects %j as a validation error', (query) => {
     expect(() => pageable(event(query))).toThrow(ValidationError)
+  })
+})
+
+describe('suspended organization', () => {
+  it('refuses every member request with 403 code suspended (reason never sent)', async () => {
+    const { findOrganizationById } = await import('./repositories/organization')
+    vi.mocked(verifyRequest).mockResolvedValue({ sub: 'cognito-sub-1', email: 'alice@example.com', groups: [] })
+    vi.mocked(findContributorByCognitoSub).mockResolvedValue({ id: 7n, tenantId: 3 } as any)
+    vi.mocked(findOrganizationById).mockResolvedValueOnce({ id: 3, slug: 'o', name: 'O', suspendedAt: '2026-11-27T10:00:00Z', suspendReason: 'porušenie' } as any)
+    const handler = withAuth('authenticated-with-contributor', 200, async () => ({ ok: true }))
+    const res = await handler({ headers: { authorization: 'Bearer x' }, requestContext: { http: { method: 'GET' } }, rawPath: '/x' } as any)
+    expect(res.statusCode).toBe(403)
+    expect(JSON.parse(res.body!)).toMatchObject({ code: 'suspended' })
+    expect(res.body).not.toContain('porušenie')
   })
 })

@@ -74,6 +74,15 @@ const loginRequired = computed(() =>
   <!-- Cognito login/link overlay — stays visible through "signed in but not yet linked" -->
   <CognitoLoginOverlay v-if="loginRequired && authMode === 'cognito'" />
 
+  <!-- Organization suspended from the CRM: nothing works until it is resumed (reason is internal) -->
+  <div v-if="authStore.orgSuspended" role="alert" class="fixed inset-0 z-[60] flex items-center justify-center bg-background/95 p-4">
+    <div class="bg-card rounded-lg border border-destructive/40 p-6 shadow-lg max-w-sm text-center space-y-4">
+      <h2 class="text-lg font-semibold">{{ t('suspended.title') }}</h2>
+      <p class="text-sm text-muted-foreground">{{ t('suspended.body') }}</p>
+      <Button variant="outline" @click="authStore.logout()">{{ t('suspended.logout') }}</Button>
+    </div>
+  </div>
+
   <!-- Session expired overlay -->
   <div v-if="authStore.sessionExpired" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
     <div class="bg-card rounded-lg border border-border p-6 shadow-lg max-w-sm text-center space-y-4">

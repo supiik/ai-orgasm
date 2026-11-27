@@ -17,6 +17,8 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const isAdmin = ref(false)
   const sessionExpired = ref(false)
+  /** organization suspended from the CRM (any API answered 403 code 'suspended') – App shows a full-page notice */
+  const orgSuspended = ref(false)
   const loading = ref(false)
   /**
    * Name of the organization the current contributor belongs to, shown above the current-user
@@ -176,5 +178,5 @@ export const useAuthStore = defineStore('auth', () => {
     return currentContributor.value.id === leadId
   }
 
-  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, loading, organizationName, isOrgAdmin, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
+  return { currentContributor, isAuthenticated, isAdmin, sessionExpired, orgSuspended, loading, organizationName, isOrgAdmin, load, loadCognitoSession, mockLogin, setCognitoContributor, logout, reauthenticate, isLeadOf }
 })

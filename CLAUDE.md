@@ -1039,6 +1039,16 @@ as a school licence in Sharpn: organization ↔ members like teacher ↔ student
   (only when enforced and not active), i18n `organization.license*`/`banner*`; MSW serves
   `/api/v1/organizations/license` with one seeded unused key `ORG-2222-3333-4444`.
 
+### Organization suspension (from aquarium's CRM)
+
+Added 2026-11-27 (Lambda API only). orgasm-admin's `POST /suspend` / `/resume` (contract `SuspendInput` in
+`@supiik/pico-security/contract`, superadmin only) sets/clears `suspendedAt`, `suspendedBy`, `suspendReason` on
+`OrganizationItem`. `withAuth` (`authenticated-with-contributor`) calls `assertNotSuspended` (`lib/services/suspension.ts`)
+on **every** request, reads included → `SuspendedError` → **403 `{ error, code: 'suspended' }`**; `link-contributor`
+refuses joining a suspended org. Hence every function that reads `contributors` also gets read on `organizations`
+(`backend.ts`). The reason is internal — never in a response. UI: `authorizedFetch` (`api-lambda.ts`) sets
+`authStore.orgSuspended` on such a 403 and `App.vue` shows a full-page notice with sign-out. Data stays; resume = back to normal.
+
 ### API versioning
 
 The backend uses Spring Boot 4's built-in API versioning (`ApiVersionConfigurer`), configured in `WebConfig`:

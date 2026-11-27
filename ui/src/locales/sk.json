@@ -346,5 +346,10 @@
     "bannerGrace": "Licencia vašej organizácie skončila {date}. Plný prístup trvá do {until} – požiadajte správcu organizácie o nový kľúč.",
     "bannerExpired": "Licencia vašej organizácie skončila. Aplikácia je len na čítanie, kým správca organizácie neaktivuje nový kľúč.",
     "bannerNone": "Vaša organizácia nemá licenciu. Aplikácia je len na čítanie, kým správca organizácie neaktivuje kľúč."
+  },
+  "suspended": {
+    "title": "Organizácia je pozastavená",
+    "body": "Prístup vašej organizácie je pozastavený. Dáta ostávajú uložené. Kontaktujte podporu.",
+    "logout": "Odhlásiť sa"
   }
 }

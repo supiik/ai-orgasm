@@ -1,10 +1,11 @@
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2, Context } from 'aws-lambda'
 import { ADMIN_GROUP, verifyRequest } from './auth'
-import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, UnauthorizedError, ValidationError, UpstreamError } from './errors'
+import { ConflictError, ForbiddenError, NotFoundError, NotLinkedError, SuspendedError, UnauthorizedError, ValidationError, UpstreamError } from './errors'
 import { Fields, addLogContext, log, runWithLogContext } from './logger'
 import { REQUEST_ID_HEADER, newSpanId, resolveRequestId, resolveTrace } from './tracing'
 import { findContributorByCognitoSub } from './repositories/contributor'
 import { assertWritable } from './services/license'
+import { assertNotSuspended } from './services/suspension'
 
 /**
  * Port of BaseHandler.java's AuthMode. 'public': no token check. 'authenticated': valid token
@@ -60,6 +61,8 @@ async function authenticate(mode: AuthMode, event: APIGatewayProxyEventV2, opts:
     ctx.contributorId = contributor.id
     // Opaque ids only — the Cognito email/sub stay out of the log context.
     addLogContext({ [Fields.TENANT_ID]: contributor.tenantId, [Fields.USER_ID]: contributor.id })
+    // Suspended organization (from the CRM): nothing at all, reads included – checked on every request.
+    await assertNotSuspended(contributor.tenantId)
     // Expired licence (after the grace period) = read-only: every write of a member is refused.
     const method = event.requestContext?.http?.method ?? 'GET'
     if (method !== 'GET' && method !== 'OPTIONS' && !opts.allowWithoutLicense) await assertWritable(contributor.tenantId)
@@ -127,6 +130,7 @@ async function handle(
     if (e instanceof ValidationError) return rejected(400, { errors: e.errors })
     if (e instanceof UnauthorizedError) return rejected(401, { error: e.message })
     if (e instanceof NotLinkedError) return rejected(403, { error: e.message })
+    if (e instanceof SuspendedError) return rejected(403, { error: e.message, code: 'suspended' })
     if (e instanceof ForbiddenError) return rejected(403, { error: e.message })
     if (e instanceof NotFoundError) return rejected(404, { error: e.message })
     if (e instanceof ConflictError) return rejected(409, { error: e.message })

@@ -62,6 +62,14 @@ export async function authorizedFetch(input: string, init?: RequestInit): Promis
       if (res.status === 401) authStore.sessionExpired = true
     }
   }
+  // organization suspended from the CRM: every member request answers 403 { code: 'suspended' }
+  if (res.status === 403) {
+    const body = (await res.clone().json().catch(() => null)) as { code?: string } | null
+    if (body?.code === 'suspended') {
+      const { useAuthStore } = await import('@/stores/auth')
+      useAuthStore().orgSuspended = true
+    }
+  }
   return res
 }
 

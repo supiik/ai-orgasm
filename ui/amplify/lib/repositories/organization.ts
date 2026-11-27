@@ -28,6 +28,13 @@ export interface OrganizationItem {
    * `listOrganizations()`, same as `allowedDomain`.
    */
   inviteToken?: string
+  /**
+   * Suspension from aquarium's CRM (written by orgasm-admin, POST /suspend; removed by /resume). While set,
+   * `withAuth` refuses every member request of the tenant (SuspendedError). The reason is internal.
+   */
+  suspendedAt?: string
+  suspendedBy?: string
+  suspendReason?: string
 }
 
 export async function findOrganizationById(id: number): Promise<OrganizationItem | undefined> {

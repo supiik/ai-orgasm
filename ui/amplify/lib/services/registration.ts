@@ -1,4 +1,4 @@
-import { ConflictError, NotFoundError, ValidationError } from '../errors'
+import { ConflictError, NotFoundError, SuspendedError, ValidationError } from '../errors'
 import { generateId } from '../idGenerator'
 import { findContributorByEmail, saveContributor, type ContributorItem } from '../repositories/contributor'
 import { findOrganizationByInviteToken, findOrganizationBySlug, type OrganizationItem } from '../repositories/organization'
@@ -77,6 +77,8 @@ export async function linkContributor(
 ): Promise<ContributorResponse> {
   const org = await resolveOrganization(request)
   assertEmailAllowed(org, email)
+  // suspended from the CRM: nobody new joins until it is resumed
+  if (org.suspendedAt) throw new SuspendedError()
 
   const existing = await findContributorByEmail(org.id, email)
   const item = existing ? await attach(existing, cognitoSub) : await create(request, org.id, email, cognitoSub)
